@@ -24,6 +24,7 @@ const DesktopEngine = {
         if (name === 'pause') onPauseChange(!data);
         if (name === 'time-pos' && data !== null) onTimeUpdate(data);
       });
+      
     } catch (err) {
       console.error("MPV init failed:", err);
     }
