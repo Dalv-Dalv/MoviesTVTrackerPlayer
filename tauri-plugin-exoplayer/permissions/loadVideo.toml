@@ -1,0 +1,6 @@
+"$schema" = "schemas/schema.json"
+
+[[permission]]
+identifier = "allow-loadVideo"
+description = "Allows React to trigger the Kotlin ExoPlayer commands"
+commands.allow = ["loadVideo", "playPause", "seek"]

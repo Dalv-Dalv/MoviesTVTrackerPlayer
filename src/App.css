@@ -1,5 +1,109 @@
 @import "tailwindcss";
 
-body, html {
-  background-color: transparent !important;
+body,
+html {
+	background-color: transparent !important;
+}
+
+@layer base {
+	* {
+		box-sizing: border-box;
+		margin: 0;
+		padding: 0;
+	}
+
+	html,
+	body {
+		@apply bg-background;
+        overscroll-behavior: none;
+	}
+
+	input[type="checkbox"] {
+		@apply appearance-none w-4 h-4 rounded border border-divider bg-surface cursor-pointer shrink-0 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 relative;
+	}
+
+	input[type="checkbox"]:checked {
+		@apply bg-primary border-primary;
+		background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e");
+		background-size: 100% 100%;
+		background-position: center;
+		background-repeat: no-repeat;
+	}
+}
+
+@layer utilities {
+    .noselect {
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        -khtml-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+    }
+}
+
+:root {
+    --bg-primary: #f8fafc;
+    --surface: #ffffff;
+    --surface-elevated: #ffffff; 
+    
+    --text-primary: #0f172a;
+    --text-muted: #64748b;
+    --text-inverted: #ffffff;
+
+    --primary: hsl(30, 60%, 55%);
+    --primary-hover: hsl(30, 60%, 45%);
+    
+    --secondary: #8AEA92;
+    --accent: #FFA62B;
+    --success: #10b981;
+    --failure: #ef4444;
+    
+    --divider: #e2e8f0;
+    --ring: var(--primary);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg-primary: #0f172a; 
+        --surface: #1e293b;
+        --surface-elevated: #334155;
+
+        --text-primary: hsl(210, 40%, 86%);
+        --text-muted: hsl(215, 20%, 65%);
+        --text-inverted: #ffffff;
+
+        --primary: hsl(30, 60%, 45%);
+        --primary-hover: hsl(30, 70%, 55%);
+        
+        --secondary: #8AEA92;
+        --accent: #FFA62B;
+        --success: #10b981;
+        --failure: #ef4444;
+
+        --divider: #334155;
+        --ring: var(--primary);
+    }
+}
+
+
+@theme {
+    --color-background: var(--bg-primary);
+    --color-surface: var(--surface);
+    --color-elevated: var(--surface-elevated);
+    
+    --color-body: var(--text-primary);
+    --color-muted: var(--text-muted);
+    --color-inverted: var(--text-inverted);
+    
+    --color-primary: var(--primary);
+    --color-primary-hover: var(--primary-hover);
+    --color-secondary: var(--secondary);
+    --color-accent: var(--accent);
+    
+    --color-success: var(--success);
+    --color-failure: var(--failure);
+    
+    --color-divider: var(--divider);
+    --color-ring: var(--ring);
 }
