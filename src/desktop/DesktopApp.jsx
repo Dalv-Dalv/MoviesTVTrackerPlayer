@@ -10,7 +10,7 @@ import { useWakeUI, useFullscreen } from '../shared/hooks/';
 
 const PlayerButton = ({ children, onClick, className = '', ...props}) => {
     return (
-        <button className={`bg-black/10 hover:bg-black/40 p-1.5 rounded-sm transition-colors duration-200 ${className}`}
+        <button tabIndex={-1} className={`bg-black/10 hover:bg-black/40 p-1.5 rounded-sm transition-colors duration-200 ${className}`}
             onClick={onClick}
             {...props}>
 
@@ -61,7 +61,7 @@ function DesktopApp() {
                                  ${showControls ? 'opacity-100' : 'opacity-0'} transition-opacity duration-200`} onMouseMove={wakeUI}>
                     <div className='w-8 h-8 bg-red-500/0'></div>
 
-                    <div className={`w-full h-full bg-transparent ${showControls ? 'cursor-default' : 'cursor-none'}`} onClick={togglePlay} onDoubleClick={toggleFullscreen}/>
+                    <div className={`w-full h-full bg-transparent ${showControls ? 'cursor-default' : 'cursor-none'}`} onClick={togglePlay} onDoubleClick={(e) => toggleFullscreen()}/>
                     
                     <div className='w-full bg-[linear-gradient(to_top,rgba(0,0,0,0.5)_30%,transparent_100%),radial-gradient(6000px_circle_at_50%_6000px,rgba(0,0,0,.85)_99%,transparent_100%)]
                         flex flex-col justify-center text-white items-stretch' onMouseEnter={handleInteractiveEnter} onMouseLeave={handleInteractiveLeave}>

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useSettings } from "../SettingsContext";
 
-export function useWakeUI(timeoutMs = 1000) {
+export function useWakeUI() {
+    const { settings } = useSettings();
     const [showControls, setShowControls] = useState(true);
     const timeoutRef = useRef(null);
     const isHoveringInteractiveRef = useRef(false);
@@ -11,8 +13,10 @@ export function useWakeUI(timeoutMs = 1000) {
         
         timeoutRef.current = setTimeout(() => {
             if (!isHoveringInteractiveRef.current) setShowControls(false);
-        }, timeoutMs);
-    }, [timeoutMs]);
+        }, settings.wakeUITimeout);
+
+        console.log(`Settings wake timeout: ${settings.wakeUITimeout}`);
+    }, [settings.wakeUITimeout]);
 
     useEffect(() => {
         wakeUI();

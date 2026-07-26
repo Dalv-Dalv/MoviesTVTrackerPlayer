@@ -24,17 +24,17 @@ fn get_file_size(path: String) -> Result<u64, String> {
 
 #[tauri::command]
 fn read_file_chunk(path: String, offset: u64, size: usize) -> Result<Vec<u8>, String> {
-    let mut file = std::fs::File::open(&path)
-        .map_err(|e| format!("Failed to open file: {}", e))?;
-    
+    let mut file = std::fs::File::open(&path).map_err(|e| format!("Failed to open file: {}", e))?;
+
     // Jump to the exact byte offset mediainfo.js requested
     file.seek(SeekFrom::Start(offset))
         .map_err(|e| format!("Failed to seek: {}", e))?;
-        
+
     let mut buffer = vec![0; size];
-    let bytes_read = file.read(&mut buffer)
+    let bytes_read = file
+        .read(&mut buffer)
         .map_err(|e| format!("Failed to read chunk: {}", e))?;
-        
+
     // Shrink buffer if we read less than requested (e.g., end of file)
     buffer.truncate(bytes_read);
     Ok(buffer)
@@ -43,6 +43,7 @@ fn read_file_chunk(path: String, offset: u64, size: usize) -> Result<Vec<u8>, St
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let mut builder = tauri::Builder::default()
+        .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(prevent_default())
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_dialog::init())
@@ -55,10 +56,7 @@ pub fn run() {
     }
 
     builder
-        .invoke_handler(tauri::generate_handler![
-            get_file_size,
-            read_file_chunk
-        ])
+        .invoke_handler(tauri::generate_handler![get_file_size, read_file_chunk])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

@@ -11,6 +11,11 @@ html {
 		margin: 0;
 		padding: 0;
 	}
+    
+    *:focus {
+        outline: none !important;
+    }
+
 
 	html,
 	body {
@@ -33,6 +38,15 @@ html {
 		background-position: center;
 		background-repeat: no-repeat;
 	}
+
+    input, textarea {
+        user-select: auto;
+        -webkit-user-select: auto;
+    }
+
+    img, a {
+        -webkit-user-drag: none;
+    }
 }
 
 @layer utilities {

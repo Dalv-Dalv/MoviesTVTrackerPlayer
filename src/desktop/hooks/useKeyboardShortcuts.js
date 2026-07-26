@@ -8,8 +8,10 @@ export function useKeyboardShortcuts({ togglePlay, toggleFullscreen }) {
 
             switch (e.key) {
                 case ' ': e.preventDefault(); togglePlay(); break;
-                case 'ArrowRight': VideoPlayer.seek(10); break;
-                case 'ArrowLeft': VideoPlayer.seek(-10); break;
+                case 'ArrowRight': VideoPlayer.seek(5); break;
+                case 'ArrowLeft': VideoPlayer.seek(-5); break;
+                case 'ArrowUp': VideoPlayer.seek(60); break;
+                case 'ArrowDown': VideoPlayer.seek(-60); break;
                 case 'F':
                 case 'f': e.shiftKey ? console.log("TODO: Smaller subs") : toggleFullscreen(); break;
                 case 'Escape': toggleFullscreen(false); break;

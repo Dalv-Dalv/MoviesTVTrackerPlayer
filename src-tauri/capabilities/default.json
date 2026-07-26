@@ -10,6 +10,7 @@
     "opener:default",
     "os:default",
     "dialog:default",
-    "exoplayer:default"
+    "exoplayer:default",
+    "store:default"
   ]
 }
