@@ -1,14 +1,12 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import parseVideo from 'video-name-parser';
+import React, { useState } from 'react';
 import { open } from '@tauri-apps/plugin-dialog';
 import { VideoPlayer } from '../shared/VideoEngine';
-import { usePlayerShortcuts } from './usePlayerShortcuts';
-import { extractVideoMetadata } from '../shared/MetadataExtractor';
 import { ArrowsInSimpleIcon, ArrowsOutSimpleIcon, ClosedCaptioningIcon, HeadphonesIcon, MusicNoteIcon, PauseIcon, PlayIcon, SkipBackIcon, SkipForwardIcon } from '@phosphor-icons/react';
-import { getCurrentWindow } from '@tauri-apps/api/window';
-import OutlinedIcon from '../shared/IconUtilies';
 
-const appWindow = getCurrentWindow();
+import { formatTime } from '../shared/PlayerUtils';
+
+import { useKeyboardShortcuts, useVideoScrubber, useVideoState } from './hooks/';
+import { useWakeUI, useFullscreen } from '../shared/hooks/';
 
 const PlayerButton = ({ children, onClick, className = '', ...props}) => {
     return (
@@ -19,100 +17,28 @@ const PlayerButton = ({ children, onClick, className = '', ...props}) => {
             {children}
         </button>
     );
-}
+} 
 
 function DesktopApp() {
-    const [isPlaying, setIsPlaying] = useState(true);
     const [hasVideo, setHasVideo] = useState(false);
-    const [currentTime, setCurrentTime] = useState(0);
-    const [duration, setDuration] = useState(0);
     const [showRemainingTime, setShowRemainingTime] = useState(true);
-    const [isFullscreen, setIsFullscreen] = useState(false);
 
-    const [aid, setAid] = useState(1);
-    const [audioTracks, setAudioTracks] = useState([]);
-    const [sid, setSid] = useState(1);
-    const [subTracks, setSubTracks] = useState([]);
-    
-    const lastSecondRef = useRef(-1);
+    const { isPlaying, currentTime, setCurrentTime, duration, audio, subs } = useVideoState();
+    const { isFullscreen, toggleFullscreen } = useFullscreen();
+    const { showControls, wakeUI, handleInteractiveEnter, handleInteractiveLeave } = useWakeUI();
+    const { progressBarRef, isScrubbing, handleScrub } = useVideoScrubber(duration, setCurrentTime);
 
+    const togglePlay = () => VideoPlayer.playPause();
+    const cycleAudioTracks = () => VideoPlayer.cycleAudioTracks();
+    const cycleSubtitles = () => VideoPlayer.cycleSubtitles();
+    const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
-
-    const [showControls, setShowControls] = useState(true);
-    
-    const timeoutRef = useRef(null);
-    const isHoveringInteractiveRef = useRef(false);
-
-    const wakeUI = useCallback(() => {
-        setShowControls(true);
-
-        if (timeoutRef.current) clearTimeout(timeoutRef.current);
-        
-        timeoutRef.current = setTimeout(() => {
-            if (!isHoveringInteractiveRef.current) setShowControls(false);
-        }, 1000);
-    }, []);
-
-    useEffect(() => {
-        wakeUI();
-        return () => clearTimeout(timeoutRef.current);
-    }, [wakeUI]);
-
-    const handleInteractiveEnter = () => {
-        isHoveringInteractiveRef.current = true;
-    };
-
-    const handleInteractiveLeave = () => {
-        isHoveringInteractiveRef.current = false;
-        wakeUI();
-    };
-
-
-
-
-    useEffect(() => {
-        VideoPlayer.init({
-            onPlayStateChange: (playing) => setIsPlaying(playing),
-
-            onDuration: (totalSeconds) => {
-                setDuration(Math.floor(totalSeconds));
-            },
-
-            onTimeUpdate: (rawTime) => {
-                const currentSecond = Math.floor(rawTime);
-                
-                if (currentSecond !== lastSecondRef.current) {
-                    lastSecondRef.current = currentSecond;
-                    setCurrentTime(currentSecond);
-                }
-            },
-
-            onEnd: () => {
-                console.log("Video finished");
-                setIsPlaying(false);
-            },
-
-            onTrackListChange: ({ audio, subs }) => {
-                console.log(audio);
-                console.log(subs);
-                setAudioTracks(audio);
-                setSubTracks(subs);
-            },
-
-            onSubtitleChange: (sid) => { setSid(sid); },
-
-            onAudioChange: (aid) => { setAid(aid); },
-        });
-    }, []);
+    useKeyboardShortcuts({ togglePlay, toggleFullscreen });
 
     const loadVideo = async () => {
         const filePath = await open({
-            multiple: false,
-            directory: false,
-            filters: [{
-                name: 'Movies',
-                extensions: ['mp4', 'mkv', 'webm', 'mov']
-            }]
+            multiple: false, directory: false,
+            filters: [{ name: 'Movies', extensions: ['mp4', 'mkv', 'webm', 'mov'] }]
         });
 
         if (filePath) {
@@ -120,131 +46,6 @@ function DesktopApp() {
             setHasVideo(true);
         }
     };
-
-    const togglePlay = () => VideoPlayer.playPause();
-    const skipForward = () => VideoPlayer.seek(10);
-    const skipBack = () => VideoPlayer.seek(-10);
-    const toggleFullscreen = async (fullscreen) => {
-        const newState = fullscreen === undefined ? !(await appWindow.isFullscreen()) : fullscreen;
-        await appWindow.setFullscreen(newState);
-        
-        setIsFullscreen(newState);
-    };
-    const cycleAudioTracks = () => VideoPlayer.cycleAudioTracks();
-    const cycleSubtitles = () => VideoPlayer.cycleSubtitles();
-
-    useEffect(() => {
-        let unlistenResize;
-
-        const setupWindowListeners = async () => {
-            unlistenResize = await appWindow.onResized(async () => {
-                const isNowFullscreen = await appWindow.isFullscreen();
-                
-                setIsFullscreen(prev => {
-                    if (prev !== isNowFullscreen) return isNowFullscreen;
-                    return prev;
-                });
-            });
-        };
-
-        setupWindowListeners();
-
-        return () => { if (unlistenResize) unlistenResize(); };
-    }, []);
-
-
-
-
-    const progressBarRef = useRef(null);
-    const isScrubbing = useRef(false);
-
-    const handleScrub = useCallback((e) => {
-        if (!progressBarRef.current || duration === 0) return;
-        
-        const rect = progressBarRef.current.getBoundingClientRect();
-        const rawPercent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)) * 100.0;
-        const safePercent = rawPercent.toFixed(3);
-        const newTime = (rawPercent / 100) * duration;
-
-        setCurrentTime(newTime);
-        
-        VideoPlayer.seekToPercentage(safePercent);
-    }, [duration]);
-
-    useEffect(() => {
-        const onMouseMove = (e) => {
-            if (isScrubbing.current) handleScrub(e);
-        };
-        
-        const onMouseUp = () => {
-            isScrubbing.current = false;
-        };
-
-        window.addEventListener('mousemove', onMouseMove);
-        window.addEventListener('mouseup', onMouseUp);
-
-        return () => {
-            window.removeEventListener('mousemove', onMouseMove);
-            window.removeEventListener('mouseup', onMouseUp);
-        };
-    }, [handleScrub]);
-
-    const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
-
-    const formatTime = (secs) => {
-        const h = Math.floor(secs / 3600);
-        const m = Math.floor((secs % 3600) / 60);
-        const s = Math.floor(secs % 60);
-
-        if (h > 0) {
-            return `${h}:${m.toString().padStart(2, '0')}:${s
-                .toString()
-                .padStart(2, '0')}`;
-        }
-
-        return `${m}:${s.toString().padStart(2, '0')}`;
-    };
-
-
-
-
-    useEffect(() => {
-        const handleKeyDown = (e) => {
-            if (e.target.tagName.toLowerCase() === 'input') return;
-
-            switch (e.key) {
-                case ' ':
-                    e.preventDefault();
-                    VideoPlayer.playPause();
-                    break;
-
-                case 'ArrowRight':
-                    VideoPlayer.seek(10);
-                    break;
-
-                case 'ArrowLeft':
-                    VideoPlayer.seek(-10);
-                    break;
-
-                case 'F':
-                case 'f':
-                    if (e.shiftKey) {
-                        console.log("TODO: Make subtitles smaller");
-                    } else {
-                        toggleFullscreen();
-                    }
-                    break;
-
-                case 'Escape':
-                    toggleFullscreen(false);
-                    break;
-            }
-        };
-
-        window.addEventListener('keydown', handleKeyDown);
-
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, []);
 
     return (
         <div className={`h-screen w-screen flex flex-col items-center justify-end transition-colors duration-500 ${hasVideo ? 'bg-transparent' : 'bg-neutral-900'}`}>
@@ -267,7 +68,6 @@ function DesktopApp() {
                         
                         <div ref={progressBarRef} className='mx-4 py-2 group cursor-pointer' onMouseDown={(e) => {
                             isScrubbing.current = true;
-                            console.log('hello??');
                             handleScrub(e);
                         }}>
                             <div className='relative h-1 rounded group-hover:h-1.5 transition-[height] duration-100 overflow-hidden'>
@@ -286,14 +86,6 @@ function DesktopApp() {
                                     )}
                                 </PlayerButton>
 
-                                {/* <PlayerButton>
-                                    <SkipBackIcon size={25} weight='fill'/>
-                                </PlayerButton>
-
-                                <PlayerButton>
-                                    <SkipForwardIcon size={25} weight='fill'/>
-                                </PlayerButton> */}
-                            
                                 <span className='font-semibold bg-black/10 px-3 py-1.5 rounded-sm'>
                                     {formatTime(currentTime)}
                                 </span>
@@ -305,13 +97,13 @@ function DesktopApp() {
                                 </PlayerButton>
                                 
                                 <PlayerButton className='flex gap-1 justify-center items-center' onClick={cycleAudioTracks}>
-                                    {aid === null ? (<></>) : (<span className='font-semibold'>{aid}/{audioTracks.length}</span>)}
-                                    <HeadphonesIcon size={25} weight={`${aid === null ? 'regular' : 'fill'}`}/>
+                                    {audio.id === null ? (<></>) : (<span className='font-semibold'>{audio.id}/{audio.tracks.length}</span>)}
+                                    <HeadphonesIcon size={25} weight={`${audio.id === null ? 'regular' : 'fill'}`}/>
                                 </PlayerButton>
 
                                 <PlayerButton className='flex gap-1 justify-center items-center' onClick={cycleSubtitles}>
-                                    {sid === null ? (<></>) : (<span className='font-semibold'>{sid}/{subTracks.length}</span>)}
-                                    <ClosedCaptioningIcon size={25} weight={`${sid === null ? 'regular' : 'fill'}`}/>
+                                    {subs.id === null ? (<></>) : (<span className='font-semibold'>{subs.id}/{subs.tracks.length}</span>)}
+                                    <ClosedCaptioningIcon size={25} weight={`${subs.id === null ? 'regular' : 'fill'}`}/>
                                 </PlayerButton>
 
                                 <PlayerButton onClick={(e) => toggleFullscreen()}>
@@ -325,26 +117,6 @@ function DesktopApp() {
                         </div>
                     </div>
                 </div>
-                // <div className="bg-neutral-950/85 p-4 rounded-2xl flex flex-col items-center gap-2 border border-white/15 shadow-[0_8px_32px_rgba(0,0,0,0.5)] shadow-inner-[inset_0_1px_0_rgba(255,255,255,0.1)] w-[400px]">
-
-                //     <div className="text-emerald-400 font-mono text-xl tracking-widest font-bold">
-                //         {formatTime(currentTime)}
-                //     </div>
-
-                //     <div className="flex gap-4 w-full justify-center mt-2">
-                //         <button onClick={skipBack} className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded font-bold transition">
-                //             -10s
-                //         </button>
-
-                //         <button onClick={togglePlay} className="bg-emerald-500 hover:bg-emerald-400 text-black px-8 py-2 rounded font-bold transition w-32">
-                //             {isPlaying ? "PAUSE" : "PLAY"}
-                //         </button>
-
-                //         <button onClick={skipForward} className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded font-bold transition">
-                //             +10s
-                //         </button>
-                //     </div>
-                // </div>
             )}
         </div>
     );
