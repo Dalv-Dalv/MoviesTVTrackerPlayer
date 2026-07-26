@@ -1,6 +1,6 @@
 import { type } from '@tauri-apps/plugin-os';
 import { invoke } from '@tauri-apps/api/core';
-import { init, command, observeProperties } from 'tauri-plugin-libmpv-api';
+import { init, command, observeProperties, getProperty } from 'tauri-plugin-libmpv-api';
 
 const OBSERVED_PROPERTIES = [
     ['pause', 'flag'],
@@ -8,7 +8,10 @@ const OBSERVED_PROPERTIES = [
     ['duration', 'double', 'none'],
     ['filename', 'string', 'none'],
     ['eof-reached', 'flag'],
-    ['sub-text', 'string', 'none'] // Or sub-text-ass for more subtitle data
+    ['sub-text', 'string', 'none'], // Or sub-text/ass for more subtitle data
+    ['track-list', 'node'],
+    ['aid', 'int64', 'none'],
+    ['sid', 'int64', 'none'],
 ]
 const mpvConfig = {
     initialOptions: {
@@ -39,14 +42,35 @@ const DesktopEngine = {
             if (name === 'eof-reached' && data === true && handlers.onEnd)
                 handlers.onEnd();
 
-            if (name === 'sub-text') {
-                console.log(data);
+            if (name === 'sub-text' && handlers.onSubtitle)
+                handlers.onSubtitle(data);
+
+            if (name === 'track-list' && data && handlers.onTrackListChange) {
+                const audioTracks = data.filter(track => track.type === 'audio');
+                const subTracks = data.filter(track => track.type === 'sub');
+                
+                handlers.onTrackListChange({ audio: audioTracks, subs: subTracks });
             }
+
+            if (name === 'sid' && handlers.onSubtitleChange)
+                handlers.onSubtitleChange(data);
+            
+            if (name === 'aid' && handlers.onAudioChange)
+                handlers.onAudioChange(data);
         });
     },
     load: async (url) => await command('loadfile', [url]),
     playPause: async () => await command('cycle', ['pause']),
-    seek: async (seconds) => await command('seek', [seconds.toString(), 'relative'])
+    seek: async (seconds) => await command('seek', [seconds.toString(), 'relative']),
+    seekToPercentage: async (percentage) => await command('seek', [percentage.toString(), 'absolute-percent']),
+
+    addSubtitle: async (url) => await command('sub-add', [url]),
+
+    setAudioTrack: async (id) => await command('set', ['aid', id.toString()]),
+    setSubtitleTrack: async (id) => await command('set', ['sid', id.toString()]),
+
+    cycleAudioTracks: async (upDown = 'up') => await command('cycle', ['aid', upDown]),
+    cycleSubtitles: async (upDown = 'up') => await command('cycle', ['sid', upDown]),
 };
 
 const AndroidEngine = {

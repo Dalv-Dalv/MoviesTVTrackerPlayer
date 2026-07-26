@@ -4,19 +4,37 @@ import { open } from '@tauri-apps/plugin-dialog';
 import { VideoPlayer } from '../shared/VideoEngine';
 import { usePlayerShortcuts } from './usePlayerShortcuts';
 import { extractVideoMetadata } from '../shared/MetadataExtractor';
-import { ArrowsOutSimpleIcon, PauseIcon, SkipBackIcon, SkipForwardIcon } from '@phosphor-icons/react';
+import { ArrowsInSimpleIcon, ArrowsOutSimpleIcon, ClosedCaptioningIcon, HeadphonesIcon, MusicNoteIcon, PauseIcon, PlayIcon, SkipBackIcon, SkipForwardIcon } from '@phosphor-icons/react';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import OutlinedIcon from '../shared/IconUtilies';
 
+const appWindow = getCurrentWindow();
+
+const PlayerButton = ({ children, onClick, className = '', ...props}) => {
+    return (
+        <button className={`bg-black/10 hover:bg-black/40 p-1.5 rounded-sm transition-colors duration-200 ${className}`}
+            onClick={onClick}
+            {...props}>
+
+            {children}
+        </button>
+    );
+}
+
 function DesktopApp() {
-    const [isPlaying, setIsPlaying] = useState(false);
+    const [isPlaying, setIsPlaying] = useState(true);
     const [hasVideo, setHasVideo] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
+    const [showRemainingTime, setShowRemainingTime] = useState(true);
+    const [isFullscreen, setIsFullscreen] = useState(false);
 
+    const [aid, setAid] = useState(1);
+    const [audioTracks, setAudioTracks] = useState([]);
+    const [sid, setSid] = useState(1);
+    const [subTracks, setSubTracks] = useState([]);
+    
     const lastSecondRef = useRef(-1);
-
-    usePlayerShortcuts();
-
 
 
 
@@ -32,7 +50,7 @@ function DesktopApp() {
         
         timeoutRef.current = setTimeout(() => {
             if (!isHoveringInteractiveRef.current) setShowControls(false);
-        }, 3000);
+        }, 1000);
     }, []);
 
     useEffect(() => {
@@ -46,7 +64,7 @@ function DesktopApp() {
 
     const handleInteractiveLeave = () => {
         isHoveringInteractiveRef.current = false;
-        wakeAndResetTimer();
+        wakeUI();
     };
 
 
@@ -72,7 +90,18 @@ function DesktopApp() {
             onEnd: () => {
                 console.log("Video finished");
                 setIsPlaying(false);
-            }
+            },
+
+            onTrackListChange: ({ audio, subs }) => {
+                console.log(audio);
+                console.log(subs);
+                setAudioTracks(audio);
+                setSubTracks(subs);
+            },
+
+            onSubtitleChange: (sid) => { setSid(sid); },
+
+            onAudioChange: (aid) => { setAid(aid); },
         });
     }, []);
 
@@ -87,25 +116,6 @@ function DesktopApp() {
         });
 
         if (filePath) {
-            const fileName = filePath.split(/[/\\]/).pop();
-            // console.log(parseVideo(fileName));
-
-            // const metadata = await extractVideoMetadata(filePath);
-            // const tracks = metadata.media.track;
-
-            // const generalTrack = tracks.find(t => t['@type'] === 'General');
-            // const durationSeconds = parseFloat(generalTrack.Duration);
-            // const videoTrack = tracks.find(t => t['@type'] === 'Video');
-            // const audioTracks = tracks.filter(t => t['@type'] === 'Audio');
-            // const subtitleTracks = tracks.filter(t => t['@type'] === 'Text');
-
-            // console.log("Is 4K?", videoTrack.Width >= 3840);
-            // console.log("Is HDR?", videoTrack.HDR_Format !== undefined);
-            // console.log(`Duration: ${durationSeconds} seconds`);
-
-            // console.log("Audio Tracks:", audioTracks.map(a => a.Language || 'Unknown'));
-            // console.log("Subtitles:", subtitleTracks.map(s => s.Language || 'Unknown'));
-
             await VideoPlayer.load(filePath);
             setHasVideo(true);
         }
@@ -114,11 +124,77 @@ function DesktopApp() {
     const togglePlay = () => VideoPlayer.playPause();
     const skipForward = () => VideoPlayer.seek(10);
     const skipBack = () => VideoPlayer.seek(-10);
+    const toggleFullscreen = async (fullscreen) => {
+        const newState = fullscreen === undefined ? !(await appWindow.isFullscreen()) : fullscreen;
+        await appWindow.setFullscreen(newState);
+        
+        setIsFullscreen(newState);
+    };
+    const cycleAudioTracks = () => VideoPlayer.cycleAudioTracks();
+    const cycleSubtitles = () => VideoPlayer.cycleSubtitles();
+
+    useEffect(() => {
+        let unlistenResize;
+
+        const setupWindowListeners = async () => {
+            unlistenResize = await appWindow.onResized(async () => {
+                const isNowFullscreen = await appWindow.isFullscreen();
+                
+                setIsFullscreen(prev => {
+                    if (prev !== isNowFullscreen) return isNowFullscreen;
+                    return prev;
+                });
+            });
+        };
+
+        setupWindowListeners();
+
+        return () => { if (unlistenResize) unlistenResize(); };
+    }, []);
+
+
+
+
+    const progressBarRef = useRef(null);
+    const isScrubbing = useRef(false);
+
+    const handleScrub = useCallback((e) => {
+        if (!progressBarRef.current || duration === 0) return;
+        
+        const rect = progressBarRef.current.getBoundingClientRect();
+        const rawPercent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)) * 100.0;
+        const safePercent = rawPercent.toFixed(3);
+        const newTime = (rawPercent / 100) * duration;
+
+        setCurrentTime(newTime);
+        
+        VideoPlayer.seekToPercentage(safePercent);
+    }, [duration]);
+
+    useEffect(() => {
+        const onMouseMove = (e) => {
+            if (isScrubbing.current) handleScrub(e);
+        };
+        
+        const onMouseUp = () => {
+            isScrubbing.current = false;
+        };
+
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mouseup', onMouseUp);
+
+        return () => {
+            window.removeEventListener('mousemove', onMouseMove);
+            window.removeEventListener('mouseup', onMouseUp);
+        };
+    }, [handleScrub]);
+
+    const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
     const formatTime = (secs) => {
         const h = Math.floor(secs / 3600);
         const m = Math.floor((secs % 3600) / 60);
-        const s = secs % 60;
+        const s = Math.floor(secs % 60);
 
         if (h > 0) {
             return `${h}:${m.toString().padStart(2, '0')}:${s
@@ -128,6 +204,47 @@ function DesktopApp() {
 
         return `${m}:${s.toString().padStart(2, '0')}`;
     };
+
+
+
+
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.target.tagName.toLowerCase() === 'input') return;
+
+            switch (e.key) {
+                case ' ':
+                    e.preventDefault();
+                    VideoPlayer.playPause();
+                    break;
+
+                case 'ArrowRight':
+                    VideoPlayer.seek(10);
+                    break;
+
+                case 'ArrowLeft':
+                    VideoPlayer.seek(-10);
+                    break;
+
+                case 'F':
+                case 'f':
+                    if (e.shiftKey) {
+                        console.log("TODO: Make subtitles smaller");
+                    } else {
+                        toggleFullscreen();
+                    }
+                    break;
+
+                case 'Escape':
+                    toggleFullscreen(false);
+                    break;
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
 
     return (
         <div className={`h-screen w-screen flex flex-col items-center justify-end transition-colors duration-500 ${hasVideo ? 'bg-transparent' : 'bg-neutral-900'}`}>
@@ -139,32 +256,71 @@ function DesktopApp() {
                     </button>
                 </div>
             ) : (
-                <div className='relative w-full h-full flex items-center flex-col justify-between' onMouseMove={wakeUI}>
+                <div className={`relative w-full h-full flex items-center flex-col justify-between noselect
+                                 ${showControls ? 'opacity-100' : 'opacity-0'} transition-opacity duration-200`} onMouseMove={wakeUI}>
                     <div className='w-8 h-8 bg-red-500/0'></div>
+
+                    <div className={`w-full h-full bg-transparent ${showControls ? 'cursor-default' : 'cursor-none'}`} onClick={togglePlay} onDoubleClick={toggleFullscreen}/>
+                    
                     <div className='w-full bg-[linear-gradient(to_top,rgba(0,0,0,0.5)_30%,transparent_100%),radial-gradient(6000px_circle_at_50%_6000px,rgba(0,0,0,.85)_99%,transparent_100%)]
-                        flex flex-col justify-center text-body items-stretch'>
+                        flex flex-col justify-center text-white items-stretch' onMouseEnter={handleInteractiveEnter} onMouseLeave={handleInteractiveLeave}>
                         
-                        <div className='py-2 group cursor-pointer'>
-                            <div className='bg-red-500 h-1 mx-4 rounded group-hover:h-1.5 transition-[height] duration-100 border border-red-400'/>
+                        <div ref={progressBarRef} className='mx-4 py-2 group cursor-pointer' onMouseDown={(e) => {
+                            isScrubbing.current = true;
+                            console.log('hello??');
+                            handleScrub(e);
+                        }}>
+                            <div className='relative h-1 rounded group-hover:h-1.5 transition-[height] duration-100 overflow-hidden'>
+                                <div className='absolute inset-0 bg-white/40 group-hover:bg-white/60 transition-colors duration-100 border border-white/10 group-hover:border-white/30'/>
+                                <div className='absolute inset-0 bg-red-500 border border-red-400/50' style={{width: `${progress}%`}}/>
+                            </div>
                         </div>
 
-                        <div className='px-6 pb-4 flex justify-between items-center'>
+                        <div className='px-6 pb-4 pt-1 flex justify-between items-center'>
                             <div className='flex justify-between items-center gap-2'>
-                                <PauseIcon size={30} weight='fill'/>
-                                <SkipBackIcon size={30} weight='fill'/>
-                                <SkipForwardIcon size={30} weight='fill'/>
+                                <PlayerButton onClick={togglePlay}>
+                                    {isPlaying ? (
+                                        <PauseIcon size={25} weight='fill'/>
+                                    ) : (
+                                        <PlayIcon size={25} weight='fill' className='-translate-x-0.5'/>
+                                    )}
+                                </PlayerButton>
 
-                                <span className='text-lg font-semibold'>
+                                {/* <PlayerButton>
+                                    <SkipBackIcon size={25} weight='fill'/>
+                                </PlayerButton>
+
+                                <PlayerButton>
+                                    <SkipForwardIcon size={25} weight='fill'/>
+                                </PlayerButton> */}
+                            
+                                <span className='font-semibold bg-black/10 px-3 py-1.5 rounded-sm'>
                                     {formatTime(currentTime)}
                                 </span>
                             </div>
 
                             <div className='flex justify-between items-center gap-2'>
-                                <span className='text-lg font-semibold'>
-                                    -{formatTime(5000 - currentTime)}
-                                </span>
+                                <PlayerButton className='font-semibold px-3 py-1.5' onClick={() => setShowRemainingTime(prev => !prev)}>
+                                    {showRemainingTime ? `-${formatTime(duration - currentTime)}` : formatTime(duration)}
+                                </PlayerButton>
+                                
+                                <PlayerButton className='flex gap-1 justify-center items-center' onClick={cycleAudioTracks}>
+                                    {aid === null ? (<></>) : (<span className='font-semibold'>{aid}/{audioTracks.length}</span>)}
+                                    <HeadphonesIcon size={25} weight={`${aid === null ? 'regular' : 'fill'}`}/>
+                                </PlayerButton>
 
-                                <OutlinedIcon Icon={ArrowsOutSimpleIcon} size={30} />
+                                <PlayerButton className='flex gap-1 justify-center items-center' onClick={cycleSubtitles}>
+                                    {sid === null ? (<></>) : (<span className='font-semibold'>{sid}/{subTracks.length}</span>)}
+                                    <ClosedCaptioningIcon size={25} weight={`${sid === null ? 'regular' : 'fill'}`}/>
+                                </PlayerButton>
+
+                                <PlayerButton onClick={(e) => toggleFullscreen()}>
+                                    {isFullscreen ? (
+                                        <ArrowsInSimpleIcon size={25} weight='fill'/>
+                                    ) : (
+                                        <ArrowsOutSimpleIcon size={25} weight='fill'/>
+                                    )}
+                                </PlayerButton>
                             </div>
                         </div>
                     </div>

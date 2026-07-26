@@ -18,6 +18,10 @@ html {
         overscroll-behavior: none;
 	}
 
+    button {
+        cursor: pointer;
+    }
+
 	input[type="checkbox"] {
 		@apply appearance-none w-4 h-4 rounded border border-divider bg-surface cursor-pointer shrink-0 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 relative;
 	}
