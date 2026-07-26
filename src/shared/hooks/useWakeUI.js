@@ -14,8 +14,6 @@ export function useWakeUI() {
         timeoutRef.current = setTimeout(() => {
             if (!isHoveringInteractiveRef.current) setShowControls(false);
         }, settings.wakeUITimeout);
-
-        console.log(`Settings wake timeout: ${settings.wakeUITimeout}`);
     }, [settings.wakeUITimeout]);
 
     useEffect(() => {

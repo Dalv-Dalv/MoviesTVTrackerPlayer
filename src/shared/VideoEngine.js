@@ -12,6 +12,9 @@ const OBSERVED_PROPERTIES = [
     ['track-list', 'node'],
     ['aid', 'int64', 'none'],
     ['sid', 'int64', 'none'],
+    ['volume', 'double', 'none'],
+    ['max-volume', 'double', 'none'],
+    ['mute', 'flag'],
 ]
 const mpvConfig = {
     initialOptions: {
@@ -25,49 +28,50 @@ const mpvConfig = {
     observedProperties: OBSERVED_PROPERTIES,
 }
 
+const PROPERTY_DISPATCHER = {
+    'pause':       (data, h) => h.onPlayStateChange?.(!data),
+    'time-pos':    (data, h) => data !== null && h.onTimeUpdate?.(data),
+    'duration':    (data, h) => data !== null && h.onDuration?.(data),
+    'eof-reached': (data, h) => data === true && h.onEnd?.(),
+    'sub-text':    (data, h) => h.onSubtitle?.(data),
+    'sid':         (data, h) => h.onSubtitleChange?.(data),
+    'aid':         (data, h) => h.onAudioChange?.(data),
+    'volume':      (data, h) => data !== null && h.onVolume?.(data),
+    'max-volume':  (data, h) => data !== null && h.onMaxVolume?.(data),
+    'mute':        (data, h) => h.onMute?.(data),
+    'sub-text':    (data, h) => h.onSubText?.(data),
+    'track-list':  (data, h) => {
+        if (!data) return;
+        h.onTrackListChange?.({ 
+            audio: data.filter(track => track.type === 'audio'), 
+            subs: data.filter(track => track.type === 'sub') 
+        });
+    },
+};
+
 const DesktopEngine = {
     init: async (handlers = {}) => {
         await init(mpvConfig);
 
         await observeProperties(OBSERVED_PROPERTIES, ({ name, data }) => {
-            if (name === 'pause' && handlers.onPlayStateChange)
-                handlers.onPlayStateChange(!data);
-
-            if (name === 'time-pos' && data !== null && handlers.onTimeUpdate)
-                handlers.onTimeUpdate(data);
-
-            if (name === 'duration' && data !== null && handlers.onDuration)
-                handlers.onDuration(data);
-
-            if (name === 'eof-reached' && data === true && handlers.onEnd)
-                handlers.onEnd();
-
-            if (name === 'sub-text' && handlers.onSubtitle)
-                handlers.onSubtitle(data);
-
-            if (name === 'track-list' && data && handlers.onTrackListChange) {
-                const audioTracks = data.filter(track => track.type === 'audio');
-                const subTracks = data.filter(track => track.type === 'sub');
-                
-                handlers.onTrackListChange({ audio: audioTracks, subs: subTracks });
-            }
-
-            if (name === 'sid' && handlers.onSubtitleChange)
-                handlers.onSubtitleChange(data);
-            
-            if (name === 'aid' && handlers.onAudioChange)
-                handlers.onAudioChange(data);
+            const dispatch = PROPERTY_DISPATCHER[name];
+            if (dispatch) dispatch(data, handlers);
         });
     },
+
     load: async (url) => await command('loadfile', [url]),
     playPause: async () => await command('cycle', ['pause']),
     seek: async (seconds) => await command('seek', [seconds.toString(), 'relative']),
     seekToPercentage: async (percentage) => await command('seek', [percentage.toString(), 'absolute-percent']),
 
-    addSubtitle: async (url) => await command('sub-add', [url]),
+    addVolume: async (vol) => await command('add', ['volume', vol]),
+    setVolume: async (vol) => await command('set', ['volume', vol]),
+    toggleMute: async () => await command('cycle', ['mute']),
+    setMaxVolume: async (maxVol) => await command('set', ['max-volume', maxVol]),
 
     setAudioTrack: async (id) => await command('set', ['aid', id.toString()]),
     setSubtitleTrack: async (id) => await command('set', ['sid', id.toString()]),
+    addSubtitle: async (url) => await command('sub-add', [url]),
 
     cycleAudioTracks: async (upDown = 'up') => await command('cycle', ['aid', upDown]),
     cycleSubtitles: async (upDown = 'up') => await command('cycle', ['sid', upDown]),
