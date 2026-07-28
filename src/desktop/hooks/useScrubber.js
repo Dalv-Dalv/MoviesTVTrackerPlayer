@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export function useScrubber({
     orientation = 'horizontal', // 'horizontal' | 'vertical'
@@ -6,7 +6,8 @@ export function useScrubber({
     onChange
 }) {
     const trackRef = useRef(null);
-    const isScrubbing = useRef(false);
+    const [isScrubbing, setIsScrubbing] = useState(false);
+    const isScrubbingRef = useRef(false);
 
     const handleScrub = useCallback((e) => {
         if (!trackRef.current) return;
@@ -30,8 +31,11 @@ export function useScrubber({
     }, [orientation, reverse, onChange]);
 
     useEffect(() => {
-        const onMouseMove = (e) => { if (isScrubbing.current) handleScrub(e); };
-        const onMouseUp = () => { isScrubbing.current = false; };
+        const onMouseMove = (e) => { if (isScrubbingRef.current) handleScrub(e); };
+        const onMouseUp = () => { 
+            isScrubbingRef.current = false; 
+            setIsScrubbing(false);
+        };
 
         window.addEventListener('mousemove', onMouseMove);
         window.addEventListener('mouseup', onMouseUp);
@@ -43,7 +47,8 @@ export function useScrubber({
     }, [handleScrub]);
 
     const onMouseDown = (e) => {
-        isScrubbing.current = true;
+        isScrubbingRef.current = true;
+        setIsScrubbing(true);
         handleScrub(e);
     };
 

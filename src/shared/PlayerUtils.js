@@ -11,3 +11,44 @@ export const formatTime = (secs) => {
 
     return `${m}:${s.toString().padStart(2, '0')}`;
 };
+
+
+
+const languageNames = new Intl.DisplayNames(["en"], {
+    type: "language",
+});
+
+const SPECIAL_LANGUAGE_CASES = {
+    "en-US": "English (US)",
+    "en-GB": "English (UK)",
+    "en-AU": "English (Australia)",
+    "en-CA": "English (Canada)",
+
+    "pt-BR": "Portuguese (Brazil)",
+    "pt-PT": "Portuguese (Portugal)",
+
+    "es-ES": "Spanish (Spain)",
+    "es-419": "Spanish (Latin America)",
+
+    "zh-CN": "Chinese (Simplified)",
+    "zh-TW": "Chinese (Traditional)",
+    "zh-Hans": "Chinese (Simplified)",
+    "zh-Hant": "Chinese (Traditional)",
+};
+
+export const formatLanguage = (code) => {
+    if (!code) return "Unknown";
+
+    const locale = new Intl.Locale(code).toString();
+
+    if (SPECIAL_LANGUAGE_CASES[locale]) {
+        return SPECIAL_LANGUAGE_CASES[locale];
+    }
+
+    try {
+        const base = new Intl.Locale(locale).language;
+        return languageNames.of(base) ?? locale;
+    } catch {
+        return locale;
+    }
+}

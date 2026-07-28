@@ -48,6 +48,9 @@ export function useVideoState() {
             onTrackListChange: ({ audio, subs }) => {
                 setAudio(prev => ({ ...prev, tracks: audio }));
                 setSubs(prev => ({ ...prev, tracks: subs }));
+
+                console.log(audio);
+                console.log(subs);
             },
         });
     }, []);
