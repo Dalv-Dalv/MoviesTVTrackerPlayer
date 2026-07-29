@@ -21,30 +21,30 @@ const mpvConfig = {
         'vo': 'gpu-next',
         'hwdec': 'auto-safe',
         'osc': 'no',
-        'osd-level':'0',
-        'sub-visibility':'no',
+        'osd-level': '0',
+        'sub-visibility': 'no',
         // 'sid':'no'
     },
     observedProperties: OBSERVED_PROPERTIES,
 }
 
 const PROPERTY_DISPATCHER = {
-    'pause':       (data, h) => h.onPlayStateChange?.(!data),
-    'time-pos':    (data, h) => data !== null && h.onTimeUpdate?.(data),
-    'duration':    (data, h) => data !== null && h.onDuration?.(data),
+    'pause': (data, h) => h.onPlayStateChange?.(!data),
+    'time-pos': (data, h) => data !== null && h.onTimeUpdate?.(data),
+    'duration': (data, h) => data !== null && h.onDuration?.(data),
     'eof-reached': (data, h) => data === true && h.onEnd?.(),
-    'sub-text':    (data, h) => h.onSubtitle?.(data),
-    'sid':         (data, h) => h.onSubtitleChange?.(data),
-    'aid':         (data, h) => h.onAudioChange?.(data),
-    'volume':      (data, h) => data !== null && h.onVolume?.(data),
-    'max-volume':  (data, h) => data !== null && h.onMaxVolume?.(data),
-    'mute':        (data, h) => h.onMute?.(data),
-    'sub-text':    (data, h) => h.onSubText?.(data),
-    'track-list':  (data, h) => {
+    'sub-text': (data, h) => h.onSubtitle?.(data),
+    'sid': (data, h) => h.onSubtitleChange?.(data),
+    'aid': (data, h) => h.onAudioChange?.(data),
+    'volume': (data, h) => data !== null && h.onVolume?.(data),
+    'max-volume': (data, h) => data !== null && h.onMaxVolume?.(data),
+    'mute': (data, h) => h.onMute?.(data),
+    'sub-text': (data, h) => h.onSubText?.(data),
+    'track-list': (data, h) => {
         if (!data) return;
-        h.onTrackListChange?.({ 
-            audio: data.filter(track => track.type === 'audio'), 
-            subs: data.filter(track => track.type === 'sub') 
+        h.onTrackListChange?.({
+            audio: data.filter(track => track.type === 'audio'),
+            subs: data.filter(track => track.type === 'sub')
         });
     },
 };
@@ -72,6 +72,7 @@ const DesktopEngine = {
     setAudioTrack: async (id) => await command('set', ['aid', id.toString()]),
     setSubtitleTrack: async (id) => await command('set', ['sid', id.toString()]),
     addSubtitle: async (url) => await command('sub-add', [url]),
+    setSubVisibility: async (visible) => await command('set', ['sub-visibility', visible ? 'yes' : 'no']),
 
     cycleAudioTracks: async (upDown = 'up') => await command('cycle', ['aid', upDown]),
     cycleSubtitles: async (upDown = 'up') => await command('cycle', ['sid', upDown]),
