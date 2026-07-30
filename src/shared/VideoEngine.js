@@ -1,6 +1,7 @@
 import { type } from '@tauri-apps/plugin-os';
-import { invoke } from '@tauri-apps/api/core';
+import { convertFileSrc, invoke } from '@tauri-apps/api/core';
 import { init, command, observeProperties, getProperty } from 'tauri-plugin-libmpv-api';
+import { appCacheDir, join } from '@tauri-apps/api/path';
 
 const OBSERVED_PROPERTIES = [
     ['pause', 'flag'],
@@ -76,6 +77,26 @@ const DesktopEngine = {
 
     cycleAudioTracks: async (upDown = 'up') => await command('cycle', ['aid', upDown]),
     cycleSubtitles: async (upDown = 'up') => await command('cycle', ['sid', upDown]),
+
+    captureFrame: async () => {
+        try {
+            const cacheFolder = await appCacheDir();
+            const filePath = await join(cacheFolder, 'capture_frame.jpg');
+
+            console.log(filePath);
+
+            await command('screenshot-to-file', [filePath, 'subtitles']); // add 'scaled' if lag
+
+            const tauriUrl = convertFileSrc(filePath) + `?t=${Date.now()}`;
+
+            console.log(tauriUrl);
+
+            return tauriUrl;
+        } catch(error) {
+            console.error("Failed to capture frame: ", error);
+            return null;
+        }  
+    },
 };
 
 const AndroidEngine = {

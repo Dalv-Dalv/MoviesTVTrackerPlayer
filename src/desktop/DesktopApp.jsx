@@ -27,6 +27,9 @@ function DesktopApp() {
     const [showRemainingTime, setShowRemainingTime] = useState(true);
     const [languagePanelOpen, setLanguagePanelOpen] = useState(false);
 
+    const [isOverviewActive, setIsOverviewActive] = useState(false);
+    const [pauseFrameUrl, setPauseFrameUrl] = useState(null);
+
     const { isPlaying, currentTime, setCurrentTime, duration, volume, isMute, subText, maxVolume, audio, subs } = useVideoState();
     const { isFullscreen, toggleFullscreen } = useFullscreen();
     const { showControls, wakeUI, handleInteractiveEnter, handleInteractiveLeave } = useWakeUI({ holdOpen: languagePanelOpen });
@@ -43,6 +46,16 @@ function DesktopApp() {
             VideoPlayer.seekToPercentage((ratio * 100).toFixed(3));
         }
     });
+
+    useEffect(() => {
+        async function getAndSetFrame() {
+            const frameUrl = await VideoPlayer.captureFrame();
+            if (frameUrl) setPauseFrameUrl(frameUrl);
+        }
+
+        if (isPlaying || isScrubbing) setIsOverviewActive(false);
+        else getAndSetFrame();
+    }, [isPlaying, isScrubbing]);
 
     const togglePlay = () => VideoPlayer.playPause();
     const cycleAudioTracks = () => VideoPlayer.cycleAudioTracks();
@@ -80,7 +93,10 @@ function DesktopApp() {
     };
 
     return (
-        <div className={`h-screen w-screen flex flex-col items-center justify-end transition-colors duration-500 ${hasVideo ? 'bg-transparent' : 'bg-neutral-900'} overflow-hidden`}>
+        <div className={`h-screen w-screen flex flex-col items-center justify-center transition-colors duration-500 ${hasVideo ? 'bg-transparent' : 'bg-neutral-900'} overflow-hidden`}>
+            <img className={`absolute w-full max-h-full object-contain blur-lg ${isOverviewActive ? 'opacity-100' : 'opacity-0'} transition-opacity duration-75`}
+                src={pauseFrameUrl} onLoad={() => setIsOverviewActive(true)} />
+
             {!hasVideo ? (
                 <div className="flex-1 flex items-center justify-center">
                     <button onClick={loadVideo} className="bg-black text-white px-8 py-3 rounded-lg font-bold text-lg">
@@ -89,12 +105,14 @@ function DesktopApp() {
                 </div>
             ) : (
                 <div className='relative w-full flex-1 flex items-center flex-col justify-between noselect' onMouseMove={wakeUI}>
+
                     <div className='w-8 h-8 bg-red-500/0'></div>
 
                     <div className={`relative w-full flex-1 bg-transparent ${showControls ? 'cursor-default' : 'cursor-none'}`} onClick={togglePlay} onDoubleClick={(e) => toggleFullscreen()} />
 
                     <div className='absolute -z-10 bottom-20 inset-x-0 h-16 flex items-center justify-center text-white text-shadow-md text-shadow-black/30 tracking-wide text-xl text-center'>
                         {subText ?? ''}
+
                     </div>
 
                     <div className={`w-full bg-[linear-gradient(to_top,rgba(0,0,0,0.5)_30%,transparent_100%),radial-gradient(6000px_circle_at_50%_6000px,rgba(0,0,0,.85)_99%,transparent_100%)]

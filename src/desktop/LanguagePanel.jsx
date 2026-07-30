@@ -101,7 +101,7 @@ export const LanguagePanel = ({ isOpen, setIsOpen }) => {
                                         <span>{formatLanguage(elem.lang)}</span>
                                         {hasDuplicateLang && (elem.title || elem.codec) && (
                                             <span className="text-[11px] uppercase tracking-wider opacity-60 font-normal truncate max-w-28 text-right">
-                                                {elem.title || elem.codec}
+                                                {elem.codec}
                                             </span>
                                         )}
                                     </LanguageListElement>

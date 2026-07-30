@@ -16,6 +16,8 @@ export function useKeyboardShortcuts({ togglePlay, toggleFullscreen, toggleMute 
                 case 'f': e.shiftKey ? console.log("TODO: Smaller subs") : toggleFullscreen?.(); break;
                 case 'Escape': toggleFullscreen?.(false); break;
                 case 'm': toggleMute?.(); break;
+                case '9': VideoPlayer.addVolume(-2); break;
+                case '0': VideoPlayer.addVolume(2); break;
             }
         };
 
