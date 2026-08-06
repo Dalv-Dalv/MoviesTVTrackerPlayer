@@ -6,6 +6,7 @@ import { useKeyboardShortcuts, useVideoState } from './hooks/';
 import { useWakeUI, useFullscreen } from '../shared/hooks/';
 import { useScrubber } from './hooks/useScrubber';
 import { LanguagePanel } from './LanguagePanel';
+import { useWatchHistory } from '../shared/WatchHistoryContext';
 
 export const PlayerButton = ({ children, onClick, className = '', ...props }) => {
     return (
@@ -18,16 +19,27 @@ export const PlayerButton = ({ children, onClick, className = '', ...props }) =>
     );
 }
 
-export const Player = () => {
+export const Player = ({ tmdbId, videoPath }) => {
     const [showRemainingTime, setShowRemainingTime] = useState(true);
     const [languagePanelOpen, setLanguagePanelOpen] = useState(false);
 
     const [isOverviewActive, setIsOverviewActive] = useState(false);
     const [pauseFrameUrl, setPauseFrameUrl] = useState(null);
 
-    const { isPlaying, currentTime, setCurrentTime, duration, volume, isMute, subText, maxVolume, audio, subs } = useVideoState();
+    const { isPlayerReady, isVideoLoaded, isPlaying, currentTime, setCurrentTime, duration, volume, isMute, subText, maxVolume, audio, subs } = useVideoState(videoPath);
     const { isFullscreen, toggleFullscreen } = useFullscreen();
     const { showControls, wakeUI, handleInteractiveEnter, handleInteractiveLeave } = useWakeUI({ holdOpen: languagePanelOpen });
+
+    const { history, updateProgressAndSave, isLoaded: historyLoaded } = useWatchHistory();
+    const sessionId = useRef(Date.now()).current;
+    const lastSaveTime = useRef(0);
+    const latestTime = useRef(0);
+
+    useEffect(() => {
+        if (isPlayerReady && videoPath) {
+            VideoPlayer.load(videoPath);
+        }
+    }, [isPlayerReady, videoPath]);
 
     const {
         trackRef: progressBarRef,
@@ -51,6 +63,49 @@ export const Player = () => {
         if (isPlaying || isScrubbing) setIsOverviewActive(false);
         else getAndSetFrame();
     }, [isPlaying, isScrubbing]);
+
+    useEffect(() => {
+        latestTime.current = currentTime;
+
+        if (duration === 0 || isScrubbing) return;
+
+        const timeNow = Date.now();
+
+        if (timeNow - lastSaveTime.current >= 10000) {
+            updateProgressAndSave(tmdbId, currentTime, duration, sessionId);
+            lastSaveTime.current = timeNow;
+        }
+    }, [currentTime, duration, isScrubbing, tmdbId, sessionId]);
+
+    useEffect(() => {
+        return () => {
+            if (latestTime.current > 0) {
+                updateProgressAndSave(tmdbId, latestTime.current, duration, sessionId);
+            }
+        };
+    }, [duration, tmdbId, sessionId]);
+
+    const hasResumed = useRef(false);
+    useEffect(() => {
+        hasResumed.current = false;
+    }, [videoPath]);
+
+    useEffect(() => {
+        if (!historyLoaded || !isVideoLoaded || hasResumed.current) return;
+
+        const movieHistory = history[tmdbId];
+        let startPosition = 0;
+
+        if (movieHistory) {
+            startPosition = movieHistory.completed ? 0 : movieHistory.progress;
+        }
+
+        if (startPosition > 0) {
+            VideoPlayer.seekTo(startPosition);
+        }
+
+        hasResumed.current = true;
+    }, [historyLoaded, isVideoLoaded, history, tmdbId]);
 
     const togglePlay = () => VideoPlayer.playPause();
     const cycleAudioTracks = () => VideoPlayer.cycleAudioTracks();
@@ -149,10 +204,6 @@ export const Player = () => {
                             <PlayerButton className='font-semibold px-3 py-1.5' onClick={() => setShowRemainingTime(prev => !prev)}>
                                 {showRemainingTime ? `-${formatTime(duration - currentTime)}` : formatTime(duration)}
                             </PlayerButton>
-                            {/* 
-                            <PlayerButton onClick={cycleAudioTracks}>
-                                <HeadphonesIcon size={25} weight={`${audio.id === null ? 'regular' : 'fill'}`}/>
-                            </PlayerButton> */}
 
                             <LanguagePanel isOpen={languagePanelOpen} setIsOpen={setLanguagePanelOpen} />
 

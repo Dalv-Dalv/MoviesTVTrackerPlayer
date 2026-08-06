@@ -63,6 +63,7 @@ const DesktopEngine = {
     load: async (url) => await command('loadfile', [url]),
     playPause: async () => await command('cycle', ['pause']),
     seek: async (seconds) => await command('seek', [seconds.toString(), 'relative']),
+    seekTo: async (seconds) => await command('seek', [seconds.toString(), 'absolute']),
     seekToPercentage: async (percentage) => await command('seek', [percentage.toString(), 'absolute-percent']),
 
     addVolume: async (vol) => await command('add', ['volume', vol]),

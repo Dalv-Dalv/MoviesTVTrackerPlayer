@@ -1,13 +1,13 @@
 import parseVideo from 'video-name-parser';
 import { open } from '@tauri-apps/plugin-dialog';
-import { exists, mkdir, readDir, readTextFile, writeFile, writeTextFile } from '@tauri-apps/plugin-fs';
+import { exists, mkdir, readDir, readTextFile, remove, writeFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import { BaseDirectory, basename, join } from '@tauri-apps/api/path';
 import { useTMDB } from './hooks/useTMDB';
 import { getFullImagePath, ImageSizes, TMDB_IMAGE_BASE_URL } from '@api-wrappers/tmdb-wrapper';
 import { createContext, useContext, useEffect, useState } from 'react';
 import { useSettings } from './SettingsContext';
 import { deduplicateFolders } from './PathUtils';
-import { withRetry } from './GeneralUtils';
+import { sleep, withRetry } from './GeneralUtils';
 
 const VIDEO_EXTENSIONS = ['.mkv', '.mp4', '.avi', '.webm', '.mov'];
 const CACHE_FILE = 'library_cache.json';
@@ -81,7 +81,8 @@ export function VideoLibraryProvider({ children }) {
                 if (!cacheExists) return;
 
                 const cacheData = await readTextFile(CACHE_FILE, { baseDir: BaseDirectory.AppData });
-                setLibrary(JSON.parse(cacheData));
+                const parsedCache = JSON.parse(cacheData);
+                setLibrary(parsedCache.movies || {});
             } catch (error) {
                 console.error("Failed to load library cache:", error);
             } finally {
@@ -112,28 +113,31 @@ export function VideoLibraryProvider({ children }) {
                 })
             );
 
-            let libraryCache = {};
+            let libraryCache = { movies: {}, fileMap: {} };
             const cacheExists = await exists(CACHE_FILE, { baseDir: BaseDirectory.AppData });
             if (cacheExists) {
                 const cacheData = await readTextFile(CACHE_FILE, { baseDir: BaseDirectory.AppData });
                 libraryCache = JSON.parse(cacheData);
             }
 
-            const newCache = {};
-            const currentVideoNames = [];
+            const newMovies = {};
+            const newFileMap = {};
 
             for (const video of parsedVideos) {
                 if (video.type === 'series') continue; // TODO: Handle shows, also dont rely on just the parseVideo data, use tmdb to double check
-
-                currentVideoNames.push(video.name);
-
-                if (newCache[video.name]) {
-                    newCache[video.name].filePaths.push(video.filePath);
-                    continue;
-                }
                 
-                if (libraryCache[video.name]) {
-                    newCache[video.name] = {...libraryCache[video.name], filePaths: [video.filePath]};
+                const knownTmdbId = libraryCache.fileMap[video.filePath];
+
+                if (knownTmdbId && libraryCache.movies[knownTmdbId]) {
+                    if (!newMovies[knownTmdbId]) {
+                        newMovies[knownTmdbId] = { 
+                            ...libraryCache.movies[knownTmdbId], 
+                            filePaths: [] 
+                        };
+                    }
+
+                    newMovies[knownTmdbId].filePaths.push(video.filePath);
+                    newFileMap[video.filePath] = knownTmdbId;
                     continue;
                 }
 
@@ -148,49 +152,56 @@ export function VideoLibraryProvider({ children }) {
                     const match = search.results[0];
                     if (!match) continue;
 
-                    let localPosterPath = null;
-                    if (match.poster_path) {
-                        const fullUrl = getPosterUrl(match.poster_path);
-                        console.log(fullUrl);
-                        localPosterPath = await downloadImage(fullUrl, `Poster_${match.id}.jpg`);
-                    }
+                    const tmdbId = match.id.toString();
 
-                    let localBackdropPath = null;
-                    if (match.backdrop_path) {
-                        const fullUrl = getPosterUrl(match.backdrop_path);
-                        console.log(fullUrl);
-                        localBackdropPath = await downloadImage(fullUrl, `Backdrop_${match.id}.jpg`);
-                    }
-
-                    let localLogoPath = null;
-                    try {
-                        const imagesData = await withRetry(() => tmdb.movies.images(match.id, {
-                            include_image_language: ["en", "null"]
-                        }));
-
-                        console.log("Images: ", imagesData);
-
-                        if (imagesData && imagesData.logos && imagesData.logos.length > 0) {
-                            const logoPath = imagesData.logos[0].file_path;
-                            const fullLogoUrl = getPosterUrl(logoPath);
-                            console.log(fullLogoUrl);
-                            localLogoPath = await downloadImage(fullLogoUrl, `Logo_${match.id}.png`);
+                    if (!newMovies[tmdbId]) {
+                        let localPosterPath = null;
+                        if (match.poster_path) {
+                            const fullUrl = getPosterUrl(match.poster_path);
+                            console.log(fullUrl);
+                            localPosterPath = await downloadImage(fullUrl, `Poster_${match.id}.jpg`);
                         }
-                    } catch (imageError) {
-                        console.error(`Failed to fetch extra images for ${match.title}:`, imageError);
+
+                        let localBackdropPath = null;
+                        if (match.backdrop_path) {
+                            const fullUrl = getPosterUrl(match.backdrop_path);
+                            console.log(fullUrl);
+                            localBackdropPath = await downloadImage(fullUrl, `Backdrop_${match.id}.jpg`);
+                        }
+
+                        let localLogoPath = null;
+                        try {
+                            const imagesData = await withRetry(() => tmdb.movies.images(match.id, {
+                                include_image_language: ["en", "null"]
+                            }));
+
+                            console.log("Images: ", imagesData);
+
+                            if (imagesData && imagesData.logos && imagesData.logos.length > 0) {
+                                const logoPath = imagesData.logos[0].file_path;
+                                const fullLogoUrl = getPosterUrl(logoPath);
+                                console.log(fullLogoUrl);
+                                localLogoPath = await downloadImage(fullLogoUrl, `Logo_${match.id}.png`);
+                            }
+                        } catch (imageError) {
+                            console.error(`Failed to fetch extra images for ${match.title}:`, imageError);
+                        }   
+
+                        newMovies[tmdbId] = {
+                            tmdbId: match.id.toString(),
+                            title: match.title,
+                            genreIds: match.genre_ids,
+                            releaseDate: match.release_date,
+                            overview: match.overview,
+                            posterPath: localPosterPath,
+                            backdropPath: localBackdropPath,
+                            logoPath: localLogoPath,
+                            filePaths: []
+                        };
                     }
 
-                    newCache[video.name] = {
-                        tmdbId: match.id,
-                        title: match.title,
-                        genreIds: match.genre_ids,
-                        releaseDate: match.release_date,
-                        overview: match.overview,
-                        posterPath: localPosterPath,
-                        backdropPath: localBackdropPath,
-                        logoPath: localLogoPath,
-                        filePaths: [video.filePath]
-                    };
+                    newMovies[tmdbId].filePaths.push(video.filePath);
+                    newFileMap[video.filePath] = tmdbId;
 
                     await sleep(50);
                 } catch (error) {
@@ -198,21 +209,22 @@ export function VideoLibraryProvider({ children }) {
                 }
             }
 
-            for (const oldVideoName of Object.keys(libraryCache)) {
-                if (currentVideoNames.includes(oldVideoName)) continue;
-
-                console.log(`Removing orphaned entry: ${oldVideoName}`);
-                const oldData = libraryCache[oldVideoName];
+            for (const oldTmdbId of Object.keys(libraryCache.movies)) {
+                if (newMovies[oldTmdbId]) continue;
+                const oldData = libraryCache.movies[oldTmdbId];
 
                 if (oldData?.posterPath) try { await remove(oldData.posterPath, { baseDir: BaseDirectory.AppData }); } catch (e) { }
                 if (oldData?.backdropPath) try { await remove(oldData.backdropPath, { baseDir: BaseDirectory.AppData }); } catch (e) { }
                 if (oldData?.logoPath) try { await remove(oldData.logoPath, { baseDir: BaseDirectory.AppData }); } catch (e) { }
             }
+            
+            const finalCache = { movies: newMovies, fileMap: newFileMap };
+            await writeTextFile(CACHE_FILE, JSON.stringify(finalCache, null, 2), { baseDir: BaseDirectory.AppData });
 
-            console.log(newCache);
+            console.log(finalCache);
 
-            await writeTextFile(CACHE_FILE, JSON.stringify(newCache, null, 2), { baseDir: BaseDirectory.AppData });
-            setLibrary(newCache);
+            setLibrary(newMovies);
+
         } catch (error) {
             console.error("Rescan failed:", error);
         } finally {

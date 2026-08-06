@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { VideoPlayer } from "../../shared/VideoEngine";
 
-export function useVideoState() {
+export function useVideoState(videoPath) {
     const [isPlaying, setIsPlaying] = useState(true);
+    const [isPlayerReady, setIsPlayerReady] = useState(false);
+    const [isVideoLoaded, setIsVideoLoaded] = useState(false);
 
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
@@ -18,44 +20,60 @@ export function useVideoState() {
     const [subText, setSubText] = useState(undefined);
 
     useEffect(() => {
-        VideoPlayer.init({
-            onPlayStateChange: setIsPlaying,
+        setIsVideoLoaded(false);
+        setDuration(0);
+        setCurrentTime(0);
+        setSubText(undefined);
+    }, [videoPath]);
 
-            onDuration: (totalSeconds) => setDuration(Math.floor(totalSeconds)),
+    useEffect(() => {
+        async function setupPlayer() {
+            await VideoPlayer.init({
+                onPlayStateChange: setIsPlaying,
 
-            onTimeUpdate: (rawTime) => {
-                const currentSecond = Math.floor(rawTime);
-                if (currentSecond !== lastSecondRef.current) {
-                    lastSecondRef.current = currentSecond;
-                    setCurrentTime(currentSecond);
-                }
-            },
+                onDuration: (totalSeconds) => {
+                    setDuration(Math.floor(totalSeconds));
+                    setIsVideoLoaded(true);
+                },
 
-            onEnd: () => setIsPlaying(false),
+                onTimeUpdate: (rawTime) => {
+                    const currentSecond = Math.floor(rawTime);
+                    if (currentSecond !== lastSecondRef.current) {
+                        lastSecondRef.current = currentSecond;
+                        setCurrentTime(currentSecond);
+                    }
+                },
 
-            onSubtitleChange: (id) => setSubs(prev => ({ ...prev, id })),
+                onEnd: () => setIsPlaying(false),
 
-            onAudioChange: (id) => setAudio(prev => ({ ...prev, id })),
+                onSubtitleChange: (id) => setSubs(prev => ({ ...prev, id })),
 
-            onVolume: (vol) => setVolume(vol),
+                onAudioChange: (id) => setAudio(prev => ({ ...prev, id })),
 
-            onMaxVolume: (maxVol) => setMaxVolume(maxVol),
+                onVolume: (vol) => setVolume(vol),
 
-            onMute: (isMute) => setIsMute(isMute),
+                onMaxVolume: (maxVol) => setMaxVolume(maxVol),
 
-            onSubText: (subText) => {
-                setSubText(subText);
-                console.log(`Sub text: ${subText}`);
-            },
+                onMute: (isMute) => setIsMute(isMute),
 
-            onTrackListChange: ({ audio, subs }) => {
-                setAudio(prev => ({ ...prev, tracks: audio }));
-                setSubs(prev => ({ ...prev, tracks: subs }));
+                onSubText: (subText) => {
+                    setSubText(subText);
+                    console.log(`Sub text: ${subText}`);
+                },
 
-                console.log(audio);
-                console.log(subs);
-            },
-        });
+                onTrackListChange: ({ audio, subs }) => {
+                    setAudio(prev => ({ ...prev, tracks: audio }));
+                    setSubs(prev => ({ ...prev, tracks: subs }));
+
+                    console.log(audio);
+                    console.log(subs);
+                },
+            });
+
+            setIsPlayerReady(true);
+        }
+
+        setupPlayer();
     }, []);
 
     useEffect(() => {
@@ -71,5 +89,5 @@ export function useVideoState() {
         }
     }, [subs.id, subs.tracks]);
 
-    return { isPlaying, currentTime, setCurrentTime, duration, volume, isMute, subText, maxVolume, audio, subs };
+    return { isPlayerReady, isVideoLoaded, isPlaying, currentTime, setCurrentTime, duration, volume, isMute, subText, maxVolume, audio, subs };
 }
