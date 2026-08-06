@@ -4,7 +4,8 @@ import { createContext, useContext, useEffect, useState } from "react";
 const SettingsContext = createContext();
 
 const DEFAULT_SETTINGS = {
-    wakeUITimeout: 700
+    wakeUITimeout: 700,
+    videoLibraryFolders: []
 };
 
 export function SettingsProvider({ children }) {
@@ -37,6 +38,7 @@ export function SettingsProvider({ children }) {
         if (storeInstance) {
             await storeInstance.set(key, value);
         }
+        return value;
     };
 
     const saveSettings = async () => {
@@ -48,12 +50,36 @@ export function SettingsProvider({ children }) {
     const updateAndSaveSetting = async (key, value) => {
         await updateSetting(key, value);
         await saveSettings();
+        return value;
+    };
+
+    const addVideosFolder = async (newFolder) => {
+        const currentFolders = settings.videoLibraryFolders || [];
+        
+        if (currentFolders.includes(newFolder)) return currentFolders;
+
+        const updated = [...currentFolders, newFolder];
+        await updateAndSaveSetting('videoLibraryFolders', updated);
+        return updated;
+    };
+
+    const removeVideosFolder = async (folderToRemove) => {
+        const currentFolders = settings.videoLibraryFolders || [];
+        const updated = currentFolders.filter(f => f !== folderToRemove);
+        await updateAndSaveSetting('videoLibraryFolders', updated);
+        return updated;
     };
 
     if (!isLoaded) return <div className="h-screen w-screen bg-neutral-900" />;
 
     return (
-        <SettingsContext.Provider value={{ settings, updateSetting, updateAndSaveSetting }}>
+        <SettingsContext.Provider value={{ 
+                settings,
+                updateSetting,
+                updateAndSaveSetting,
+                addVideosFolder,
+                removeVideosFolder
+            }}>
             {children}
         </SettingsContext.Provider>
     );

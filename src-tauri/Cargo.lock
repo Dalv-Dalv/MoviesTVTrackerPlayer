@@ -2033,6 +2033,7 @@ dependencies = [
  "tauri-build",
  "tauri-plugin-dialog",
  "tauri-plugin-exoplayer",
+ "tauri-plugin-fs",
  "tauri-plugin-libmpv",
  "tauri-plugin-opener",
  "tauri-plugin-os",

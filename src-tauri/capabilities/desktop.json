@@ -5,6 +5,8 @@
   "windows": ["main"],
   "platforms": ["macOS", "windows", "linux"],
   "permissions": [
-    "libmpv:default"
+    "libmpv:default",
+    "fs:allow-appdata-read-recursive",
+    "fs:allow-appdata-write-recursive"
   ]
 }

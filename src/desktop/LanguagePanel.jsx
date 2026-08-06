@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ChatDotsIcon, ClosedCaptioningIcon } from '@phosphor-icons/react';
 import { formatLanguage } from '../shared/PlayerUtils';
 import { useVideoState } from './hooks/';
-import { PlayerButton } from './DesktopApp';
+import { PlayerButton } from './Player';
 import { VideoPlayer } from '../shared/VideoEngine';
 
 const AnimatedHeight = ({ isOpen, children, className = '' }) => {
