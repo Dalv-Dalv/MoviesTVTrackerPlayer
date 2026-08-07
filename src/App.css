@@ -117,7 +117,7 @@ html {
 
 @media (prefers-color-scheme: dark) {
     :root {
-        --bg-primary: #0f172a;
+        --bg-primary: hsl(0, 3%, 7%);
         --surface: #1e293b;
         --surface-elevated: #334155;
 

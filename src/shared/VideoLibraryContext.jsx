@@ -82,7 +82,7 @@ export function VideoLibraryProvider({ children }) {
 
                 const cacheData = await readTextFile(CACHE_FILE, { baseDir: BaseDirectory.AppData });
                 const parsedCache = JSON.parse(cacheData);
-                setLibrary(parsedCache.movies || {});
+                setLibrary(parsedCache.mediaItems || {});
             } catch (error) {
                 console.error("Failed to load library cache:", error);
             } finally {
@@ -113,30 +113,30 @@ export function VideoLibraryProvider({ children }) {
                 })
             );
 
-            let libraryCache = { movies: {}, fileMap: {} };
+            let libraryCache = { mediaItems: {}, fileMap: {} };
             const cacheExists = await exists(CACHE_FILE, { baseDir: BaseDirectory.AppData });
             if (cacheExists) {
                 const cacheData = await readTextFile(CACHE_FILE, { baseDir: BaseDirectory.AppData });
                 libraryCache = JSON.parse(cacheData);
             }
 
-            const newMovies = {};
+            const newMediaItems = {};
             const newFileMap = {};
 
             for (const video of parsedVideos) {
                 if (video.type === 'series') continue; // TODO: Handle shows, also dont rely on just the parseVideo data, use tmdb to double check
-                
+
                 const knownTmdbId = libraryCache.fileMap[video.filePath];
 
-                if (knownTmdbId && libraryCache.movies[knownTmdbId]) {
-                    if (!newMovies[knownTmdbId]) {
-                        newMovies[knownTmdbId] = { 
-                            ...libraryCache.movies[knownTmdbId], 
-                            filePaths: [] 
+                if (knownTmdbId && libraryCache.mediaItems[knownTmdbId]) {
+                    if (!newMediaItems[knownTmdbId]) {
+                        newMediaItems[knownTmdbId] = {
+                            ...libraryCache.mediaItems[knownTmdbId],
+                            filePaths: []
                         };
                     }
 
-                    newMovies[knownTmdbId].filePaths.push(video.filePath);
+                    newMediaItems[knownTmdbId].filePaths.push(video.filePath);
                     newFileMap[video.filePath] = knownTmdbId;
                     continue;
                 }
@@ -154,7 +154,7 @@ export function VideoLibraryProvider({ children }) {
 
                     const tmdbId = match.id.toString();
 
-                    if (!newMovies[tmdbId]) {
+                    if (!newMediaItems[tmdbId]) {
                         let localPosterPath = null;
                         if (match.poster_path) {
                             const fullUrl = getPosterUrl(match.poster_path);
@@ -185,9 +185,9 @@ export function VideoLibraryProvider({ children }) {
                             }
                         } catch (imageError) {
                             console.error(`Failed to fetch extra images for ${match.title}:`, imageError);
-                        }   
+                        }
 
-                        newMovies[tmdbId] = {
+                        newMediaItems[tmdbId] = {
                             tmdbId: match.id.toString(),
                             title: match.title,
                             genreIds: match.genre_ids,
@@ -200,7 +200,7 @@ export function VideoLibraryProvider({ children }) {
                         };
                     }
 
-                    newMovies[tmdbId].filePaths.push(video.filePath);
+                    newMediaItems[tmdbId].filePaths.push(video.filePath);
                     newFileMap[video.filePath] = tmdbId;
 
                     await sleep(50);
@@ -209,21 +209,21 @@ export function VideoLibraryProvider({ children }) {
                 }
             }
 
-            for (const oldTmdbId of Object.keys(libraryCache.movies)) {
-                if (newMovies[oldTmdbId]) continue;
-                const oldData = libraryCache.movies[oldTmdbId];
+            for (const oldTmdbId of Object.keys(libraryCache.mediaItems)) {
+                if (newMediaItems[oldTmdbId]) continue;
+                const oldData = libraryCache.mediaItems[oldTmdbId];
 
                 if (oldData?.posterPath) try { await remove(oldData.posterPath, { baseDir: BaseDirectory.AppData }); } catch (e) { }
                 if (oldData?.backdropPath) try { await remove(oldData.backdropPath, { baseDir: BaseDirectory.AppData }); } catch (e) { }
                 if (oldData?.logoPath) try { await remove(oldData.logoPath, { baseDir: BaseDirectory.AppData }); } catch (e) { }
             }
-            
-            const finalCache = { movies: newMovies, fileMap: newFileMap };
+
+            const finalCache = { mediaItems: newMediaItems, fileMap: newFileMap };
             await writeTextFile(CACHE_FILE, JSON.stringify(finalCache, null, 2), { baseDir: BaseDirectory.AppData });
 
             console.log(finalCache);
 
-            setLibrary(newMovies);
+            setLibrary(newMediaItems);
 
         } catch (error) {
             console.error("Rescan failed:", error);
@@ -248,7 +248,7 @@ export function VideoLibraryProvider({ children }) {
     return (
         <VideoLibraryContext.Provider value={{
             library,
-            movies: Object.values(library),
+            mediaItems: Object.values(library),
             isScanning,
             isLoaded,
             rescanLibrary,
