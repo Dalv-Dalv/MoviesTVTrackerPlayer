@@ -90,7 +90,7 @@ export const LanguagePanel = ({ isOpen, setIsOpen }) => {
                     </div>
                 </div>
 
-                <div className='flex flex-col max-h-[50vh] overflow-y-scroll no-scrollbar pb-20 pt-4'
+                <div className='flex flex-col max-h-[50vh] overflow-y-scroll noScrollbar pb-20 pt-4'
                     style={{ WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 10%, black 70%, transparent 100%)', maskImage: 'linear-gradient(to bottom, transparent 0%, black 10%, black 70%, transparent 100%)' }}>
                     <div key={languagePanelTab} className={`flex flex-col gap-1 transition-all duration-300 opacity-100 translate-x-0 starting:opacity-0 ${languagePanelTab === 0 ? 'starting:-translate-x-2' : 'starting:translate-x-2'}`}>
                         {languagePanelTab === 0 ? (

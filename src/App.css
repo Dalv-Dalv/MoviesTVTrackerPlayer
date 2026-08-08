@@ -49,6 +49,9 @@ html {
     button {
         cursor: pointer;
     }
+    button:disabled {
+        cursor: unset;
+    }
 
     input[type="checkbox"] {
         @apply appearance-none w-4 h-4 rounded border border-divider bg-surface cursor-pointer shrink-0 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 relative;
@@ -84,12 +87,12 @@ html {
         user-select: none;
     }
 
-    .no-scrollbar {
+    .noScrollbar {
         -ms-overflow-style: none;  /* IE and Edge */
         scrollbar-width: none;  /* Firefox */
     }
     
-    .no-scrollbar::-webkit-scrollbar {
+    .noScrollbar::-webkit-scrollbar {
         display: none; /* Chrome, Safari and Opera */
     }
 }
@@ -121,8 +124,8 @@ html {
         --surface: #1e293b;
         --surface-elevated: #334155;
 
-        --text-primary: hsl(210, 40%, 86%);
-        --text-muted: hsl(215, 20%, 65%);
+        --text-primary: hsl(352, 8%, 86%);
+        --text-muted: hsl(352, 3%, 40%);
         --text-inverted: #ffffff;
 
         --primary: hsl(30, 60%, 45%);
@@ -133,7 +136,7 @@ html {
         --success: #10b981;
         --failure: #ef4444;
 
-        --divider: #334155;
+        --divider: hsl(352, 2%, 20%);
         --ring: var(--primary);
     }
 }
