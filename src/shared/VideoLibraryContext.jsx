@@ -19,16 +19,17 @@ const scanDirectory = async (dirPath) => {
 
     try {
         const entries = await readDir(dirPath);
+        const separator = dirPath.includes('\\') ? '\\' : '/';
 
         for (const entry of entries) {
-            const fullPath = await join(dirPath, entry.name);
+            const fullPath = dirPath.endsWith(separator) ? dirPath + entry.name : dirPath + separator + entry.name;
 
             if (entry.isDirectory) {
                 const subFolderVideos = await scanDirectory(fullPath);
                 foundVideos.push(...subFolderVideos);
             } else if (entry.isFile) {
                 const isVideo = VIDEO_EXTENSIONS.some(ext => entry.name.toLowerCase().endsWith(ext));
-                if (isVideo) foundVideos.push(fullPath);
+                if (isVideo) foundVideos.push({ filePath: fullPath, filename: entry.name });
             }
         }
 
@@ -103,15 +104,12 @@ export function VideoLibraryProvider({ children }) {
             const cleanFolders = deduplicateFolders(rawFolders);
 
             const allVideoPathsNested = await Promise.all(cleanFolders.map(folder => scanDirectory(folder)));
-            const allVideoPaths = allVideoPathsNested.flat();
+            const allVideos = allVideoPathsNested.flat();
 
-            const parsedVideos = await Promise.all(
-                allVideoPaths.map(async (filePath) => {
-                    const filename = await basename(filePath);
-                    const parsed = parseVideo(filename);
-                    return { ...parsed, filePath };
-                })
-            );
+            const parsedVideos = allVideos.map((video) => {
+                const parsed = parseVideo(video.filename);
+                return { ...parsed, filePath: video.filePath };
+            });
 
             let libraryCache = { mediaItems: {}, fileMap: {} };
             const cacheExists = await exists(CACHE_FILE, { baseDir: BaseDirectory.AppData });

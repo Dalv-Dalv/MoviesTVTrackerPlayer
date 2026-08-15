@@ -28,7 +28,7 @@ export function MediaDetails({ className = '' }) {
             <motion.div 
                 initial={{ opacity: 0, y: -10 }} 
                 animate={{ opacity: 1, y: 0 }} 
-                exit={{ opacity: 0, y: -10 }}
+                exit={{ opacity: 0, y: 0 }}
                 transition={{ duration: 0.5 }}
                 className='absolute top-0'
             >
@@ -52,6 +52,11 @@ export function MediaDetails({ className = '' }) {
                     <motion.div 
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
+                        exit={{ 
+                            opacity: 0, 
+                            scale: 1,
+                            transition: { duration: 0.15, ease: "easeIn" }
+                        }}
                         transition={{ 
                             type: "tween", 
                             ease: [0.5, 0, 0, 1], 
@@ -96,7 +101,10 @@ export function MediaDetails({ className = '' }) {
                     <p className="text-xl text-body max-w-2/3">
                         {media.overview}
                     </p>
-                    <button className="mt-8 bg-body backdrop-brightness-200 text-black px-4 py-3 rounded-lg w-fit font-bold flex flex-row items-center center gap-2">
+                    <button 
+                        onClick={() => navigate(`/play/${tmdbId}`)}
+                        className="mt-8 bg-body backdrop-brightness-200 text-black px-4 py-3 rounded-lg w-fit font-bold flex flex-row items-center center gap-2"
+                    >
                         <PlayIcon size={20} weight='fill'/>
                         <span>Watch</span>
                     </button>

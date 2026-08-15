@@ -2,27 +2,58 @@ import { getCurrentWindow } from '@tauri-apps/api/window';
 import { useCallback, useEffect, useState } from 'react';
 
 const appWindow = getCurrentWindow();
+let wasMaximizedBeforeFullscreen = false;
 
 export function useFullscreen() {
     const [isFullscreen, setIsFullscreen] = useState(false);
 
     const toggleFullscreen = useCallback(async (forceState) => {
-        const newState = forceState === undefined ? !(await appWindow.isFullscreen()) : forceState;
-        await appWindow.setFullscreen(newState);
+        const isCurrentlyFullscreen = await appWindow.isFullscreen();
+        const newState = forceState === undefined ? !isCurrentlyFullscreen : forceState;
+
+        if (newState === isCurrentlyFullscreen) return;
+
+        if (newState) {
+            wasMaximizedBeforeFullscreen = await appWindow.isMaximized();
+
+            if (wasMaximizedBeforeFullscreen) {
+                await appWindow.setDecorations(true);
+            }
+
+            try {
+                await document.documentElement.requestFullscreen();
+            } catch (e) {
+                console.warn(e);
+            }
+            await appWindow.setFullscreen(true);
+        } else {
+            try {
+                if (document.fullscreenElement) {
+                    await document.exitFullscreen();
+                }
+            } catch (e) {
+                console.warn(e);
+            }
+            await appWindow.setFullscreen(false);
+            if (wasMaximizedBeforeFullscreen) {
+                await appWindow.setDecorations(false);
+                await appWindow.maximize();
+            }
+        }
+
         setIsFullscreen(newState);
-    }, [appWindow]);
+    }, []);
 
     useEffect(() => {
-        let unlistenResize;
-        const setup = async () => {
-            unlistenResize = await appWindow.onResized(async () => {
-                const isNowFullscreen = await appWindow.isFullscreen();
-                setIsFullscreen(prev => prev !== isNowFullscreen ? isNowFullscreen : prev);
-            });
+        let unlistenPromise = appWindow.onResized(async () => {
+            const isNowFullscreen = await appWindow.isFullscreen();
+            setIsFullscreen(prev => prev !== isNowFullscreen ? isNowFullscreen : prev);
+        });
+
+        return () => {
+            unlistenPromise.then(unlisten => unlisten());
         };
-        setup();
-        return () => unlistenResize && unlistenResize();
-    }, [appWindow]);
+    }, []);
 
     return { isFullscreen, toggleFullscreen };
 }

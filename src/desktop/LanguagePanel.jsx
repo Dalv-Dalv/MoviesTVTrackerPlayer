@@ -74,6 +74,8 @@ export const LanguagePanel = ({ isOpen, setIsOpen }) => {
         };
     }, [isOpen, setIsOpen]);
 
+    console.log(subs);
+
     return (
         <div className='relative' ref={languagePanelRef}>
             <PlayerButton onClick={(e) => setIsOpen(!isOpen)} className='relative z-20'>
@@ -113,14 +115,30 @@ export const LanguagePanel = ({ isOpen, setIsOpen }) => {
                                     Off
                                 </LanguageListElement>
 
-                                {subs.tracks.map(elem => (
-                                    <LanguageListElement key={elem.id} selected={elem.selected} onClick={(e) => VideoPlayer.setSubtitleTrack(elem.id)} className='flex items-center'>
-                                        {formatLanguage(elem.lang)}
-                                        {elem['hearing-impaired'] && (
-                                            <ClosedCaptioningIcon size={25} className='ml-2' weight={`${elem.selected ? 'fill' : 'regular'}`}/>
-                                        )}
-                                    </LanguageListElement>
-                                ))}
+                                {subs.tracks.map(elem => {
+                                    let displayCodec = 'SRT';
+                                    if (elem.codec) {
+                                        const c = elem.codec.toLowerCase();
+                                        if (c.includes('pgs')) displayCodec = 'PGS';
+                                        else if (c.includes('vobsub') || c.includes('dvd')) displayCodec = 'VobSub';
+                                        else if (c.includes('dvb')) displayCodec = 'DVB';
+                                        else if (c.includes('ass') || c.includes('ssa')) displayCodec = 'ASS';
+                                    }
+
+                                    return (
+                                        <LanguageListElement key={elem.id} selected={elem.selected} onClick={(e) => VideoPlayer.setSubtitleTrack(elem.id)} className='flex items-center justify-between gap-4'>
+                                            <div className='flex items-center'>
+                                                <span>{formatLanguage(elem.lang)}</span>
+                                                {elem['hearing-impaired'] && (
+                                                    <ClosedCaptioningIcon size={25} className='ml-2' weight={`${elem.selected ? 'fill' : 'regular'}`} />
+                                                )}
+                                            </div>
+                                            <span className="text-[11px] uppercase tracking-wider opacity-60 font-normal truncate max-w-28 text-right">
+                                                {displayCodec}
+                                            </span>
+                                        </LanguageListElement>
+                                    );
+                                })}
                             </>
                         )}
                     </div>
