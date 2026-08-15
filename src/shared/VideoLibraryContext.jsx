@@ -149,6 +149,8 @@ export function VideoLibraryProvider({ children }) {
                         page: 1
                     }));
 
+                    console.log(search);
+
                     const match = search.results[0];
                     if (!match) continue;
 
@@ -248,7 +250,6 @@ export function VideoLibraryProvider({ children }) {
     return (
         <VideoLibraryContext.Provider value={{
             library,
-            mediaItems: Object.values(library),
             isScanning,
             isLoaded,
             rescanLibrary,

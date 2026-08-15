@@ -1,6 +1,6 @@
 import { useLocalImage } from "./hooks/useLocalImage";
 
-export function Poster({ relativePath, altText, className = "" }) {
+export function MovieImage({ relativePath, altText, className = "" }) {
     const src = useLocalImage(relativePath);
 
     if (!src) {
