@@ -23,6 +23,7 @@
         "core:window:allow-set-decorations",
         "opener:default",
         "os:default",
+        "android-mediastore:default",
         "dialog:default",
         "exoplayer:default",
         "store:default",

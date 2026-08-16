@@ -13,9 +13,9 @@
     "windows": [
       {
         "title": "movies-tv-tracker",
-        "decorations": false,
-        "width": 1280,
-        "height": 720,
+        "decorations": true,
+        "width": 324,
+        "height": 652,
         "transparent": true
       }
     ],

@@ -8,6 +8,9 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { useSettings } from './SettingsContext';
 import { deduplicateFolders } from './PathUtils';
 import { sleep, withRetry } from './GeneralUtils';
+import { isMobile } from './PlatformUtils';
+import { MobileFolderPicker } from '../mobile/MobileFolderPicker';
+import { AnimatePresence } from 'framer-motion';
 
 const VIDEO_EXTENSIONS = ['.mkv', '.mp4', '.avi', '.webm', '.mov'];
 const CACHE_FILE = 'library_cache.json';
@@ -71,6 +74,7 @@ export function VideoLibraryProvider({ children }) {
     const [library, setLibrary] = useState({});
     const [isScanning, setIsScanning] = useState(false);
     const [isLoaded, setIsLoaded] = useState(false);
+    const [showMobilePicker, setShowMobilePicker] = useState(false);
 
     const { settings, addVideosFolder } = useSettings();
     const tmdb = useTMDB();
@@ -233,6 +237,11 @@ export function VideoLibraryProvider({ children }) {
     };
 
     const addFolderAndScan = async () => {
+        if (isMobile) {
+            setShowMobilePicker(true);
+            return;
+        }
+
         const selectedFolder = await open({ directory: true, multiple: false });
 
         if (!selectedFolder) return
@@ -254,6 +263,17 @@ export function VideoLibraryProvider({ children }) {
             addFolderAndScan
         }}>
             {children}
+
+            {isMobile && (
+                <AnimatePresence>    
+                    {showMobilePicker && (
+                        <MobileFolderPicker 
+                            onClose={() => setShowMobilePicker(false)}
+                            onSaveComplete={() => rescanLibrary()} 
+                        />
+                    )}
+                </AnimatePresence>
+            )}
         </VideoLibraryContext.Provider>
     );
 }

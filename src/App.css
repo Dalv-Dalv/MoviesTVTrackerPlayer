@@ -127,16 +127,16 @@ html {
 
 @media (prefers-color-scheme: dark) {
     :root {
-        --bg-primary: hsl(0, 3%, 2%);
+        --bg-primary: #000000;
         --surface: #1e293b;
         --surface-elevated: #334155;
 
         --text-primary: hsl(352, 4%, 94%);
-        --text-muted: hsl(352, 3%, 40%);
+        --text-muted: hsl(352, 3%, 60%);
         --text-inverted: #ffffff;
 
-        --primary: hsl(30, 60%, 45%);
-        --primary-hover: hsl(30, 70%, 55%);
+        --primary: hsl(13, 94%, 61%);
+        --primary-hover: hsl(358, 70%, 55%);
 
         --secondary: #8AEA92;
         --accent: #FFA62B;

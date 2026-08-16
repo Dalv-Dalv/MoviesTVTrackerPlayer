@@ -14,6 +14,7 @@ import { useFullscreen } from './shared/hooks/useFullscreen';
 function App() {
     const osType = type();
     const { toggleFullscreen } = useFullscreen();
+    const isPhone = osType === 'android' || osType === 'ios';
 
     useEffect(() => {
         const handleKeyDown = (e) => {
@@ -28,14 +29,16 @@ function App() {
     }, [toggleFullscreen]);
 
     return (
-        <MemoryRouter>
-            <div className="h-screen w-screen relative overflow-hidden">
-                {osType !== 'android' && osType !== 'ios' && (
-                    <WindowTitlebar/>
-                )}
-                <AnimatedRoutes />
-            </div>
-        </MemoryRouter>
+        <MobileApp/>
+        // <MemoryRouter>
+        //     <div className="h-screen w-screen relative overflow-hidden">
+        //         {!isPhone && (
+        //             <WindowTitlebar/>
+        //         )}
+                
+        //         <AnimatedRoutes />
+        //     </div>
+        // </MemoryRouter>
     );
 }
 
