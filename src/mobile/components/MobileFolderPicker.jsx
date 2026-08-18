@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { invoke } from '@tauri-apps/api/core';
-import { useSettings } from '../shared/SettingsContext';
+import { useSettings } from '../../shared/contexts/SettingsContext';
 import { CaretRightIcon, CheckIcon, DotOutlineIcon } from '@phosphor-icons/react';
 
 const FolderTreeNode = ({ node, selectedPaths, suppressedPaths, toggleFolder}) => {

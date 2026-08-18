@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { VideoPlayer, VideoEvents } from "../../shared/VideoEngine";
+import { VideoPlayer, VideoEvents } from '../../shared/services/VideoEngine';
 
 export function useVideoState(videoPath) {
     const [isPlaying, setIsPlaying] = useState(true);

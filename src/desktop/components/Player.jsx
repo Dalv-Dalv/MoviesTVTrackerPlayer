@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { VideoPlayer } from '../shared/VideoEngine';
+import { VideoPlayer } from '../../shared/services/VideoEngine';
 import { ArrowLeftIcon, ArrowsInSimpleIcon, ArrowsOutSimpleIcon, CaretLeftIcon, ChatDotsIcon, ClosedCaptioningIcon, HeadphonesIcon, MusicNoteIcon, PauseIcon, PlayIcon, SkipBackIcon, SkipForwardIcon, SpeakerHighIcon, SpeakerLowIcon, SpeakerNoneIcon, SpeakerSlashIcon, SpeakerXIcon, XIcon } from '@phosphor-icons/react';
-import { formatTime } from '../shared/PlayerUtils';
-import { useKeyboardShortcuts, useVideoState } from './hooks/';
-import { useWakeUI, useFullscreen } from '../shared/hooks/';
-import { useScrubber } from './hooks/useScrubber';
+import { formatTime } from '../../shared/utils/PlayerUtils';
+import { useKeyboardShortcuts, useVideoState } from '../hooks';
+import { useWakeUI, useFullscreen } from '../../shared/hooks';
+import { useScrubber } from '../hooks/useScrubber';
 import { LanguagePanel } from './LanguagePanel';
-import { useWatchHistory } from '../shared/WatchHistoryContext';
+import { useWatchHistory } from '../../shared/contexts/WatchHistoryContext';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useVideoLibrary } from '../shared/VideoLibraryContext';
+import { useVideoLibrary } from '../../shared/contexts/VideoLibraryContext';
 
 export const PlayerButton = ({ children, onClick, className = '', ...props }) => {
     return (

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { CardsIcon, MinusIcon, SquareIcon, XIcon } from '@phosphor-icons/react';
-import { useFullscreen } from '../shared/hooks/useFullscreen';
+import { useFullscreen } from '../../shared/hooks/useFullscreen';
 
 export function WindowTitlebar() {
     const [isMaximized, setIsMaximized] = useState(false);

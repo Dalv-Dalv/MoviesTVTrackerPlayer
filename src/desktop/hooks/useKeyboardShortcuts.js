@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { VideoPlayer } from "../../shared/VideoEngine";
+import { VideoPlayer } from '../../shared/services/VideoEngine';
 
 export function useKeyboardShortcuts({ togglePlay, toggleFullscreen, toggleMute }) {
     useEffect(() => {

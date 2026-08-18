@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { MovieImage } from './Poster';
 import { PlayIcon } from '@phosphor-icons/react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useVideoLibrary } from './VideoLibraryContext';
+import { useVideoLibrary } from '../contexts/VideoLibraryContext';
 
 export function MediaDetails({ className = '' }) {
     const { tmdbId } = useParams();

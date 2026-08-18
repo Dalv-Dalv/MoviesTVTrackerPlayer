@@ -1,16 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { open } from '@tauri-apps/plugin-dialog';
-import { VideoPlayer } from '../shared/VideoEngine';
-import { useVideoLibrary } from '../shared/VideoLibraryContext';
+import { VideoPlayer } from '../shared/services/VideoEngine';
+import { useVideoLibrary } from '../shared/contexts/VideoLibraryContext';
+import HomePage from '../shared/components/HomePage';
 
 export default function MobileApp() {
     const { mediaItems, isScanning, rescanLibrary, addFolderAndScan } = useVideoLibrary();
 
     return (
-        <div className='bg-background w-screen h-screen overflow-hidden flex justify-center items-center text-body'>
-            <button className='px-4 py-2 bg-divider rounded-md' onClick={addFolderAndScan}>
-                Select Folder
-            </button>
+        <div className='h-full overflow-y-auto'>
+            <HomePage/>
         </div>
     );
 }

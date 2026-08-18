@@ -1,15 +1,15 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { open } from '@tauri-apps/plugin-dialog';
-import { VideoPlayer } from '../shared/VideoEngine';
-import { Player } from './Player';
+import { VideoPlayer } from '../shared/services/VideoEngine';
+import { Player } from './components/Player';
 import { handleScanLibrary } from './hooks/useFolderScanner';
-import { useVideoLibrary } from '../shared/VideoLibraryContext';
-import { MovieImage } from '../shared/Poster';
+import { useVideoLibrary } from '../shared/contexts/VideoLibraryContext';
+import { MovieImage } from '../shared/components/Poster';
 import { ArrowClockwiseIcon, GearIcon, MagnifyingGlassIcon } from '@phosphor-icons/react';
-import { Carousel } from '../shared/Carousel';
-import { WindowTitlebar } from './WindowTitlebar';
+import { Carousel } from '../shared/components/Carousel';
+import { WindowTitlebar } from './components/WindowTitlebar';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MediaDetails } from '../shared/MediaDetails';
+import { MediaDetails } from '../shared/components/MediaDetails';
 import { useNavigate } from 'react-router-dom';
 
 function NavbarButton({ children, className = '' }) {
@@ -92,19 +92,19 @@ function DesktopApp() {
             </div>
 
             <div ref={scrollRef} onScroll={handleScroll} className="h-full w-full overflow-y-auto noScrollbar">
-                {mediaItems[4] && (
+                {mediaItems[2] && (
                     <div className='relative w-full flex items-center justify-center p-6 overflow-hidden pb-25 pt-24 -mb-25'>
-                        <MovieImage relativePath={mediaItems[4].backdropPath} altText={mediaItems[1].title}
+                        <MovieImage relativePath={mediaItems[2].backdropPath} altText={mediaItems[1].title}
                             className='absolute inset-0 scale-110 transform-gpu blur-lg mask-[linear-gradient(to_bottom,black,transparent)] opacity-75' />
 
                         <div className='relative w-3/4 rounded-2xl overflow-hidden aspect-video'>
-                            <MovieImage relativePath={mediaItems[4].backdropPath} altText={mediaItems[1].title}
+                            <MovieImage relativePath={mediaItems[2].backdropPath} altText={mediaItems[1].title}
                                 className='w-full' />
 
                             <div className="absolute rounded-2xl inset-0 ring-1 ring-inset ring-white/70 pointer-events-none mix-blend-soft-light" />
                             <div className="absolute rounded-2xl inset-0 ring-1 ring-inset ring-white/8 pointer-events-none" />
 
-                            <MovieImage relativePath={mediaItems[4].logoPath} altText={mediaItems[1].title}
+                            <MovieImage relativePath={mediaItems[2].logoPath} altText={mediaItems[1].title}
                                 className='absolute left-[3vw] bottom-[3vw] w-100 max-w-1/2' />
                         </div>
                     </div>

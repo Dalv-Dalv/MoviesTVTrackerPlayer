@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useSettings } from "../SettingsContext";
+import { useSettings } from '../contexts/SettingsContext';
 
 export function useWakeUI({holdOpen = false}) {
     const { settings } = useSettings();

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
-import { VideoPlayer } from "../../shared/VideoEngine";
+import { VideoPlayer } from '../../shared/services/VideoEngine';
 
 export function useVideoScrubber(duration, setCurrentTime) {
     const progressBarRef = useRef(null);

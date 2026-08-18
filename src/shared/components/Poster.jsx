@@ -1,4 +1,4 @@
-import { useLocalImage } from "./hooks/useLocalImage";
+import { useLocalImage } from '../hooks/useLocalImage';
 
 export function MovieImage({ relativePath, altText, className = "" }) {
     const src = useLocalImage(relativePath);
