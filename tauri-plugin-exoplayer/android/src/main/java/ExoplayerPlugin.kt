@@ -7,17 +7,25 @@ import android.view.SurfaceView
 import android.view.ViewGroup
 import android.webkit.WebView
 import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.AspectRatioFrameLayout
+import androidx.media3.ui.PlayerView
 import app.tauri.annotation.Command
 import app.tauri.annotation.InvokeArg
 import app.tauri.annotation.TauriPlugin
 import app.tauri.plugin.Invoke
 import app.tauri.plugin.Plugin
+import app.tauri.plugin.JSObject
 
-// 1. The new v2 way to receive arguments from JavaScript
 @InvokeArg
 internal class LoadVideoArgs {
     lateinit var url: String
+}
+
+@InvokeArg
+internal class ResizeArgs {
+    lateinit var mode: String
 }
 
 @InvokeArg
@@ -28,7 +36,7 @@ internal class SeekArgs {
 @TauriPlugin
 class ExoplayerPlugin(private val activity: Activity): Plugin(activity) {
     private var player: ExoPlayer? = null
-    private var surfaceView: SurfaceView? = null
+    private var playerView: PlayerView? = null
     private var pluginWebView: WebView? = null
 
     override fun load(webView: WebView) {
@@ -37,13 +45,25 @@ class ExoplayerPlugin(private val activity: Activity): Plugin(activity) {
 
         activity.runOnUiThread {
             webView.setBackgroundColor(Color.TRANSPARENT)
-            surfaceView = SurfaceView(activity)
+            
+            playerView = PlayerView(activity)
+            playerView?.useController = false
+            playerView?.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
             
             val parent = webView.parent as ViewGroup
-            parent.addView(surfaceView, 0)
+            parent.addView(playerView, 0)
 
             player = ExoPlayer.Builder(activity).build()
-            player?.setVideoSurfaceView(surfaceView)
+            playerView?.player = player
+
+            player?.addListener(object : Player.Listener {
+                override fun onIsPlayingChanged(isPlaying: Boolean) {
+                    trigger("exoplayer-event", JSObject().apply {
+                        put("type", "pause")
+                        put("value", !isPlaying)
+                    })
+                }
+            })
         }
     }
 
@@ -88,6 +108,20 @@ class ExoplayerPlugin(private val activity: Activity): Plugin(activity) {
                 val seekOffsetMs = (args.seconds * 1000).toLong()
                 
                 it.seekTo(currentPosMs + seekOffsetMs)
+            }
+            invoke.resolve()
+        }
+    }
+
+    @Command
+    fun setResizeMode(invoke: Invoke) {
+        val args = invoke.parseArgs(ResizeArgs::class.java)
+        
+        activity.runOnUiThread {
+            when (args.mode) {
+                "cover" -> playerView?.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                "stretch" -> playerView?.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FILL
+                else -> playerView?.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
             }
             invoke.resolve()
         }
