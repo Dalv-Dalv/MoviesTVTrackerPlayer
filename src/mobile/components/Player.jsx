@@ -1,0 +1,262 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { VideoPlayer } from '../../shared/services/VideoEngine';
+import { ArrowLeftIcon, ArrowsInSimpleIcon, ArrowsOutSimpleIcon, CaretLeftIcon, ChatDotsIcon, ClosedCaptioningIcon, HeadphonesIcon, MusicNoteIcon, PauseIcon, PlayIcon, SkipBackIcon, SkipForwardIcon, SpeakerHighIcon, SpeakerLowIcon, SpeakerNoneIcon, SpeakerSlashIcon, SpeakerXIcon, XIcon } from '@phosphor-icons/react';
+import { formatTime } from '../../shared/utils/PlayerUtils';
+import { useKeyboardShortcuts, useVideoState } from '../../desktop/hooks';
+import { useWakeUI, useFullscreen } from '../../shared/hooks';
+import { useScrubber } from '../../desktop/hooks/useScrubber';
+import { LanguagePanel } from '../../desktop/components/LanguagePanel';
+import { useWatchHistory } from '../../shared/contexts/WatchHistoryContext';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useVideoLibrary } from '../../shared/contexts/VideoLibraryContext';
+
+export const PlayerButton = ({ children, onClick, className = '', ...props }) => {
+    return (
+        <button tabIndex={-1} className={`bg-black/10 hover:bg-black/40 p-1.5 rounded-sm transition-colors duration-200 ${className}`}
+            onClick={onClick}
+            {...props}>
+
+            {children}
+        </button>
+    );
+}
+
+export const Player = () => {
+    const { tmdbId } = useParams();
+    const navigate = useNavigate();
+    const { library } = useVideoLibrary();
+    const media = library[tmdbId];
+
+    const [activePath, setActivePath] = useState(null);
+
+    const [showRemainingTime, setShowRemainingTime] = useState(true);
+    const [languagePanelOpen, setLanguagePanelOpen] = useState(false);
+
+    const [isOverviewActive, setIsOverviewActive] = useState(false);
+    const [pauseFrameUrl, setPauseFrameUrl] = useState(null);
+
+    const { isPlayerReady, isVideoLoaded, isPlaying, currentTime, duration, volume, isMute, subText, maxVolume, audio, subs } = useVideoState(activePath);
+    const { isFullscreen, toggleFullscreen } = useFullscreen();
+    const { showControls, wakeUI, handleInteractiveEnter, handleInteractiveLeave } = useWakeUI({ holdOpen: languagePanelOpen });
+    
+
+
+    const { history, updateProgressAndSave, isLoaded: historyLoaded } = useWatchHistory();
+    const sessionId = useRef(Date.now()).current;
+    const lastSaveTime = useRef(0);
+    const latestTime = useRef(0);
+
+    useEffect(() => {
+        setActivePath(media.filePaths[0]);
+        console.log(media.filePaths[0]);
+    }, []);
+
+    useEffect(() => {
+        window.__android_immersive_state = true;
+        toggleFullscreen(true);
+        
+        return () => {
+            window.__android_immersive_state = false;
+            toggleFullscreen(false);
+        };
+    }, [toggleFullscreen]);
+
+    useEffect(() => {
+        if (isPlayerReady && activePath) {
+            VideoPlayer.load(activePath);
+        }
+    }, [isPlayerReady, activePath]);
+
+    useEffect(() => {
+        if (isVideoLoaded) {
+            VideoPlayer.setPaused(false);
+        }
+    }, [isVideoLoaded]);
+
+    const {
+        trackRef: progressBarRef,
+        isScrubbing,
+        onMouseDown: onProgressMouseDown
+    } = useScrubber({
+        orientation: 'horizontal',
+        onChange: (ratio) => {
+            if (duration === 0) return;
+            const newTime = ratio * duration;
+            VideoPlayer.seekToPercentage((ratio * 100).toFixed(3));
+        }
+    });
+
+    useEffect(() => {
+        async function getAndSetFrame() {
+            const frameUrl = await VideoPlayer.captureFrame();
+            if (frameUrl) setPauseFrameUrl(frameUrl);
+        }
+
+        if (isPlaying || isScrubbing) setIsOverviewActive(false);
+        else getAndSetFrame();
+    }, [isPlaying, isScrubbing]);
+
+    useEffect(() => {
+        latestTime.current = currentTime;
+
+        if (duration === 0 || isScrubbing) return;
+
+        const timeNow = Date.now();
+
+        if (timeNow - lastSaveTime.current >= 10000) {
+            updateProgressAndSave(tmdbId, currentTime, duration, sessionId);
+            lastSaveTime.current = timeNow;
+        }
+    }, [currentTime, duration, isScrubbing, tmdbId, sessionId]);
+
+    useEffect(() => {
+        return () => {
+            if (latestTime.current > 0) {
+                updateProgressAndSave(tmdbId, latestTime.current, duration, sessionId);
+            }
+        };
+    }, [duration, tmdbId, sessionId]);
+
+    const hasResumed = useRef(false);
+    useEffect(() => {
+        hasResumed.current = false;
+    }, [activePath]);
+
+    useEffect(() => {
+        if (!historyLoaded || !isVideoLoaded || hasResumed.current) return;
+
+        const movieHistory = history[tmdbId];
+        let startPosition = 0;
+
+        if (movieHistory) {
+            startPosition = movieHistory.completed ? 0 : movieHistory.progress;
+        }
+
+        if (startPosition > 0) {
+            VideoPlayer.seekTo(startPosition);
+        }
+
+        hasResumed.current = true;
+    }, [historyLoaded, isVideoLoaded, history, tmdbId]);
+
+    const togglePlay = () => VideoPlayer.playPause();
+    const toggleMute = () => VideoPlayer.toggleMute();
+    const setVolume = (vol) => VideoPlayer.setVolume(vol);
+
+    useEffect(() => {
+        return () => {
+            VideoPlayer.stop();
+        };
+    }, []);
+
+    const exitPlayer = () => {
+        navigate(-1);
+    };
+
+    const {
+        trackRef: volumeBarRef,
+        onMouseDown: onVolumeMouseDown
+    } = useScrubber({
+        orientation: 'horizontal',
+        onChange: (ratio) => {
+            const newVolume = ratio * maxVolume;
+            setVolume(newVolume);
+            VideoPlayer.setVolume(newVolume);
+        }
+    });
+
+    const volumeProgress = (volume / maxVolume) * 100;
+    const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+
+    useKeyboardShortcuts({ togglePlay, toggleFullscreen, toggleMute });
+
+    return (
+        <div className='w-screen h-screen relative overflow-hidden flex flex-col items-center justify-center'>
+            {/* <img className={`absolute w-full scale-105 max-h-full object-contain blur-lg ${isOverviewActive ? 'opacity-100' : 'opacity-0'} transition-opacity duration-1000`}
+                src={pauseFrameUrl} onLoad={() => setIsOverviewActive(true)} /> */}
+
+            <div className='relative w-full flex-1 flex items-center flex-col justify-between noselect text-white' onMouseMove={wakeUI}>
+
+                <div className={`relative w-full pt-6 px-6 flex flex-row justify-start items-center gap-2 ${showControls ? 'opacity-100' : 'opacity-0'} transition-opacity duration-200`}>
+                    <PlayerButton onClick={exitPlayer} onMouseEnter={handleInteractiveEnter} onMouseLeave={handleInteractiveLeave}>
+                        <ArrowLeftIcon size={25} weight='bold' />
+                    </PlayerButton>
+
+                    <span className='absolute top-7 -z-10 inset-0 text-xl tracking-wide text-body flex-1 text-center'>{media.title}</span>
+                </div>
+
+                <div className={`relative w-full flex-1 bg-transparent ${showControls ? 'cursor-default' : 'cursor-none'}`} onClick={togglePlay} onDoubleClick={(e) => toggleFullscreen()} />
+
+                <div className='absolute -z-10 bottom-20 inset-x-0 h-16 flex items-center justify-center text-white text-shadow-md text-shadow-black/30 tracking-wide text-xl text-center'>
+                    {subText ?? ''}
+                </div>
+
+                <div className={`w-full bg-[linear-gradient(to_top,rgba(0,0,0,0.5)_30%,transparent_100%),radial-gradient(6000px_circle_at_50%_6000px,rgba(0,0,0,.85)_99%,transparent_100%)]
+                    flex flex-col justify-center items-stretch ${showControls ? 'opacity-100' : 'opacity-0'} transition-opacity duration-200`} onMouseEnter={handleInteractiveEnter} onMouseLeave={handleInteractiveLeave}>
+
+                    <div ref={progressBarRef} className='relative mx-4 py-2 group cursor-pointer' onMouseDown={onProgressMouseDown}>
+                        <div className='relative flex-1 h-1 group-hover:h-1.5 transition-[height] duration-100'>
+                            <div className='absolute inset-0 bg-white/20 border rounded-full group-hover:bg-white/40 transition-colors duration-100 border-white/10 group-hover:border-white/30' />
+                            <div className='absolute inset-0 bg-red-500 border rounded-full border-white/20 flex items-center' style={{ width: `${progress}%` }}>
+                                <div className={`absolute bg-red-500 border border-white/20 rounded-full w-3 h-3 -right-1.5 transition-transform scale-0 ${isScrubbing ? 'scale-100' : ''} flex items-center duration-200`}>
+                                </div>
+                            </div>
+                            <span className={`bg-black/20 absolute text-center bottom-4 py-1 px-3 whitespace-nowrap rounded-sm opacity-0 ${isScrubbing ? 'opacity-100' : ''} transition-opacity duration-100 pointer-events-none`}
+                                style={{ left: `clamp(2rem, ${progress}%, calc(100% - 2rem))`, transform: 'translateX(-50%)' }}>
+                                {formatTime(currentTime)}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className='px-6 pb-4 pt-1 flex justify-between items-center'>
+                        <div className='flex justify-between items-center gap-2'>
+                            <PlayerButton onClick={togglePlay}>
+                                {isPlaying ? (
+                                    <PauseIcon size={25} weight='fill' />
+                                ) : (
+                                    <PlayIcon size={25} weight='fill' className='-translate-x-0.5' />
+                                )}
+                            </PlayerButton>
+
+                            <PlayerButton className='flex group p-0!'>
+                                <div onClick={toggleMute} className='p-1.5'>
+                                    {isMute ? (
+                                        <SpeakerSlashIcon size={25} />
+                                    ) : volume === 0 ? (
+                                        <SpeakerXIcon size={25} weight='fill' />
+                                    ) : volumeProgress < 50 ? (
+                                        <SpeakerLowIcon size={25} weight='fill' />
+                                    ) : (
+                                        <SpeakerHighIcon size={25} weight='fill' />
+                                    )}
+                                </div>
+
+                                <div className='flex justify-between items-center w-0 flex-1 group-hover:w-46 transition-[width] duration-200 overflow-hidden rounded-r-full pr-0 group-hover:pr-1.5'>
+                                    <div ref={volumeBarRef} onMouseDown={onVolumeMouseDown} className='h-1 bg-white/20 w-32 ml-1 rounded-full mr-1 overflow-hidden'>
+                                        <div className='bg-white h-full rounded-full' style={{ width: `${volumeProgress}%` }} />
+                                    </div>
+
+                                    <span className='font-semibold ml-1'>{Math.floor(volume)}%</span>
+                                </div>
+                            </PlayerButton>
+
+                            <span className='font-semibold bg-black/10 px-3 py-1.5 rounded-sm'>
+                                {formatTime(currentTime)}
+                            </span>
+                        </div>
+
+                        <div className='flex justify-between items-center gap-2'>
+                            <PlayerButton className='font-semibold px-3 py-1.5' onClick={() => setShowRemainingTime(prev => !prev)}>
+                                {showRemainingTime ? `-${formatTime(duration - currentTime)}` : formatTime(duration)}
+                            </PlayerButton>
+
+                            <LanguagePanel isOpen={languagePanelOpen} setIsOpen={setLanguagePanelOpen} />
+
+                            {/* Fullscreen button removed on mobile */}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}

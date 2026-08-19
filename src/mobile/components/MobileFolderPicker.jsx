@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { invoke } from '@tauri-apps/api/core';
 import { useSettings } from '../../shared/contexts/SettingsContext';
-import { CaretRightIcon, CheckIcon, DotOutlineIcon } from '@phosphor-icons/react';
+import { ArrowLeftIcon, CaretRightIcon, CheckIcon, DotOutlineIcon } from '@phosphor-icons/react';
 
 const FolderTreeNode = ({ node, selectedPaths, suppressedPaths, toggleFolder}) => {
     const [isExpanded, setIsExpanded] = useState(false);
@@ -176,12 +176,20 @@ export function MobileFolderPicker({ onClose, onSaveComplete }) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 1.05, y: 20 }}
             transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed inset-0 bg-background z-50 flex flex-col text-body overflow-hidden"
+            className="fixed pt-[env(safe-area-inset-top)] inset-0 bg-background z-50 flex flex-col text-body overflow-hidden"
         >
-            <div className="p-6 pt-12 pb-4 overflow-hidden border-b border-white/20 shadow-[0_0_20px_10px_rgba(0,0,0,1.0)]">
-                <h2 className="text-2xl font-bold">Select Media Folders</h2>
+            <div className="flex items-center gap-2 p-4 px-6">
+                <button className="p-2 rounded-full aspect-square bg-white/0 transition-colors active:bg-white/10" onClick={onClose}>
+                    <ArrowLeftIcon size={24} weight="bold" className="text-muted"/>
+                </button>
+                <span className="font-semibold text-2xl tracking-wide">
+                    Select Media Folders
+                </span>
+            </div>
+
+            <div className="p-6 pt-0 pb-4 overflow-hidden border-b border-white/8 shadow-[0_0_20px_10px_rgba(0,0,0,1.0)]">
                 <p className="text-sm text-muted mt-1">
-                    Avoid selecting folders where videos other than movies and shows will be.
+                    These folders will be scanned for your movies and shows. Avoid selecting folders where videos other than movies and shows will be.
                 </p>
             </div>
             
@@ -199,20 +207,14 @@ export function MobileFolderPicker({ onClose, onSaveComplete }) {
                 )}
             </div>
 
-            <div className="flex justify-between items-center p-6 pl-2 pt-4 overflow-hidden border-t border-white/20 shadow-[0_0_20px_10px_rgba(0,0,0,1.0)]">
+            <div className="flex justify-between items-center p-6 pl-2 pt-4 overflow-hidden border-t border-white/8 shadow-[0_0_20px_10px_rgba(0,0,0,1.0)]">
                 <span className='text-muted text-right flex-1 pr-3'>
                     <span>{selectedPaths.size}</span> Selected
                 </span>
 
-                <div className='flex justify-end gap-4'>
-                    <button onClick={onClose} className="px-5 py-3 bg-white/10 font-bold rounded-md active:bg-white/20">
-                        Cancel
-                    </button>
-                    
-                    <button onClick={handleSave} className="px-5 py-3 bg-body text-black font-bold rounded-md active:bg-white/80">
-                        Save & Scan
-                    </button>
-                </div>
+                <button onClick={handleSave} className="px-5 py-3 bg-body text-black font-bold rounded-md active:bg-white/80">
+                    Save & Scan
+                </button>
             </div>
         </motion.div>
     );

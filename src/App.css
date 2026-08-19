@@ -1,6 +1,10 @@
 @import "tailwindcss";
 @import "./fonts.css";
 
+@custom-variant d (:root[data-platform="desktop"] &);
+@custom-variant m (:root[data-platform="mobile"] &);
+@custom-variant mp (:root[data-platform="mobile"] &@media (orientation: portrait));
+@custom-variant ml (:root[data-platform="mobile"] &@media (orientation: landscape));
 body,
 html {
     background-color: transparent !important;

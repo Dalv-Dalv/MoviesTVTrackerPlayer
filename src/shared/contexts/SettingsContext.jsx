@@ -85,4 +85,20 @@ export function SettingsProvider({ children }) {
     );
 }
 
+export function useSetting(key, defaultValue) {
+    const { settings, updateAndSaveSetting } = useSettings();
+    
+    const value = settings[key] !== undefined ? settings[key] : defaultValue;
+    
+    const setValue = (newValueOrUpdater) => {
+        const nextValue = typeof newValueOrUpdater === 'function'
+            ? newValueOrUpdater(settings[key] !== undefined ? settings[key] : defaultValue)
+            : newValueOrUpdater;
+            
+        return updateAndSaveSetting(key, nextValue);
+    };
+    
+    return [value, setValue];
+}
+
 export const useSettings = () => useContext(SettingsContext);

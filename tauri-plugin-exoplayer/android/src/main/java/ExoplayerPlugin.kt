@@ -29,9 +29,11 @@ internal class SeekArgs {
 class ExoplayerPlugin(private val activity: Activity): Plugin(activity) {
     private var player: ExoPlayer? = null
     private var surfaceView: SurfaceView? = null
+    private var pluginWebView: WebView? = null
 
     override fun load(webView: WebView) {
         super.load(webView)
+        pluginWebView = webView
 
         activity.runOnUiThread {
             webView.setBackgroundColor(Color.TRANSPARENT)

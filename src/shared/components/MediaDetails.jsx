@@ -3,6 +3,7 @@ import { MovieImage } from './Poster';
 import { PlayIcon } from '@phosphor-icons/react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useVideoLibrary } from '../contexts/VideoLibraryContext';
+import { isMobile } from '../utils/PlatformUtils';
 
 export function MediaDetails({ className = '' }) {
     const { tmdbId } = useParams();
@@ -30,11 +31,11 @@ export function MediaDetails({ className = '' }) {
                 animate={{ opacity: 1, y: 0 }} 
                 exit={{ opacity: 0, y: 0 }}
                 transition={{ duration: 0.5 }}
-                className='absolute top-0'
+                className='absolute top-0 pointer-events-none'
             >
                 <MovieImage
                     relativePath={media.backdropPath}
-                    className='mask-[linear-gradient(to_top,transparent,black_50%)]'
+                    className='mask-[linear-gradient(to_top,transparent,black_50%)] pointer-events-none'
                 />
             </motion.div>
 
@@ -103,7 +104,7 @@ export function MediaDetails({ className = '' }) {
                     </p>
                     <button 
                         onClick={() => navigate(`/play/${tmdbId}`)}
-                        className="mt-8 bg-body backdrop-brightness-200 text-black px-4 py-3 rounded-lg w-fit font-bold flex flex-row items-center center gap-2"
+                        className="mt-8 bg-body backdrop-brightness-200 text-black px-4 py-3 rounded-lg w-fit font-bold flex flex-row items-center justify-center gap-2 cursor-pointer relative z-50 pointer-events-auto"
                     >
                         <PlayIcon size={20} weight='fill'/>
                         <span>Watch</span>
