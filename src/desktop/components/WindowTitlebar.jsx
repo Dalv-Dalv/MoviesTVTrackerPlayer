@@ -14,7 +14,7 @@ export function WindowTitlebar() {
             const max = await appWindow.isMaximized();
             setIsMaximized(max);
         };
-        
+
         checkMaximized();
 
         const listenToResize = async () => {
@@ -22,9 +22,9 @@ export function WindowTitlebar() {
                 checkMaximized();
             });
         };
-        
+
         listenToResize();
-        
+
         return () => {
             if (unlisten) {
                 unlisten();
@@ -35,8 +35,8 @@ export function WindowTitlebar() {
     if (isFullscreen) return null;
 
     return (
-        <div 
-            data-tauri-drag-region 
+        <div
+            data-tauri-drag-region
             className="h-5 select-none flex justify-end items-center fixed top-0 left-0 right-0 z-100 overflow-hidden bg-transparent"
         >
             <div className="flex h-full pointer-events-auto text-white/0">
@@ -63,7 +63,7 @@ export function WindowTitlebar() {
                     onClick={() => appWindow.close()}
                     title="Close"
                 >
-                    <XIcon size={16} weight='bold'/>
+                    <XIcon size={16} weight='bold' />
                 </button>
             </div>
         </div>

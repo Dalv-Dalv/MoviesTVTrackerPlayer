@@ -4,7 +4,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { useSettings } from '../../shared/contexts/SettingsContext';
 import { ArrowLeftIcon, CaretRightIcon, CheckIcon, DotOutlineIcon } from '@phosphor-icons/react';
 
-const FolderTreeNode = ({ node, selectedPaths, suppressedPaths, toggleFolder}) => {
+const FolderTreeNode = ({ node, selectedPaths, suppressedPaths, toggleFolder }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const hasChildren = Object.keys(node.children).length > 0;
     const isSelected = selectedPaths.has(node.fullPath);
@@ -12,21 +12,21 @@ const FolderTreeNode = ({ node, selectedPaths, suppressedPaths, toggleFolder}) =
 
     return (
         <div className="relative flex flex-col">
-            <div className={`absolute pointer-events-none inset-0 rounded-lg bg-linear-to-r from-primary/30 to-primary/5 transition-opacity duration-150 ${isSelected ? 'opacity-100' : 'opacity-0'}`}/>
-            <div 
+            <div className={`absolute pointer-events-none inset-0 rounded-lg bg-linear-to-r from-primary/30 to-primary/5 transition-opacity duration-150 ${isSelected ? 'opacity-100' : 'opacity-0'}`} />
+            <div
                 className={`relative flex items-center pl-1 pr-3 py-1.5 my-0.5 rounded-lg transition-colors duration-300 ${isSelected ? 'active:bg-primary/10' : 'active:bg-white/10'}`}
             >
-                
-                <button 
+
+                <button
                     className={`w-8 h-8 flex items-center justify-center ${isSelected ? 'text-primary' : 'text-muted'}`}
                     onClick={() => setIsExpanded(!isExpanded)}
                     disabled={!hasChildren}
                 >
 
                     {hasChildren ? (
-                        <CaretRightIcon size={20} className={`transition-transform duration-150 ${isExpanded ? 'rotate-90' : 'rotate-0'}`}/>
+                        <CaretRightIcon size={20} className={`transition-transform duration-150 ${isExpanded ? 'rotate-90' : 'rotate-0'}`} />
                     ) : (
-                        <DotOutlineIcon size={32} weight='light'/>
+                        <DotOutlineIcon size={32} weight='light' />
                     )}
                 </button>
 
@@ -38,16 +38,15 @@ const FolderTreeNode = ({ node, selectedPaths, suppressedPaths, toggleFolder}) =
                         <p className="-mt-1 text-xs text-muted">{node.count} videos</p>
                     )}
                 </div>
-                
-                <div 
-                    onClick={() => toggleFolder(node.fullPath)}
-                    className={`w-6 h-6 rounded-md border-2 flex items-center justify-center cursor-pointer transition-colors ${
-                        isSelected ? 'bg-primary border-primary' : (isSuppressed ? 'bg-muted border-muted' : 'border-muted')
-                    }`}
-                >
-                    <div className='absolute right-0 top-0 bottom-0 w-16 transparent'/> {/* extended tap area  */}
 
-                    {(isSelected || isSuppressed) && <CheckIcon size={18} className='text-black' weight='bold'/>}
+                <div
+                    onClick={() => toggleFolder(node.fullPath)}
+                    className={`w-6 h-6 rounded-md border-2 flex items-center justify-center cursor-pointer transition-colors ${isSelected ? 'bg-primary border-primary' : (isSuppressed ? 'bg-muted border-muted' : 'border-muted')
+                        }`}
+                >
+                    <div className='absolute right-0 top-0 bottom-0 w-16 transparent' /> {/* extended tap area  */}
+
+                    {(isSelected || isSuppressed) && <CheckIcon size={18} className='text-black' weight='bold' />}
                 </div>
             </div>
 
@@ -56,10 +55,10 @@ const FolderTreeNode = ({ node, selectedPaths, suppressedPaths, toggleFolder}) =
                     {Object.values(node.children)
                         .sort((a, b) => a.name.localeCompare(b.name))
                         .map(child => (
-                            <FolderTreeNode 
-                                key={child.fullPath} 
-                                node={child} 
-                                selectedPaths={selectedPaths} 
+                            <FolderTreeNode
+                                key={child.fullPath}
+                                node={child}
+                                selectedPaths={selectedPaths}
                                 suppressedPaths={suppressedPaths}
                                 toggleFolder={toggleFolder}
                             />
@@ -81,34 +80,34 @@ export function MobileFolderPicker({ onClose, onSaveComplete }) {
     useEffect(() => {
         async function discoverFolders() {
             try {
-                const response = await invoke('plugin:android-mediastore|get_media_files', { 
-                    payload: { mediaType: "video/*" } 
+                const response = await invoke('plugin:android-mediastore|get_media_files', {
+                    payload: { mediaType: "video/*" }
                 });
-                
+
                 const rootNode = { children: {} };
                 const androidRootPrefix = "/storage/emulated/0";
-                
+
                 for (const file of response.files) {
-                    if (!file.filePath) continue; 
-                    
+                    if (!file.filePath) continue;
+
                     const dirPath = file.filePath.substring(0, file.filePath.lastIndexOf('/'));
-                    
+
                     let visualPath = dirPath;
                     if (visualPath.startsWith(androidRootPrefix)) {
                         visualPath = visualPath.replace(androidRootPrefix, "");
                     }
 
                     if (visualPath.startsWith("/")) visualPath = visualPath.substring(1);
-                    if (visualPath === "") continue; 
+                    if (visualPath === "") continue;
 
                     const parts = visualPath.split('/');
-                    
+
                     let currentLevel = rootNode.children;
                     let builtPath = dirPath.startsWith(androidRootPrefix) ? androidRootPrefix : "";
 
                     for (const part of parts) {
                         builtPath += "/" + part;
-                        
+
                         if (!currentLevel[part]) {
                             currentLevel[part] = {
                                 name: part,
@@ -117,14 +116,14 @@ export function MobileFolderPicker({ onClose, onSaveComplete }) {
                                 children: {}
                             };
                         }
-                        
+
                         currentLevel[part].count++;
                         currentLevel = currentLevel[part].children;
                     }
                 }
 
                 const sortedRootFolders = Object.values(rootNode.children).sort((a, b) => a.name.localeCompare(b.name));
-                
+
                 setTreeData(sortedRootFolders);
                 setSelectedPaths(new Set(settings.videoLibraryFolders || []));
             } catch (err) {
@@ -133,7 +132,7 @@ export function MobileFolderPicker({ onClose, onSaveComplete }) {
                 setIsLoading(false);
             }
         }
-        
+
         discoverFolders();
     }, [settings.videoLibraryFolders]);
 
@@ -156,7 +155,7 @@ export function MobileFolderPicker({ onClose, onSaveComplete }) {
                     hidden.add(selectedPath);
                 }
             }
-            
+
             paths.add(path);
         }
 
@@ -167,11 +166,11 @@ export function MobileFolderPicker({ onClose, onSaveComplete }) {
     const handleSave = async () => {
         await updateAndSaveSetting('videoLibraryFolders', Array.from(selectedPaths));
         onClose();
-        onSaveComplete(); 
+        onSaveComplete();
     };
 
     return (
-        <motion.div 
+        <motion.div
             initial={{ opacity: 0, scale: 1.05, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 1.05, y: 20 }}
@@ -180,7 +179,7 @@ export function MobileFolderPicker({ onClose, onSaveComplete }) {
         >
             <div className="flex items-center gap-2 p-4 px-6">
                 <button className="p-2 rounded-full aspect-square bg-white/0 transition-colors active:bg-white/10" onClick={onClose}>
-                    <ArrowLeftIcon size={24} weight="bold" className="text-muted"/>
+                    <ArrowLeftIcon size={24} weight="bold" className="text-muted" />
                 </button>
                 <span className="font-semibold text-2xl tracking-wide">
                     Select Media Folders
@@ -192,16 +191,16 @@ export function MobileFolderPicker({ onClose, onSaveComplete }) {
                     These folders will be scanned for your movies and shows. Avoid selecting folders where videos other than movies and shows will be.
                 </p>
             </div>
-            
+
             <div className="relative -z-20 flex-1 overflow-y-scroll overscroll-y-contain p-2 pr-1">
                 {!isLoading && (
                     treeData.map(node => (
-                        <FolderTreeNode 
-                            key={node.fullPath} 
-                            node={node} 
+                        <FolderTreeNode
+                            key={node.fullPath}
+                            node={node}
                             selectedPaths={selectedPaths}
-                            suppressedPaths={suppressedPaths} 
-                            toggleFolder={toggleFolder} 
+                            suppressedPaths={suppressedPaths}
+                            toggleFolder={toggleFolder}
                         />
                     ))
                 )}

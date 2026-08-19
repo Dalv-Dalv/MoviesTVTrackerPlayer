@@ -47,7 +47,7 @@ function DesktopApp() {
         const savedScroll = sessionStorage.getItem('desktopAppScrollPosition');
         if (savedScroll && scrollRef.current) {
             scrollRef.current.scrollTop = parseInt(savedScroll, 10);
-            
+
             setTimeout(() => {
                 if (scrollRef.current) {
                     scrollRef.current.scrollTop = parseInt(savedScroll, 10);

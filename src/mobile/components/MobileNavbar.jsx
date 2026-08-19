@@ -89,15 +89,15 @@ export default function MobileNavbar({ className = '' }) {
 
     return (
         <>
-            <motion.div 
+            <motion.div
                 initial={{ y: -100, opacity: 0 }}
-                animate={{ 
-                    y: isVisible ? 0 : -100, 
-                    opacity: isVisible ? 1 : 0 
+                animate={{
+                    y: isVisible ? 0 : -100,
+                    opacity: isVisible ? 1 : 0
                 }}
                 exit={{ y: -100, opacity: 0 }}
                 transition={{ duration: 0.3, ease: "easeInOut" }}
-                
+
                 className={`fixed z-50 flex items-center justify-between px-4 transition-[top,left,right,height,padding] duration-300 ease-in-out
                     ${isAtTop
                         ? 'top-0 left-0 right-0 h-[calc(3rem+env(safe-area-inset-top))] pt-[env(safe-area-inset-top)]'
@@ -113,7 +113,7 @@ export default function MobileNavbar({ className = '' }) {
                 />
 
                 <div className="font-bold text-lg text-body tracking-wide flex items-center gap-1">
-                    <FilmStripIcon size={32} weight="light"/>
+                    <FilmStripIcon size={32} weight="light" />
                     HomeReel
                 </div>
 
@@ -130,9 +130,9 @@ export default function MobileNavbar({ className = '' }) {
             <AnimatePresence>
                 {isMenuOpen && (
                     <>
-                        <div className="fixed inset-0 z-60 bg-transparent" onClick={() => setIsMenuOpen(false)}/>
+                        <div className="fixed inset-0 z-60 bg-transparent" onClick={() => setIsMenuOpen(false)} />
 
-                        <motion.div 
+                        <motion.div
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
@@ -164,7 +164,7 @@ export default function MobileNavbar({ className = '' }) {
                 )}
             </AnimatePresence>
 
-            <motion.div 
+            <motion.div
                 initial={{ y: 100, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: 100, opacity: 0 }}

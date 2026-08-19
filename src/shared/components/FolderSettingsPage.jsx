@@ -7,13 +7,13 @@ import { useSetting } from "../contexts/SettingsContext";
 function SettingsButton({ label, Icon }) {
     return (
         <div className="w-full p-4 rounded-full text-lg flex items-center gap-4 transition-colors bg-transparent active:bg-white/8">
-            <Icon size={28} className="text-muted"/>
+            <Icon size={28} className="text-muted" />
             <span> {label} </span>
         </div>
     );
 }
 
-export default function FolderSettingsPage({ className='' }) {
+export default function FolderSettingsPage({ className = '' }) {
     const navigate = useNavigate();
 
     const [folders, setFolders] = useSetting('videoLibraryFolders', []);
@@ -33,7 +33,7 @@ export default function FolderSettingsPage({ className='' }) {
         >
             <div className="flex items-center gap-2 mb-6">
                 <button className="p-2 rounded-full aspect-square bg-white/0 transition-colors active:bg-white/10" onClick={() => navigate(-1)}>
-                    <ArrowLeftIcon size={24} weight="bold" className="text-muted"/>
+                    <ArrowLeftIcon size={24} weight="bold" className="text-muted" />
                 </button>
                 <span className="font-semibold text-2xl tracking-wide">
                     Folders Scanning
@@ -68,7 +68,7 @@ export default function FolderSettingsPage({ className='' }) {
                                     <FolderIcon size={22} className="text-primary shrink-0" />
                                     <span className="truncate">{folderPath.replace(/\/+$/, '').split('/').pop()}</span>
                                 </div>
-                                
+
                                 <button
                                     onClick={() => handleRemoveFolder(folderPath)}
                                     className="p-4 text-muted active:text-red-400 active:bg-white/10 rounded-lg transition-colors"

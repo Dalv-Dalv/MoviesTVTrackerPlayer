@@ -38,7 +38,7 @@ export const Player = () => {
     const { isPlayerReady, isVideoLoaded, isPlaying, currentTime, duration, volume, isMute, subText, maxVolume, audio, subs } = useVideoState(activePath);
     const { isFullscreen, toggleFullscreen } = useFullscreen();
     const { showControls, wakeUI, handleInteractiveEnter, handleInteractiveLeave } = useWakeUI({ holdOpen: languagePanelOpen });
-    
+
 
 
     const { history, updateProgressAndSave, isLoaded: historyLoaded } = useWatchHistory();
@@ -54,7 +54,7 @@ export const Player = () => {
     useEffect(() => {
         window.__android_immersive_state = true;
         toggleFullscreen(true);
-        
+
         return () => {
             window.__android_immersive_state = false;
             toggleFullscreen(false);
