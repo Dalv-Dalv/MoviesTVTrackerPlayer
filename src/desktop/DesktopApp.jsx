@@ -12,15 +12,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MediaDetails } from '../shared/components/MediaDetails';
 import { useNavigate } from 'react-router-dom';
 
-function NavbarButton({ children, className = '' }) {
-    return (
-        <div className={`relative overflow-hidden h-full p-2 group rounded-full text-body/50 ring-1 ring-inset ring-white/5 hover:ring-white/10 transition-colors duration-300 pointer-events-auto ${className}`}>
-            <div className="absolute -inset-8 bg-divider/20 group-hover:bg-divider/50 backdrop-blur-lg transition-colors duration-200 -z-10"></div>
-
-            {children}
-        </div>
-    );
-}
 
 function DesktopApp() {
     const { library, isScanning, rescanLibrary, addFolderAndScan } = useVideoLibrary();
@@ -66,31 +57,6 @@ function DesktopApp() {
 
     return (
         <>
-            <div className={`absolute top-5 z-50 w-full flex items-center justify-between p-4 py-0 noselect gap-2 h-12 pointer-events-none`}>
-                <NavbarButton className='flex gap-2 px-4'>
-                    <button className="relative">Library</button>
-                    <button className="relative">Explore</button>
-                </NavbarButton>
-
-                <NavbarButton className='flex gap-2 px-4'>
-                    <button className="relative">Movies</button>
-                    <button className="relative">Shows</button>
-                </NavbarButton>
-
-                <NavbarButton className='flex-1 p-2 group flex items-center justify-center'>
-                    <MagnifyingGlassIcon size={28} className='relative text-body/50 transition-colors duration-200 group-hover:text-body/80' />
-                    <div className='flex-1'>
-
-                    </div>
-                </NavbarButton>
-
-                <NavbarButton className='aspect-square flex items-center justify-center'>
-                    <div className="absolute -inset-8 bg-divider/20 group-hover:bg-divider/50 backdrop-blur-lg transition-colors duration-200 -z-10"></div>
-
-                    <GearIcon size={28} className='relative text-body/50 transition-colors duration-200 group-hover:text-body/80' />
-                </NavbarButton>
-            </div>
-
             <div ref={scrollRef} onScroll={handleScroll} className="h-full w-full overflow-y-auto noScrollbar">
                 {mediaItems[2] && (
                     <div className='relative w-full flex items-center justify-center p-6 overflow-hidden pb-25 pt-24 -mb-25'>

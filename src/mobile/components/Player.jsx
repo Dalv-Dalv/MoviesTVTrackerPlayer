@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { VideoPlayer } from '../../shared/services/VideoEngine';
-import { ArrowLeftIcon, ArrowsInSimpleIcon, ArrowsOutSimpleIcon, CaretLeftIcon, ChatDotsIcon, ClosedCaptioningIcon, HeadphonesIcon, MusicNoteIcon, PauseIcon, PlayIcon, SkipBackIcon, SkipForwardIcon, SpeakerHighIcon, SpeakerLowIcon, SpeakerNoneIcon, SpeakerSlashIcon, SpeakerXIcon, XIcon } from '@phosphor-icons/react';
+import { ArrowLeftIcon } from '@phosphor-icons/react';
 import { formatTime } from '../../shared/utils/PlayerUtils';
 import { useKeyboardShortcuts, useVideoState } from '../../desktop/hooks';
 import { useWakeUI, useFullscreen } from '../../shared/hooks';
@@ -9,6 +9,7 @@ import { LanguagePanel } from '../../desktop/components/LanguagePanel';
 import { useWatchHistory } from '../../shared/contexts/WatchHistoryContext';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useVideoLibrary } from '../../shared/contexts/VideoLibraryContext';
+import { Maximize2Icon, Minimize2Icon, PauseIcon, PlayIcon, Volume1Icon, Volume2Icon, VolumeIcon, VolumeOffIcon, VolumeXIcon } from 'lucide-react'; 
 
 export const PlayerButton = ({ children, onClick, className = '', ...props }) => {
     return (
@@ -34,6 +35,8 @@ export const Player = () => {
 
     const [isOverviewActive, setIsOverviewActive] = useState(false);
     const [pauseFrameUrl, setPauseFrameUrl] = useState(null);
+    const [scrubTime, setScrubTime] = useState(null);
+    const [pendingSeek, setPendingSeek] = useState(null);
 
     const { isPlayerReady, isVideoLoaded, isPlaying, currentTime, duration, volume, isMute, subText, maxVolume, audio, subs } = useVideoState(activePath);
     const { isFullscreen, toggleFullscreen } = useFullscreen();
@@ -76,25 +79,49 @@ export const Player = () => {
     const {
         trackRef: progressBarRef,
         isScrubbing,
-        onMouseDown: onProgressMouseDown
+        onMouseDown: onProgressMouseDown,
+        onTouchStart: onProgressTouchStart
     } = useScrubber({
         orientation: 'horizontal',
         onChange: (ratio) => {
             if (duration === 0) return;
-            const newTime = ratio * duration;
-            VideoPlayer.seekToPercentage((ratio * 100).toFixed(3));
+            setScrubTime(ratio * duration);
+            setPendingSeek(null);
+        },
+        onScrubEnd: (ratio) => {
+            if (duration === 0) return;
+            const finalTime = ratio * duration;
+            VideoPlayer.seekToPercentage(parseFloat((ratio * 100).toFixed(5)));
+            setScrubTime(null);
+            setPendingSeek(finalTime);
+            
+            setTimeout(() => {
+                setPendingSeek(prev => prev === finalTime ? null : prev);
+            }, 1000);
         }
     });
 
     useEffect(() => {
+        if (pendingSeek !== null && Math.abs(currentTime - pendingSeek) < 3) {
+            setPendingSeek(null);
+        }
+    }, [currentTime, pendingSeek]);
+
+    useEffect(() => {
+        let timeout;
         async function getAndSetFrame() {
             const frameUrl = await VideoPlayer.captureFrame();
             if (frameUrl) setPauseFrameUrl(frameUrl);
         }
 
-        if (isPlaying || isScrubbing) setIsOverviewActive(false);
-        else getAndSetFrame();
-    }, [isPlaying, isScrubbing]);
+        if (isPlaying || isScrubbing) {
+            setIsOverviewActive(false);
+        } else {
+            timeout = setTimeout(getAndSetFrame, 15000);
+        }
+        
+        return () => clearTimeout(timeout);
+    }, [isPlaying, isScrubbing, showControls]);
 
     useEffect(() => {
         latestTime.current = currentTime;
@@ -155,7 +182,8 @@ export const Player = () => {
 
     const {
         trackRef: volumeBarRef,
-        onMouseDown: onVolumeMouseDown
+        onMouseDown: onVolumeMouseDown,
+        onTouchStart: onVolumeTouchStart
     } = useScrubber({
         orientation: 'horizontal',
         onChange: (ratio) => {
@@ -166,7 +194,14 @@ export const Player = () => {
     });
 
     const volumeProgress = (volume / maxVolume) * 100;
-    const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+    
+    const displayTime = isScrubbing && scrubTime !== null 
+        ? scrubTime 
+        : pendingSeek !== null 
+            ? pendingSeek 
+            : currentTime;
+            
+    const progress = duration > 0 ? (displayTime / duration) * 100 : 0;
 
     useKeyboardShortcuts({ togglePlay, toggleFullscreen, toggleMute });
 
@@ -194,7 +229,7 @@ export const Player = () => {
                 <div className={`w-full bg-[linear-gradient(to_top,rgba(0,0,0,0.5)_30%,transparent_100%),radial-gradient(6000px_circle_at_50%_6000px,rgba(0,0,0,.85)_99%,transparent_100%)]
                     flex flex-col justify-center items-stretch ${showControls ? 'opacity-100' : 'opacity-0'} transition-opacity duration-200`} onMouseEnter={handleInteractiveEnter} onMouseLeave={handleInteractiveLeave}>
 
-                    <div ref={progressBarRef} className='relative mx-4 py-2 group cursor-pointer' onMouseDown={onProgressMouseDown}>
+                    <div ref={progressBarRef} className='relative mx-4 py-2 group cursor-pointer' onMouseDown={onProgressMouseDown} onTouchStart={onProgressTouchStart}>
                         <div className='relative flex-1 h-1 group-hover:h-1.5 transition-[height] duration-100'>
                             <div className='absolute inset-0 bg-white/20 border rounded-full group-hover:bg-white/40 transition-colors duration-100 border-white/10 group-hover:border-white/30' />
                             <div className='absolute inset-0 bg-red-500 border rounded-full border-white/20 flex items-center' style={{ width: `${progress}%` }}>
@@ -203,7 +238,7 @@ export const Player = () => {
                             </div>
                             <span className={`bg-black/20 absolute text-center bottom-4 py-1 px-3 whitespace-nowrap rounded-sm opacity-0 ${isScrubbing ? 'opacity-100' : ''} transition-opacity duration-100 pointer-events-none`}
                                 style={{ left: `clamp(2rem, ${progress}%, calc(100% - 2rem))`, transform: 'translateX(-50%)' }}>
-                                {formatTime(currentTime)}
+                                {formatTime(displayTime)}
                             </span>
                         </div>
                     </div>
@@ -212,27 +247,27 @@ export const Player = () => {
                         <div className='flex justify-between items-center gap-2'>
                             <PlayerButton onClick={togglePlay}>
                                 {isPlaying ? (
-                                    <PauseIcon size={25} weight='fill' />
+                                    <PauseIcon size={25} fill='white' />
                                 ) : (
-                                    <PlayIcon size={25} weight='fill' className='-translate-x-0.5' />
+                                    <PlayIcon size={25} fill='white'/>
                                 )}
                             </PlayerButton>
 
                             <PlayerButton className='flex group p-0!'>
                                 <div onClick={toggleMute} className='p-1.5'>
                                     {isMute ? (
-                                        <SpeakerSlashIcon size={25} />
+                                        <VolumeOffIcon size={25}/>
                                     ) : volume === 0 ? (
-                                        <SpeakerXIcon size={25} weight='fill' />
+                                        <VolumeXIcon size={25}/>
                                     ) : volumeProgress < 50 ? (
-                                        <SpeakerLowIcon size={25} weight='fill' />
+                                        <Volume1Icon size={25}/>
                                     ) : (
-                                        <SpeakerHighIcon size={25} weight='fill' />
+                                        <Volume2Icon size={25}/>
                                     )}
                                 </div>
 
                                 <div className='flex justify-between items-center w-0 flex-1 group-hover:w-46 transition-[width] duration-200 overflow-hidden rounded-r-full pr-0 group-hover:pr-1.5'>
-                                    <div ref={volumeBarRef} onMouseDown={onVolumeMouseDown} className='h-1 bg-white/20 w-32 ml-1 rounded-full mr-1 overflow-hidden'>
+                                    <div ref={volumeBarRef} onMouseDown={onVolumeMouseDown} onTouchStart={onVolumeTouchStart} className='h-1 bg-white/20 w-32 ml-1 rounded-full mr-1 overflow-hidden'>
                                         <div className='bg-white h-full rounded-full' style={{ width: `${volumeProgress}%` }} />
                                     </div>
 
@@ -240,19 +275,25 @@ export const Player = () => {
                                 </div>
                             </PlayerButton>
 
-                            <span className='font-semibold bg-black/10 px-3 py-1.5 rounded-sm'>
-                                {formatTime(currentTime)}
+                            <span className='font-semibold bg-black/10 px-3 py-1.5 rounded-sm tracking-wide'>
+                                {formatTime(displayTime)}
                             </span>
                         </div>
 
                         <div className='flex justify-between items-center gap-2'>
-                            <PlayerButton className='font-semibold px-3 py-1.5' onClick={() => setShowRemainingTime(prev => !prev)}>
-                                {showRemainingTime ? `-${formatTime(duration - currentTime)}` : formatTime(duration)}
+                            <PlayerButton className='font-semibold px-3 py-1.5 tracking-wide' onClick={() => setShowRemainingTime(prev => !prev)}>
+                                {showRemainingTime ? `-${formatTime(duration - displayTime)}` : formatTime(duration)}
                             </PlayerButton>
 
                             <LanguagePanel isOpen={languagePanelOpen} setIsOpen={setLanguagePanelOpen} />
 
-                            {/* Fullscreen button removed on mobile */}
+                            <PlayerButton onClick={(e) => toggleFullscreen()}>
+                                {isFullscreen ? (
+                                    <Minimize2Icon size={22} />
+                                ) : (
+                                    <Maximize2Icon size={22} />
+                                )}
+                            </PlayerButton>
                         </div>
                     </div>
                 </div>

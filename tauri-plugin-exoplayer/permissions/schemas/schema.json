@@ -307,16 +307,106 @@
           "markdownDescription": "Denies the ping command without any pre-configured scope."
         },
         {
-          "description": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-ping`\n- `allow-loadVideo`",
+          "description": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-ping`\n- `allow-loadVideo`\n- `allow-playPause`\n- `allow-setPaused`\n- `allow-seek`\n- `allow-seekTo`\n- `allow-seekToPercentage`\n- `allow-setVolume`\n- `allow-addVolume`\n- `allow-toggleMute`\n- `allow-setResizeMode`\n- `allow-stop`\n- `allow-setSubVisibility`\n- `allow-captureFrame`\n- `allow-setAudioTrack`\n- `allow-setSubtitleTrack`\n- `allow-addSubtitle`",
           "type": "string",
           "const": "default",
-          "markdownDescription": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-ping`\n- `allow-loadVideo`"
+          "markdownDescription": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-ping`\n- `allow-loadVideo`\n- `allow-playPause`\n- `allow-setPaused`\n- `allow-seek`\n- `allow-seekTo`\n- `allow-seekToPercentage`\n- `allow-setVolume`\n- `allow-addVolume`\n- `allow-toggleMute`\n- `allow-setResizeMode`\n- `allow-stop`\n- `allow-setSubVisibility`\n- `allow-captureFrame`\n- `allow-setAudioTrack`\n- `allow-setSubtitleTrack`\n- `allow-addSubtitle`"
         },
         {
           "description": "Allows React to trigger the Kotlin ExoPlayer commands",
           "type": "string",
           "const": "allow-loadVideo",
           "markdownDescription": "Allows React to trigger the Kotlin ExoPlayer commands"
+        },
+        {
+          "description": "Enables the playPause command.",
+          "type": "string",
+          "const": "allow-playPause",
+          "markdownDescription": "Enables the playPause command."
+        },
+        {
+          "description": "Enables the setPaused command.",
+          "type": "string",
+          "const": "allow-setPaused",
+          "markdownDescription": "Enables the setPaused command."
+        },
+        {
+          "description": "Enables the seek command.",
+          "type": "string",
+          "const": "allow-seek",
+          "markdownDescription": "Enables the seek command."
+        },
+        {
+          "description": "Enables the seekTo command.",
+          "type": "string",
+          "const": "allow-seekTo",
+          "markdownDescription": "Enables the seekTo command."
+        },
+        {
+          "description": "Enables the seekToPercentage command.",
+          "type": "string",
+          "const": "allow-seekToPercentage",
+          "markdownDescription": "Enables the seekToPercentage command."
+        },
+        {
+          "description": "Enables the setVolume command.",
+          "type": "string",
+          "const": "allow-setVolume",
+          "markdownDescription": "Enables the setVolume command."
+        },
+        {
+          "description": "Enables the addVolume command.",
+          "type": "string",
+          "const": "allow-addVolume",
+          "markdownDescription": "Enables the addVolume command."
+        },
+        {
+          "description": "Enables the toggleMute command.",
+          "type": "string",
+          "const": "allow-toggleMute",
+          "markdownDescription": "Enables the toggleMute command."
+        },
+        {
+          "description": "Enables the setResizeMode command.",
+          "type": "string",
+          "const": "allow-setResizeMode",
+          "markdownDescription": "Enables the setResizeMode command."
+        },
+        {
+          "description": "Enables the stop command.",
+          "type": "string",
+          "const": "allow-stop",
+          "markdownDescription": "Enables the stop command."
+        },
+        {
+          "description": "Enables the setSubVisibility command.",
+          "type": "string",
+          "const": "allow-setSubVisibility",
+          "markdownDescription": "Enables the setSubVisibility command."
+        },
+        {
+          "description": "Enables the captureFrame command.",
+          "type": "string",
+          "const": "allow-captureFrame",
+          "markdownDescription": "Enables the captureFrame command."
+        },
+        {
+          "description": "Enables the setAudioTrack command.",
+          "type": "string",
+          "const": "allow-setAudioTrack",
+          "markdownDescription": "Enables the setAudioTrack command."
+        },
+        {
+          "description": "Enables the setSubtitleTrack command.",
+          "type": "string",
+          "const": "allow-setSubtitleTrack",
+          "markdownDescription": "Enables the setSubtitleTrack command."
+        },
+        {
+          "description": "Enables the addSubtitle command.",
+          "type": "string",
+          "const": "allow-addSubtitle",
+          "markdownDescription": "Enables the addSubtitle command."
         }
       ]
     }

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChatDotsIcon, ClosedCaptioningIcon } from '@phosphor-icons/react';
+import { ChatDotsIcon, ClosedCaptioningIcon, SubtitlesIcon } from '@phosphor-icons/react';
 import { formatLanguage } from '../../shared/utils/PlayerUtils';
 import { useVideoState } from '../hooks';
 import { PlayerButton } from './Player';
@@ -79,10 +79,10 @@ export const LanguagePanel = ({ isOpen, setIsOpen }) => {
     return (
         <div className='relative' ref={languagePanelRef}>
             <PlayerButton onClick={(e) => setIsOpen(!isOpen)} className='relative z-20'>
-                <ChatDotsIcon size={25} weight={`${isOpen ? 'fill' : 'regular'}`} />
+                <SubtitlesIcon size={25} weight={`${isOpen ? 'fill' : 'regular'}`} />
             </PlayerButton>
 
-            <AnimatedHeight isOpen={isOpen} className='absolute bottom-0 right-0 bg-linear-to-b from-black/60 to-black z-15 min-w-70 rounded-lg rounded-br-sm flex flex-col shadow-xl shadow-black/70'>
+            <AnimatedHeight isOpen={isOpen} className='absolute bottom-0 right-0 bg-linear-to-b from-black/60 to-black z-15 min-w-90 rounded-lg rounded-br-sm flex flex-col shadow-xl shadow-black/70'>
                 <div className='grid grid-cols-2'>
                     <div className={`text-center p-1 pt-4 pb-0 font-semibold transition-colors duration-200 cursor-pointer ${languagePanelTab === 0 ? 'text-white/90' : 'text-white/20'}`} onClick={(e) => { setLanguagePanelTab(0) }}>
                         Audio
@@ -102,7 +102,7 @@ export const LanguagePanel = ({ isOpen, setIsOpen }) => {
                                     <LanguageListElement key={elem.id} selected={elem.selected} onClick={(e) => VideoPlayer.setAudioTrack(elem.id)} className='flex items-center justify-between gap-4'>
                                         <span>{formatLanguage(elem.lang)}</span>
                                         {hasDuplicateLang && (elem.title || elem.codec) && (
-                                            <span className="text-[11px] uppercase tracking-wider opacity-60 font-normal truncate max-w-28 text-right">
+                                            <span className="text-[11px] uppercase tracking-wider opacity-60 font-normal truncate min-w-28 text-right">
                                                 {elem.codec}
                                             </span>
                                         )}
@@ -126,9 +126,9 @@ export const LanguagePanel = ({ isOpen, setIsOpen }) => {
                                     }
 
                                     return (
-                                        <LanguageListElement key={elem.id} selected={elem.selected} onClick={(e) => VideoPlayer.setSubtitleTrack(elem.id)} className='flex items-center justify-between gap-4'>
+                                        <LanguageListElement key={elem.id} selected={elem.selected} onClick={(e) => VideoPlayer.setSubtitleTrack(elem.id)} className='flex items-center justify-between gap-2'>
                                             <div className='flex items-center'>
-                                                <span>{formatLanguage(elem.lang)}</span>
+                                                <span>{elem.title && elem.title !== 'unknown' && elem.title !== elem.lang ? elem.title : formatLanguage(elem.lang)}</span>
                                                 {elem['hearing-impaired'] && (
                                                     <ClosedCaptioningIcon size={25} className='ml-2' weight={`${elem.selected ? 'fill' : 'regular'}`} />
                                                 )}

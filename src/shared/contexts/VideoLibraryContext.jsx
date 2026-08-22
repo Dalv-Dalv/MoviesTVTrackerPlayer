@@ -70,6 +70,26 @@ const getPosterUrl = (posterPath) => {
     return getFullImagePath(TMDB_IMAGE_BASE_URL, ImageSizes.ORIGINAL, posterPath);
 };
 
+const downloadLogo = async (tmdb, tmdbId, isShow) => {
+    try {
+        const tmdbApi = isShow ? tmdb.tvShows : tmdb.movies;
+
+        const imagesData = await withRetry(() => tmdbApi.images(tmdbId, {
+            include_image_language: ["en", "null"]
+        }));
+
+        if (!imagesData || !imagesData.logos || imagesData.logos.length <= 0) return null;
+
+        const logoPath = imagesData.logos[0].file_path;
+        const fullLogoUrl = getPosterUrl(logoPath);
+        return await downloadImage(fullLogoUrl, `Logo_${tmdbId}.png`);
+    } catch (imageError) {
+        console.error(`Failed to fetch extra images for ${tmdbId}:`, imageError);
+    }
+
+    return null;
+}
+
 export function VideoLibraryProvider({ children }) {
     const [library, setLibrary] = useState({});
     const [isScanning, setIsScanning] = useState(false);
@@ -126,8 +146,6 @@ export function VideoLibraryProvider({ children }) {
             const newFileMap = {};
 
             for (const video of parsedVideos) {
-                if (video.type === 'series') continue; // TODO: Handle shows, also dont rely on just the parseVideo data, use tmdb to double check
-
                 const knownTmdbId = libraryCache.fileMap[video.filePath];
 
                 if (knownTmdbId && libraryCache.mediaItems[knownTmdbId]) {
@@ -144,67 +162,57 @@ export function VideoLibraryProvider({ children }) {
                 }
 
                 try {
-                    const search = await withRetry(() => tmdb.search.movies({
+                    const search = await withRetry(() => tmdb.search.multi({
                         query: video.name,
                         primary_release_year: video.year,
                         language: "en-US",
                         page: 1
                     }));
 
+                    console.log('Search:');
                     console.log(search);
 
                     const match = search.results[0];
                     if (!match) continue;
 
                     const tmdbId = match.id.toString();
+                    const isShow = match.media_type === "tv";
 
-                    if (!newMediaItems[tmdbId]) {
-                        let localPosterPath = null;
-                        if (match.poster_path) {
-                            const fullUrl = getPosterUrl(match.poster_path);
-                            console.log(fullUrl);
-                            localPosterPath = await downloadImage(fullUrl, `Poster_${match.id}.jpg`);
-                        }
-
-                        let localBackdropPath = null;
-                        if (match.backdrop_path) {
-                            const fullUrl = getPosterUrl(match.backdrop_path);
-                            console.log(fullUrl);
-                            localBackdropPath = await downloadImage(fullUrl, `Backdrop_${match.id}.jpg`);
-                        }
-
-                        let localLogoPath = null;
-                        try {
-                            const imagesData = await withRetry(() => tmdb.movies.images(match.id, {
-                                include_image_language: ["en", "null"]
-                            }));
-
-                            console.log("Images: ", imagesData);
-
-                            if (imagesData && imagesData.logos && imagesData.logos.length > 0) {
-                                const logoPath = imagesData.logos[0].file_path;
-                                const fullLogoUrl = getPosterUrl(logoPath);
-                                console.log(fullLogoUrl);
-                                localLogoPath = await downloadImage(fullLogoUrl, `Logo_${match.id}.png`);
-                            }
-                        } catch (imageError) {
-                            console.error(`Failed to fetch extra images for ${match.title}:`, imageError);
-                        }
-
-                        newMediaItems[tmdbId] = {
-                            tmdbId: match.id.toString(),
-                            title: match.title,
-                            genreIds: match.genre_ids,
-                            releaseDate: match.release_date,
-                            overview: match.overview,
-                            posterPath: localPosterPath,
-                            backdropPath: localBackdropPath,
-                            logoPath: localLogoPath,
-                            filePaths: []
-                        };
+                    if (newMediaItems[tmdbId]) {
+                        newMediaItems[tmdbId].filePaths.push(video.filePath);
+                        newFileMap[video.filePath] = tmdbId;
+                        continue;
                     }
 
-                    newMediaItems[tmdbId].filePaths.push(video.filePath);
+                    let localPosterPath = null;
+                    if (match.poster_path) {
+                        const fullUrl = getPosterUrl(match.poster_path);
+                        localPosterPath = await downloadImage(fullUrl, `Poster_${match.id}.jpg`);
+                    }
+
+                    let localBackdropPath = null;
+                    if (match.backdrop_path) {
+                        const fullUrl = getPosterUrl(match.backdrop_path);
+                        localBackdropPath = await downloadImage(fullUrl, `Backdrop_${match.id}.jpg`);
+                    }
+
+                    let localLogoPath = await downloadLogo(tmdb, tmdbId, isShow);
+                    console.log("Local logo path:");
+                    console.log(localLogoPath);
+
+                    newMediaItems[tmdbId] = {
+                        tmdbId: match.id.toString(),
+                        mediaType: isShow ? 'show' : 'movie',
+                        title: match.title,
+                        genreIds: match.genre_ids,
+                        releaseDate: match.release_date,
+                        overview: match.overview,
+                        posterPath: localPosterPath,
+                        backdropPath: localBackdropPath,
+                        logoPath: localLogoPath,
+                        filePaths: [video.filePath]
+                    };
+
                     newFileMap[video.filePath] = tmdbId;
 
                     await sleep(50);

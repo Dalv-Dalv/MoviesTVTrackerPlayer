@@ -1,3 +1,21 @@
 [default]
 description = "Default permissions for the plugin"
-permissions = ["allow-ping", "allow-loadVideo"]
+permissions = [
+    "allow-ping",
+    "allow-loadVideo",
+    "allow-playPause",
+    "allow-setPaused",
+    "allow-seek",
+    "allow-seekTo",
+    "allow-seekToPercentage",
+    "allow-setVolume",
+    "allow-addVolume",
+    "allow-toggleMute",
+    "allow-setResizeMode",
+    "allow-stop",
+    "allow-setSubVisibility",
+    "allow-captureFrame",
+    "allow-setAudioTrack",
+    "allow-setSubtitleTrack",
+    "allow-addSubtitle"
+]

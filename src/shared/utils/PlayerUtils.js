@@ -39,16 +39,27 @@ const SPECIAL_LANGUAGE_CASES = {
 export const formatLanguage = (code) => {
     if (!code) return "Unknown";
 
-    const locale = new Intl.Locale(code).toString();
+    let localeStr = code;
+    try {
+        localeStr = new Intl.Locale(code).toString();
+    } catch (e) {
+        // If it's completely invalid, we can just return the raw code 
+        // or attempt to parse the first part before a dash
+        try {
+            localeStr = new Intl.Locale(code.split('-')[0]).toString();
+        } catch (e2) {
+            return code;
+        }
+    }
 
-    if (SPECIAL_LANGUAGE_CASES[locale]) {
-        return SPECIAL_LANGUAGE_CASES[locale];
+    if (SPECIAL_LANGUAGE_CASES[localeStr]) {
+        return SPECIAL_LANGUAGE_CASES[localeStr];
     }
 
     try {
-        const base = new Intl.Locale(locale).language;
-        return languageNames.of(base) ?? locale;
+        const base = new Intl.Locale(localeStr).language;
+        return languageNames.of(base) ?? localeStr;
     } catch {
-        return locale;
+        return localeStr;
     }
 }

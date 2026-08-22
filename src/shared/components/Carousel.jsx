@@ -55,7 +55,7 @@ export function Carousel({ children, className = "" }) {
     return (
         <div className={`relative flex items-center w-full ${className}`}>
             <div
-                className={`absolute left-0 top-0 bottom-0 z-20 w-32 bg-linear-to-r from-background to-transparent transition-opacity duration-500 flex items-center justify-start px-2 group/chevron ${isScrolled ? 'opacity-100 cursor-pointer' : 'opacity-0 pointer-events-none'}`}
+                className={`absolute left-0 top-10 bottom-10 z-20 w-8 d:w-32 bg-linear-to-r from-background to-transparent transition-opacity duration-300 flex items-center justify-start px-2 group/chevron ${isScrolled ? 'opacity-100 cursor-pointer' : 'opacity-0 pointer-events-none'}`}
                 onClick={() => scroll('left')}
             >
                 <CaretLeftIcon size={40} className="text-white drop-shadow-md transition-all duration-300 opacity-0 group-hover/chevron:opacity-100 hover:scale-125" />
@@ -70,7 +70,7 @@ export function Carousel({ children, className = "" }) {
             </div>
 
             <div
-                className={`absolute right-0 top-0 bottom-0 z-20 w-32 bg-linear-to-l from-background to-transparent transition-opacity duration-500 flex items-center justify-end px-2 group/chevron ${!isMaxScrolled ? 'opacity-100 cursor-pointer' : 'opacity-0 pointer-events-none'}`}
+                className={`absolute right-0 top-10 bottom-10 z-20 w-8 d:w-32 bg-linear-to-l from-background to-transparent transition-opacity duration-300 flex items-center justify-end px-2 group/chevron ${!isMaxScrolled ? 'opacity-100 cursor-pointer' : 'opacity-0 pointer-events-none'}`}
                 onClick={() => scroll('right')}
             >
                 <CaretRightIcon size={40} className="text-white drop-shadow-md transition-all duration-300 opacity-0 group-hover/chevron:opacity-100 hover:scale-125" />

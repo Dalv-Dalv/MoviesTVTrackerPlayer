@@ -19,11 +19,11 @@ import SearchPage from './shared/components/SearchPage';
 import MobileNavbar from './mobile/components/MobileNavbar';
 import HomePage from './shared/components/HomePage';
 import FolderSettingsPage from './shared/components/FolderSettingsPage';
+import DesktopNavbar from './desktop/components/DesktopNavbar';
 
 function App() {
     const osType = type();
     const { toggleFullscreen } = useFullscreen();
-    const isPhone = osType === 'android' || osType === 'ios';
 
     useEffect(() => {
         const initPlatform = () => {
@@ -51,7 +51,7 @@ function App() {
     return (
         <BrowserRouter>
             <div className="h-screen w-screen relative overflow-hidden">
-                {!isPhone && (
+                {!isMobile && (
                     <WindowTitlebar />
                 )}
 
@@ -66,7 +66,7 @@ function AnimatedRoutes() {
     const location = useLocation();
     const isPlayer = location.pathname.startsWith('/play/');
 
-    const showMobileNavbar = isMobile && !HIDDEN_NAVBAR_ROUTES.some(path => location.pathname.startsWith(path));
+    const showNavbar = !HIDDEN_NAVBAR_ROUTES.some(path => location.pathname.startsWith(path));;
 
     return (
         <>
@@ -125,7 +125,7 @@ function AnimatedRoutes() {
             </AnimatePresence>
 
             <AnimatePresence>
-                {showMobileNavbar && <MobileNavbar />}
+                {showNavbar && (isMobile ? <MobileNavbar /> : <DesktopNavbar/>)}
             </AnimatePresence>
         </>
     );

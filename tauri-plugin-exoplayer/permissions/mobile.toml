@@ -1,0 +1,61 @@
+"$schema" = "./schemas/schema.json"
+
+[[permission]]
+identifier = "allow-playPause"
+description = "Enables the playPause command."
+commands.allow = ["playPause"]
+
+[[permission]]
+identifier = "allow-setPaused"
+description = "Enables the setPaused command."
+commands.allow = ["setPaused"]
+
+[[permission]]
+identifier = "allow-seek"
+description = "Enables the seek command."
+commands.allow = ["seek"]
+
+[[permission]]
+identifier = "allow-seekTo"
+description = "Enables the seekTo command."
+commands.allow = ["seekTo"]
+
+[[permission]]
+identifier = "allow-seekToPercentage"
+description = "Enables the seekToPercentage command."
+commands.allow = ["seekToPercentage"]
+
+[[permission]]
+identifier = "allow-setVolume"
+description = "Enables the setVolume command."
+commands.allow = ["setVolume"]
+
+[[permission]]
+identifier = "allow-addVolume"
+description = "Enables the addVolume command."
+commands.allow = ["addVolume"]
+
+[[permission]]
+identifier = "allow-toggleMute"
+description = "Enables the toggleMute command."
+commands.allow = ["toggleMute"]
+
+[[permission]]
+identifier = "allow-setResizeMode"
+description = "Enables the setResizeMode command."
+commands.allow = ["setResizeMode"]
+
+[[permission]]
+identifier = "allow-stop"
+description = "Enables the stop command."
+commands.allow = ["stop"]
+
+[[permission]]
+identifier = "allow-setSubVisibility"
+description = "Enables the setSubVisibility command."
+commands.allow = ["setSubVisibility"]
+
+[[permission]]
+identifier = "allow-captureFrame"
+description = "Enables the captureFrame command."
+commands.allow = ["captureFrame"]

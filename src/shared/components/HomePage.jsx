@@ -26,19 +26,20 @@ export default function HomePage({ className = '' }) {
     return (
         <>
             <div className="w-full pb-24">
-                {mediaItems[2] && (
-                    <div className='relative z-10 w-full flex items-center justify-center p-4 overflow-hidden pb-25 pt-24 -mb-25'>
-                        <MovieImage relativePath={mediaItems[2].backdropPath} altText={mediaItems[1].title}
-                            className='absolute inset-0 scale-180 origin-top transform-gpu blur-lg mask-[linear-gradient(to_bottom,transparent,black,transparent)] opacity-75' />
-
-                        <div className='relative w-full rounded-2xl overflow-hidden aspect-video'>
-                            <MovieImage relativePath={mediaItems[2].backdropPath} altText={mediaItems[1].title}
+                {mediaItems[0] && (
+                    <div className='relative w-full flex items-center justify-center px-4 d:px-6 overflow-hidden pb-32 pt-24 -mb-32'>
+                        <MovieImage relativePath={mediaItems[0].backdropPath} altText={mediaItems[0].title}
+                            className='absolute inset-0 scale-180 d:scale-100 m:origin-top transform-gpu blur-lg opacity-75 mask-[linear-gradient(to_bottom,transparent,black,transparent)] d:mask-[linear-gradient(to_bottom,black,transparent)]' />
+                            
+                        
+                        <div className='relative w-full d:w-3/4 rounded-2xl overflow-hidden aspect-video'>
+                            <MovieImage relativePath={mediaItems[0].backdropPath} altText={mediaItems[0].title}
                                 className='w-full' />
 
                             <div className="absolute rounded-2xl inset-0 ring-1 ring-inset ring-white/70 pointer-events-none mix-blend-soft-light" />
                             <div className="absolute rounded-2xl inset-0 ring-1 ring-inset ring-white/8 pointer-events-none" />
 
-                            <MovieImage relativePath={mediaItems[2].logoPath} altText={mediaItems[1].title}
+                            <MovieImage relativePath={mediaItems[0].logoPath} altText={mediaItems[0].title}
                                 className='absolute left-[3vw] bottom-[3vw] w-100 max-w-1/2' />
                         </div>
                     </div>

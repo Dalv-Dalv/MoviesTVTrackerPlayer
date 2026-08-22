@@ -11,12 +11,17 @@ const navButtons = [
     { label: 'Search', Icon: MagnifyingGlassIcon, routingPath: '/search' }
 ];
 
-function NavbarButton({ label, Icon, routingPath, isActive }) {
+function NavbarButton({ label, Icon, routingPath, isActive, isFirst, isLast }) {
     const navigate = useNavigate();
 
     return (
         <div className={`relative z-10 flex flex-col justify-center items-center px-3 transition-colors duration-300 ${isActive ? 'text-body' : 'text-muted'}`} onClick={() => navigate(routingPath)}>
-            <div className={`absolute inset-0 border border-t-0 border-white/80 pointer-events-none transition-opacity duration-300 bg-[radial-gradient(circle_150px_at_50%_-130%,transparent_50%,white_100%)] ${isActive ? 'opacity-20' : 'opacity-0'}`} />
+            <div 
+                className={`absolute inset-0 border border-t-0 border-white/80 pointer-events-none transition-opacity duration-300 bg-[radial-gradient(circle_150px_at_50%_-130%,transparent_50%,white_100%)] 
+                ${isActive ? 'opacity-20' : 'opacity-0'} 
+                ${isFirst ? 'border-l-0' : ''} 
+                ${isLast ? 'border-r-0' : ''}`} 
+            />
 
             <Icon size={28} weight={isActive ? 'fill' : 'regular'} />
             <span className="text-xs">
@@ -178,6 +183,8 @@ export default function MobileNavbar({ className = '' }) {
                         Icon={elem.Icon}
                         routingPath={elem.routingPath}
                         isActive={index === activeIndex}
+                        isFirst={index === 0}
+                        isLast={index === navButtons.length - 1}
                     />
                 ))}
             </motion.div>
