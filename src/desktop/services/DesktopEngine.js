@@ -1,11 +1,10 @@
 import { convertFileSrc } from '@tauri-apps/api/core';
-import { init, command, observeProperties } from 'tauri-plugin-libmpv-api';
+import { init, command, observeProperties, getProperty } from 'tauri-plugin-libmpv-api';
 import { appCacheDir, join } from '@tauri-apps/api/path';
 import { VideoEvents } from '../../shared/services/VideoEvents';
 
 const OBSERVED_PROPERTIES = [
     ['pause', 'flag'],
-    ['time-pos', 'double', 'none'],
     ['duration', 'double', 'none'],
     ['eof-reached', 'flag'],
     ['sub-text', 'string', 'none'], // Or sub-text/ass for more subtitle data
@@ -19,7 +18,16 @@ const OBSERVED_PROPERTIES = [
 const mpvConfig = {
     initialOptions: {
         'vo': 'gpu-next',
+        'gpu-context': 'd3d11',
+        'target-colorspace-hint': 'yes',
         'hwdec': 'auto-safe',
+        'hr-seek': 'no',
+        'cache': 'yes',
+        'demuxer-max-bytes': '1600M',
+        'demuxer-max-back-bytes': '400M',
+        'volume-max': '300',
+        'sub-pos': '95',
+        'sub-scale': '0.5',
         'osc': 'no',
         'osd-level': '0',
         'sub-visibility': 'no',
@@ -72,6 +80,15 @@ export const DesktopEngine = {
             if (dispatch) dispatch(data);
         });
 
+        setInterval(async () => {
+            try {
+                const time = await getProperty('time-pos', 'double');
+                if (time !== null) PROPERTY_DISPATCHER['time-pos'](time);
+            } catch (e) {
+                // Ignore errors when nothing is playing
+            }
+        }, 500);
+
         isMpvInitialized = true;
     },
 
@@ -94,6 +111,16 @@ export const DesktopEngine = {
     setSubtitleTrack: async (id) => await command('set', ['sid', id.toString()]),
     addSubtitle: async (url) => await command('sub-add', [url]),
     setSubVisibility: async (visible) => await command('set', ['sub-visibility', visible ? 'yes' : 'no']),
+
+    setSDRTonemapping: async (enabled) => {
+        if (enabled) {
+            await command('set', ['target-colorspace-hint', 'no']);
+            await command('set', ['target-peak', '203']);
+        } else {
+            await command('set', ['target-colorspace-hint', 'yes']);
+            await command('set', ['target-peak', 'auto']);
+        }
+    },
 
     cycleAudioTracks: async (upDown = 'up') => await command('cycle', ['aid', upDown]),
     cycleSubtitles: async (upDown = 'up') => await command('cycle', ['sid', upDown]),
