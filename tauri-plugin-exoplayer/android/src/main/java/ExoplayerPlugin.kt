@@ -132,7 +132,20 @@ class ExoplayerPlugin(private val activity: Activity): Plugin(activity) {
             val parent = webView.parent as ViewGroup
             parent.addView(playerView, 0)
 
-            player = ExoPlayer.Builder(activity).build()
+            val loadControl = androidx.media3.exoplayer.DefaultLoadControl.Builder()
+                .setBufferDurationsMs(
+                    32000,
+                    120000,
+                    2500,
+                    5000
+                )
+                .setTargetBufferBytes(400 * 1024 * 1024)
+                .setPrioritizeTimeOverSizeThresholds(false)
+                .build()
+
+            player = ExoPlayer.Builder(activity)
+                .setLoadControl(loadControl)
+                .build()
             
             val audioAttributes = androidx.media3.common.AudioAttributes.Builder()
                 .setUsage(C.USAGE_MEDIA)
