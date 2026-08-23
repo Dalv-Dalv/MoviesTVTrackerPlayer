@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { invoke } from '@tauri-apps/api/core';
 import { useSettings } from '../../shared/contexts/SettingsContext';
@@ -77,64 +77,65 @@ export function MobileFolderPicker({ onClose, onSaveComplete }) {
     const [suppressedPaths, setSuppressedPaths] = useState(new Set());
     const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-        async function discoverFolders() {
-            try {
-                const response = await invoke('plugin:android-mediastore|get_media_files', {
-                    payload: { mediaType: "video/*" }
-                });
+    const discoverFolders = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const response = await invoke('plugin:android-mediastore|get_media_files', {
+                payload: { mediaType: "video/*" }
+            });
 
-                const rootNode = { children: {} };
-                const androidRootPrefix = "/storage/emulated/0";
+            const rootNode = { children: {} };
+            const androidRootPrefix = "/storage/emulated/0";
 
-                for (const file of response.files) {
-                    if (!file.filePath) continue;
+            for (const file of response.files) {
+                if (!file.filePath) continue;
 
-                    const dirPath = file.filePath.substring(0, file.filePath.lastIndexOf('/'));
+                const dirPath = file.filePath.substring(0, file.filePath.lastIndexOf('/'));
 
-                    let visualPath = dirPath;
-                    if (visualPath.startsWith(androidRootPrefix)) {
-                        visualPath = visualPath.replace(androidRootPrefix, "");
-                    }
-
-                    if (visualPath.startsWith("/")) visualPath = visualPath.substring(1);
-                    if (visualPath === "") continue;
-
-                    const parts = visualPath.split('/');
-
-                    let currentLevel = rootNode.children;
-                    let builtPath = dirPath.startsWith(androidRootPrefix) ? androidRootPrefix : "";
-
-                    for (const part of parts) {
-                        builtPath += "/" + part;
-
-                        if (!currentLevel[part]) {
-                            currentLevel[part] = {
-                                name: part,
-                                fullPath: builtPath,
-                                count: 0,
-                                children: {}
-                            };
-                        }
-
-                        currentLevel[part].count++;
-                        currentLevel = currentLevel[part].children;
-                    }
+                let visualPath = dirPath;
+                if (visualPath.startsWith(androidRootPrefix)) {
+                    visualPath = visualPath.replace(androidRootPrefix, "");
                 }
 
-                const sortedRootFolders = Object.values(rootNode.children).sort((a, b) => a.name.localeCompare(b.name));
+                if (visualPath.startsWith("/")) visualPath = visualPath.substring(1);
+                if (visualPath === "") continue;
 
-                setTreeData(sortedRootFolders);
-                setSelectedPaths(new Set(settings.videoLibraryFolders || []));
-            } catch (err) {
-                console.error("MediaStore query failed", err);
-            } finally {
-                setIsLoading(false);
+                const parts = visualPath.split('/');
+
+                let currentLevel = rootNode.children;
+                let builtPath = dirPath.startsWith(androidRootPrefix) ? androidRootPrefix : "";
+
+                for (const part of parts) {
+                    builtPath += "/" + part;
+
+                    if (!currentLevel[part]) {
+                        currentLevel[part] = {
+                            name: part,
+                            fullPath: builtPath,
+                            count: 0,
+                            children: {}
+                        };
+                    }
+
+                    currentLevel[part].count++;
+                    currentLevel = currentLevel[part].children;
+                }
             }
-        }
 
-        discoverFolders();
+            const sortedRootFolders = Object.values(rootNode.children).sort((a, b) => a.name.localeCompare(b.name));
+
+            setTreeData(sortedRootFolders);
+            setSelectedPaths(new Set(settings.videoLibraryFolders || []));
+        } catch (err) {
+            console.error("MediaStore query failed", err);
+        } finally {
+            setIsLoading(false);
+        }
     }, [settings.videoLibraryFolders]);
+
+    useEffect(() => {
+        discoverFolders();
+    }, [discoverFolders]);
 
     const toggleFolder = (path) => {
         const paths = new Set(selectedPaths);
@@ -193,7 +194,7 @@ export function MobileFolderPicker({ onClose, onSaveComplete }) {
             </div>
 
             <div className="relative -z-20 flex-1 overflow-y-scroll overscroll-y-contain p-2 pr-1">
-                {!isLoading && (
+                {!isLoading && treeData.length > 0 && (
                     treeData.map(node => (
                         <FolderTreeNode
                             key={node.fullPath}
@@ -203,6 +204,18 @@ export function MobileFolderPicker({ onClose, onSaveComplete }) {
                             toggleFolder={toggleFolder}
                         />
                     ))
+                )}
+                
+                {!isLoading && treeData.length === 0 && (
+                    <div className="flex flex-col items-center justify-center h-full text-muted gap-4 px-8 text-center pt-12">
+                        <p>No media folders found, or storage permission was not granted.</p>
+                        <button 
+                            onClick={discoverFolders}
+                            className="px-6 py-2 bg-primary/20 text-primary rounded-full font-semibold active:bg-primary/30"
+                        >
+                            Scan Again
+                        </button>
+                    </div>
                 )}
             </div>
 

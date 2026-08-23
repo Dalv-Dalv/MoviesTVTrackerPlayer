@@ -79,7 +79,7 @@ export const LanguagePanel = ({ isOpen, setIsOpen }) => {
     return (
         <div className='relative' ref={languagePanelRef}>
             <PlayerButton onClick={(e) => setIsOpen(!isOpen)} className='relative z-20'>
-                <SubtitlesIcon size={25} weight={`${isOpen ? 'fill' : 'regular'}`} />
+                <SubtitlesIcon size={26} weight={`${isOpen ? 'fill' : 'regular'}`} />
             </PlayerButton>
 
             <AnimatedHeight isOpen={isOpen} className='absolute bottom-0 right-0 bg-linear-to-b from-black/60 to-black z-15 min-w-90 rounded-lg rounded-br-sm flex flex-col shadow-xl shadow-black/70'>

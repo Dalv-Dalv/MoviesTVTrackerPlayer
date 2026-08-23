@@ -106,16 +106,15 @@ class ExoplayerPlugin(private val activity: Activity): Plugin(activity) {
         }
     }
     
-    // A timer to continuously send time-pos to the frontend while playing or paused
     private val timePosRunnable = object : Runnable {
         override fun run() {
             player?.let {
                 emitEvent(JSObject().apply {
                     put("name", "time-pos")
-                    put("data", it.currentPosition / 1000.0) // convert to seconds
+                    put("data", it.currentPosition / 1000.0)
                 })
             }
-            handler.postDelayed(this, 500) // update twice a second
+            handler.postDelayed(this, 500)
         }
     }
 
@@ -146,8 +145,8 @@ class ExoplayerPlugin(private val activity: Activity): Plugin(activity) {
             player?.addListener(object : Player.Listener {
                 override fun onIsPlayingChanged(isPlaying: Boolean) {
                     emitEvent(JSObject().apply {
-                        put("name", "is-playing")
-                        put("data", isPlaying)
+                        put("name", "pause")
+                        put("data", !isPlaying)
                     })
                     
                     if (isPlaying) {

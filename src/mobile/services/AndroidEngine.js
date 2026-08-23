@@ -1,6 +1,32 @@
-import { invoke, convertFileSrc } from '@tauri-apps/api/core';
-
+import { invoke } from '@tauri-apps/api/core';
 import { VideoEvents } from '../../shared/services/VideoEvents';
+
+function fixMojibake(str) {
+    if (!str) return str;
+    const cp1252 = [
+        0x20AC, 0x81, 0x201A, 0x0192, 0x201E, 0x2026, 0x2020, 0x2021,
+        0x02C6, 0x2030, 0x0160, 0x2039, 0x0152, 0x8D, 0x017D, 0x8F,
+        0x90, 0x2018, 0x2019, 0x201C, 0x201D, 0x2022, 0x2013, 0x2014,
+        0x02DC, 0x2122, 0x0161, 0x203A, 0x0153, 0x9D, 0x017E, 0x0178
+    ];
+    let bytes = new Uint8Array(str.length);
+    for (let i = 0; i < str.length; i++) {
+        let code = str.charCodeAt(i);
+        let cpIndex = cp1252.indexOf(code);
+        if (cpIndex !== -1) {
+            bytes[i] = 0x80 + cpIndex;
+        } else if (code <= 0xFF) {
+            bytes[i] = code;
+        } else {
+            return str;
+        }
+    }
+    try {
+        return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+    } catch(e) {
+        return str;
+    }
+}
 
 const PROPERTY_DISPATCHER = {
     'pause': (data) => {
@@ -21,7 +47,7 @@ const PROPERTY_DISPATCHER = {
     'aid': (data) => VideoEvents.onAudioChange.forEach(cb => cb(data)),
     'volume': (data) => data !== null && VideoEvents.onVolume.forEach(cb => cb(data)),
     'mute': (data) => VideoEvents.onMute.forEach(cb => cb(data)),
-    'sub-text': (data) => VideoEvents.onSubText.forEach(cb => cb(data)),
+    'sub-text': (data) => VideoEvents.onSubText.forEach(cb => cb(fixMojibake(data))),
     'track-list': (data) => {
         if (!data) return;
         VideoEvents.onTrackListChange.forEach(cb => cb({
@@ -48,6 +74,7 @@ export const AndroidEngine = {
     load: async (url) => {
         try {
             await invoke('plugin:exoplayer|loadVideo', { url });
+            await invoke('plugin:exoplayer|setSubVisibility', { visible: false });
 
             setTimeout(() => {
                 VideoEvents.onDuration.forEach(cb => cb(0));

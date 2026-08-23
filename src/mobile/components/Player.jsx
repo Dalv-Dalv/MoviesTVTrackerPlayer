@@ -1,15 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { VideoPlayer } from '../../shared/services/VideoEngine';
-import { ArrowLeftIcon } from '@phosphor-icons/react';
+import { ArrowLeftIcon, FrameCornersIcon } from '@phosphor-icons/react';
 import { formatTime } from '../../shared/utils/PlayerUtils';
 import { useKeyboardShortcuts, useVideoState } from '../../desktop/hooks';
-import { useWakeUI, useFullscreen } from '../../shared/hooks';
+import { useWakeUI, useFullscreen, useDoubleTap } from '../../shared/hooks';
 import { useScrubber } from '../../desktop/hooks/useScrubber';
 import { LanguagePanel } from '../../desktop/components/LanguagePanel';
 import { useWatchHistory } from '../../shared/contexts/WatchHistoryContext';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useVideoLibrary } from '../../shared/contexts/VideoLibraryContext';
-import { Maximize2Icon, Minimize2Icon, PauseIcon, PlayIcon, Volume1Icon, Volume2Icon, VolumeIcon, VolumeOffIcon, VolumeXIcon } from 'lucide-react'; 
+import { Maximize2Icon, Minimize2Icon, PauseIcon, PlayIcon, Volume1Icon, Volume2Icon, VolumeIcon, VolumeOffIcon, VolumeXIcon, RewindIcon, FastForwardIcon } from 'lucide-react';
+import { Animated } from './Animated';
+import { useDrag } from '@use-gesture/react';
 
 export const PlayerButton = ({ children, onClick, className = '', ...props }) => {
     return (
@@ -29,6 +31,11 @@ export const Player = () => {
     const media = library[tmdbId];
 
     const [activePath, setActivePath] = useState(null);
+    const [centerIcon, setCenterIcon] = useState(() => PlayIcon);
+
+    const leftAnim = useRef(null);
+    const centerAnim = useRef(null);
+    const rightAnim = useRef(null);
 
     const [showRemainingTime, setShowRemainingTime] = useState(true);
     const [languagePanelOpen, setLanguagePanelOpen] = useState(false);
@@ -41,8 +48,6 @@ export const Player = () => {
     const { isPlayerReady, isVideoLoaded, isPlaying, currentTime, duration, volume, isMute, subText, maxVolume, audio, subs } = useVideoState(activePath);
     const { isFullscreen, toggleFullscreen } = useFullscreen();
     const { showControls, wakeUI, handleInteractiveEnter, handleInteractiveLeave } = useWakeUI({ holdOpen: languagePanelOpen });
-
-
 
     const { history, updateProgressAndSave, isLoaded: historyLoaded } = useWatchHistory();
     const sessionId = useRef(Date.now()).current;
@@ -94,7 +99,7 @@ export const Player = () => {
             VideoPlayer.seekToPercentage(parseFloat((ratio * 100).toFixed(5)));
             setScrubTime(null);
             setPendingSeek(finalTime);
-            
+
             setTimeout(() => {
                 setPendingSeek(prev => prev === finalTime ? null : prev);
             }, 1000);
@@ -119,7 +124,7 @@ export const Player = () => {
         } else {
             timeout = setTimeout(getAndSetFrame, 15000);
         }
-        
+
         return () => clearTimeout(timeout);
     }, [isPlaying, isScrubbing, showControls]);
 
@@ -166,9 +171,36 @@ export const Player = () => {
         hasResumed.current = true;
     }, [historyLoaded, isVideoLoaded, history, tmdbId]);
 
-    const togglePlay = () => VideoPlayer.playPause();
+    const togglePlay = () => {
+        const willPlay = !isPlaying;
+        VideoPlayer.playPause();
+        setCenterIcon(willPlay ? PlayIcon : PauseIcon);
+        centerAnim.current?.play();
+    };
     const toggleMute = () => VideoPlayer.toggleMute();
     const setVolume = (vol) => VideoPlayer.setVolume(vol);
+
+    const handleLeftTap = useDoubleTap(() => {
+        VideoPlayer.seek(-10);
+        leftAnim.current?.play();
+    }, wakeUI);
+
+    const handleRightTap = useDoubleTap(() => {
+        VideoPlayer.seek(10);
+        rightAnim.current?.play();
+    }, wakeUI);
+
+    const handleCenterTap = useDoubleTap(togglePlay, wakeUI);
+
+    const bindLeft = useDrag(({ movement: [_, my], memo, first }) => {
+        const delta = -(my / 300); 
+        VideoPlayer.addVolume(delta);
+        //TODO: Brightness
+    });
+    const bindRight = useDrag(({ movement: [_, my], memo, first }) => {
+        const delta = -(my / 300); 
+        VideoPlayer.addVolume(delta);
+    });
 
     useEffect(() => {
         return () => {
@@ -194,49 +226,65 @@ export const Player = () => {
     });
 
     const volumeProgress = (volume / maxVolume) * 100;
-    
-    const displayTime = isScrubbing && scrubTime !== null 
-        ? scrubTime 
-        : pendingSeek !== null 
-            ? pendingSeek 
-            : currentTime;
-            
-    const progress = duration > 0 ? (displayTime / duration) * 100 : 0;
 
-    useKeyboardShortcuts({ togglePlay, toggleFullscreen, toggleMute });
+    const displayTime = isScrubbing && scrubTime !== null
+        ? scrubTime
+        : pendingSeek !== null
+            ? pendingSeek
+            : currentTime;
+
+    const progress = duration > 0 ? (displayTime / duration) * 100 : 0;
 
     return (
         <div className='w-screen h-screen relative overflow-hidden flex flex-col items-center justify-center'>
             {/* <img className={`absolute w-full scale-105 max-h-full object-contain blur-lg ${isOverviewActive ? 'opacity-100' : 'opacity-0'} transition-opacity duration-1000`}
                 src={pauseFrameUrl} onLoad={() => setIsOverviewActive(true)} /> */}
 
-            <div className='relative w-full flex-1 flex items-center flex-col justify-between noselect text-white' onMouseMove={wakeUI}>
+            <div className='relative w-full flex-1 flex items-center flex-col justify-between noselect text-white'>
 
-                <div className={`relative w-full pt-6 px-6 flex flex-row justify-start items-center gap-2 ${showControls ? 'opacity-100' : 'opacity-0'} transition-opacity duration-200`}>
-                    <PlayerButton onClick={exitPlayer} onMouseEnter={handleInteractiveEnter} onMouseLeave={handleInteractiveLeave}>
+                <div className={`relative z-10 w-full pt-6 px-6 flex flex-row justify-start items-center gap-2 ${showControls ? 'opacity-100' : 'opacity-0'} transition-opacity duration-200`}>
+                    <PlayerButton onClick={exitPlayer} onTouchStart={handleInteractiveEnter} onTouchEnd={handleInteractiveLeave}>
                         <ArrowLeftIcon size={25} weight='bold' />
                     </PlayerButton>
 
                     <span className='absolute top-7 -z-10 inset-0 text-xl tracking-wide text-body flex-1 text-center'>{media.title}</span>
                 </div>
 
-                <div className={`relative w-full flex-1 bg-transparent ${showControls ? 'cursor-default' : 'cursor-none'}`} onClick={togglePlay} onDoubleClick={(e) => toggleFullscreen()} />
+                <div className='absolute z-0 inset-0 flex justify-center items-center' >
+                    <div className='bg-transparent flex-1 h-full' onClick={handleLeftTap} />
+                    <div className='bg-transparent flex-1 h-full' onClick={handleCenterTap} />
+                    <div className='bg-transparent flex-1 h-full' {...bindRight()} onClick={handleRightTap} />
+
+                    <Animated ref={leftAnim}>
+                        <div className="absolute w-1/3 h-full left-0 bg-linear-to-r from-white/10 to-transparent origin-left animate-ripple" />
+                    </Animated>
+
+                    <Animated ref={centerAnim}>
+                        <div className="absolute animate-fade-icon text-white bg-black/40 rounded-full p-4 flex items-center justify-center z-10 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                            {centerIcon === PlayIcon ? <PlayIcon size={35} fill="white" /> : <PauseIcon size={35} fill="white" />}
+                        </div>
+                    </Animated>
+
+                    <Animated ref={rightAnim}>
+                        <div className="absolute w-1/3 h-full right-0 bg-linear-to-l from-white/10 to-transparent origin-right animate-ripple" />
+                    </Animated>
+                </div>
 
                 <div className='absolute -z-10 bottom-20 inset-x-0 h-16 flex items-center justify-center text-white text-shadow-md text-shadow-black/30 tracking-wide text-xl text-center'>
                     {subText ?? ''}
                 </div>
 
                 <div className={`w-full bg-[linear-gradient(to_top,rgba(0,0,0,0.5)_30%,transparent_100%),radial-gradient(6000px_circle_at_50%_6000px,rgba(0,0,0,.85)_99%,transparent_100%)]
-                    flex flex-col justify-center items-stretch ${showControls ? 'opacity-100' : 'opacity-0'} transition-opacity duration-200`} onMouseEnter={handleInteractiveEnter} onMouseLeave={handleInteractiveLeave}>
+                    flex flex-col justify-center items-stretch relative z-10 ${showControls ? 'opacity-100' : 'opacity-0'} transition-opacity duration-200`} onTouchStart={handleInteractiveEnter} onTouchEnd={handleInteractiveLeave}>
 
                     <div ref={progressBarRef} className='relative mx-4 py-2 group cursor-pointer' onMouseDown={onProgressMouseDown} onTouchStart={onProgressTouchStart}>
-                        <div className='relative flex-1 h-1 group-hover:h-1.5 transition-[height] duration-100'>
-                            <div className='absolute inset-0 bg-white/20 border rounded-full group-hover:bg-white/40 transition-colors duration-100 border-white/10 group-hover:border-white/30' />
-                            <div className='absolute inset-0 bg-red-500 border rounded-full border-white/20 flex items-center' style={{ width: `${progress}%` }}>
-                                <div className={`absolute bg-red-500 border border-white/20 rounded-full w-3 h-3 -right-1.5 transition-transform scale-0 ${isScrubbing ? 'scale-100' : ''} flex items-center duration-200`}>
+                        <div className={`relative flex-1 transition-[height] duration-100 ${isScrubbing ? 'h-2' : 'h-1.5'}`}>
+                            <div className='absolute inset-0 bg-white/10 border rounded-full group-hover:bg-white/20 transition-colors duration-100 border-white/10 group-hover:border-white/30' />
+                            <div className='absolute inset-0 bg-red-500 border rounded-full border-white/10 flex items-center' style={{ width: `${progress}%` }}>
+                                <div className={`absolute bg-red-500 border border-white/10 rounded-full w-3 h-3 -right-1.5 transition-transform scale-0 ${isScrubbing ? 'scale-100' : ''} flex items-center duration-200`}>
                                 </div>
                             </div>
-                            <span className={`bg-black/20 absolute text-center bottom-4 py-1 px-3 whitespace-nowrap rounded-sm opacity-0 ${isScrubbing ? 'opacity-100' : ''} transition-opacity duration-100 pointer-events-none`}
+                            <span className={`bg-black/20 absolute text-center bottom-12 py-1 px-3 whitespace-nowrap rounded-sm opacity-0 ${isScrubbing ? 'opacity-100' : ''} transition-opacity duration-100 pointer-events-none`}
                                 style={{ left: `clamp(2rem, ${progress}%, calc(100% - 2rem))`, transform: 'translateX(-50%)' }}>
                                 {formatTime(displayTime)}
                             </span>
@@ -249,30 +297,8 @@ export const Player = () => {
                                 {isPlaying ? (
                                     <PauseIcon size={25} fill='white' />
                                 ) : (
-                                    <PlayIcon size={25} fill='white'/>
+                                    <PlayIcon size={25} fill='white' />
                                 )}
-                            </PlayerButton>
-
-                            <PlayerButton className='flex group p-0!'>
-                                <div onClick={toggleMute} className='p-1.5'>
-                                    {isMute ? (
-                                        <VolumeOffIcon size={25}/>
-                                    ) : volume === 0 ? (
-                                        <VolumeXIcon size={25}/>
-                                    ) : volumeProgress < 50 ? (
-                                        <Volume1Icon size={25}/>
-                                    ) : (
-                                        <Volume2Icon size={25}/>
-                                    )}
-                                </div>
-
-                                <div className='flex justify-between items-center w-0 flex-1 group-hover:w-46 transition-[width] duration-200 overflow-hidden rounded-r-full pr-0 group-hover:pr-1.5'>
-                                    <div ref={volumeBarRef} onMouseDown={onVolumeMouseDown} onTouchStart={onVolumeTouchStart} className='h-1 bg-white/20 w-32 ml-1 rounded-full mr-1 overflow-hidden'>
-                                        <div className='bg-white h-full rounded-full' style={{ width: `${volumeProgress}%` }} />
-                                    </div>
-
-                                    <span className='font-semibold ml-1'>{Math.floor(volume)}%</span>
-                                </div>
                             </PlayerButton>
 
                             <span className='font-semibold bg-black/10 px-3 py-1.5 rounded-sm tracking-wide'>
@@ -288,11 +314,7 @@ export const Player = () => {
                             <LanguagePanel isOpen={languagePanelOpen} setIsOpen={setLanguagePanelOpen} />
 
                             <PlayerButton onClick={(e) => toggleFullscreen()}>
-                                {isFullscreen ? (
-                                    <Minimize2Icon size={22} />
-                                ) : (
-                                    <Maximize2Icon size={22} />
-                                )}
+                                <FrameCornersIcon size={26}/>
                             </PlayerButton>
                         </div>
                     </div>

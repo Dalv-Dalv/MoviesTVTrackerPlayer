@@ -1,10 +1,11 @@
 import { load } from "@tauri-apps/plugin-store";
 import { createContext, useContext, useEffect, useState } from "react";
+import { isMobile } from "../utils/PlatformUtils";
 
 const SettingsContext = createContext();
 
 const DEFAULT_SETTINGS = {
-    wakeUITimeout: 700,
+    wakeUITimeout: isMobile ? 2000 : 700,
     videoLibraryFolders: []
 };
 
