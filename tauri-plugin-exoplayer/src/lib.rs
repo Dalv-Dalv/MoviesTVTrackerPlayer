@@ -1,4 +1,3 @@
-// Force cargo rebuild for Android kotlin changes
 use tauri::{
   plugin::{Builder, TauriPlugin},
   Manager, Runtime,

@@ -162,18 +162,70 @@ export function VideoLibraryProvider({ children }) {
                 }
 
                 try {
-                    const search = await withRetry(() => tmdb.search.multi({
-                        query: video.name,
-                        primary_release_year: video.year,
-                        language: "en-US",
-                        page: 1
-                    }));
+                    const rawName = video.name.trim();
+                    const rawYear = video.year;
 
-                    console.log('Search:');
-                    console.log(search);
+                    const trySearch = async (queryName, queryYear) => {
+                        if (!queryName) return { results: [] };
+                        return await withRetry(() => tmdb.search.multi({
+                            query: queryName,
+                            ...(queryYear ? { primary_release_year: queryYear } : {}),
+                            language: "en-US",
+                            page: 1
+                        }));
+                    };
 
-                    const match = search.results[0];
-                    if (!match) continue;
+                    let search = await trySearch(rawName, rawYear);
+                    console.log(`Search 1 for '${rawName}' ${rawYear || ''}:`, search);
+                    let match = search.results[0];
+
+                    let extractedName = null;
+                    if (!match) {
+                        const yearMatch = rawName.match(/(.*?)\s+(\d{4})$/);
+                        if (yearMatch) {
+                            extractedName = yearMatch[1].trim();
+                            const extractedYear = rawYear || yearMatch[2];
+
+                            search = await trySearch(extractedName, extractedYear);
+                            console.log(`Search 2 for '${extractedName}' ${extractedYear || ''}:`, search);
+                            match = search.results[0];
+                        }
+                    }
+
+                    if (!match && extractedName) {
+                        search = await trySearch(extractedName, null);
+                        console.log(`Search 3 for '${extractedName}' without year:`, search);
+                        match = search.results[0];
+                    }
+
+                    if (!match && rawYear) {
+                        search = await trySearch(rawName, null);
+                        console.log(`Search 4 for '${rawName}' without year:`, search);
+                        match = search.results[0];
+                    }
+
+                    if (!match) {
+                        console.warn(`No TMDB match found for ${video.name} (${video.filename}). Adding as local file.`);
+                        const fallbackId = `local_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+
+                        let displayTitle = extractedName || rawName || video.filename.replace(/\.[^/.]+$/, "");
+                        displayTitle = displayTitle.replace(/\b\w/g, c => c.toUpperCase());
+
+                        newMediaItems[fallbackId] = {
+                            tmdbId: fallbackId,
+                            mediaType: video.type === 'series' ? 'show' : 'movie',
+                            title: displayTitle,
+                            genreIds: [],
+                            releaseDate: rawYear ? `${rawYear}-01-01` : '',
+                            overview: "Local video file. No TMDB metadata found.",
+                            posterPath: null,
+                            backdropPath: null,
+                            logoPath: null,
+                            filePaths: [video.filePath]
+                        };
+                        newFileMap[video.filePath] = fallbackId;
+                        continue;
+                    }
 
                     const tmdbId = match.id.toString();
                     const isShow = match.media_type === "tv";
@@ -273,11 +325,11 @@ export function VideoLibraryProvider({ children }) {
             {children}
 
             {isMobile && (
-                <AnimatePresence>    
+                <AnimatePresence>
                     {showMobilePicker && (
-                        <MobileFolderPicker 
+                        <MobileFolderPicker
                             onClose={() => setShowMobilePicker(false)}
-                            onSaveComplete={() => rescanLibrary()} 
+                            onSaveComplete={() => rescanLibrary()}
                         />
                     )}
                 </AnimatePresence>
