@@ -32,7 +32,7 @@ export default function DesktopNavbar() {
                 </div>
             </NavbarButton>
 
-            <NavbarButton className='aspect-square flex items-center justify-center' onClick={() => navigate('/settings')}>
+            <NavbarButton className='aspect-square flex items-center justify-center' onClick={() => navigate('#settings')}>
                 <div className="absolute -inset-8 bg-divider/20 group-hover:bg-divider/50 backdrop-blur-lg transition-colors duration-200 -z-10"></div>
 
                 <GearIcon size={28} className='relative text-body/50 transition-colors duration-200 group-hover:text-body/80' />

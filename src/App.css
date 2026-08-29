@@ -30,7 +30,6 @@ html {
         overflow: overlay;
     }
 
-    /* Hide native scrollbar since we use OverlayScrollbars */
     ::-webkit-scrollbar {
         display: none;
     }

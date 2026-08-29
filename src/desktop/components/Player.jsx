@@ -204,7 +204,7 @@ export const Player = () => {
                                 <div className={`absolute bg-red-500 border border-white/20 rounded-full w-3 h-3 -right-1.5 transition-transform scale-0 ${isScrubbing ? 'scale-100' : ''} flex items-center duration-200`}>
                                 </div>
                             </div>
-                            <span className={`bg-black/20 absolute text-center bottom-4 py-1 px-3 whitespace-nowrap rounded-sm opacity-0 ${isScrubbing ? 'opacity-100' : ''} transition-opacity duration-100 pointer-events-none`}
+                            <span className={`bg-black/20 absolute text-center bottom-4 py-1 px-3 whitespace-nowrap rounded-sm opacity-0 group-hover:opacity-100 ${isScrubbing ? 'opacity-100' : ''} transition-opacity duration-100 pointer-events-none`}
                                 style={{ left: `clamp(2rem, ${progress}%, calc(100% - 2rem))`, transform: 'translateX(-50%)' }}>
                                 {formatTime(displayTime)}
                             </span>

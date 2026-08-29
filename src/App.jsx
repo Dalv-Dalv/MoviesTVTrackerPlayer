@@ -20,6 +20,7 @@ import MobileNavbar from './mobile/components/MobileNavbar';
 import HomePage from './shared/components/HomePage';
 import FolderSettingsPage from './shared/components/FolderSettingsPage';
 import DesktopNavbar from './desktop/components/DesktopNavbar';
+import DesktopSettingsModal from './desktop/components/DesktopSettingsModal';
 
 function App() {
     const osType = type();
@@ -127,6 +128,8 @@ function AnimatedRoutes() {
             <AnimatePresence>
                 {showNavbar && (isMobile ? <MobileNavbar /> : <DesktopNavbar/>)}
             </AnimatePresence>
+
+            {!isMobile && <DesktopSettingsModal />}
         </>
     );
 }

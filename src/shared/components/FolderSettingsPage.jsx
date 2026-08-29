@@ -66,7 +66,7 @@ export default function FolderSettingsPage({ className = '' }) {
                             >
                                 <div className="flex items-center gap-3 overflow-hidden">
                                     <FolderIcon size={22} className="text-primary shrink-0" />
-                                    <span className="truncate">{folderPath.replace(/\/+$/, '').split('/').pop()}</span>
+                                    <span className="truncate">{folderPath.replace(/[\/]+$/, '').split('/').pop()}</span>
                                 </div>
 
                                 <button
