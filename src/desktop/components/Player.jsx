@@ -36,6 +36,7 @@ export const Player = () => {
     const [isOverviewActive, setIsOverviewActive] = useState(false);
     const [pauseFrameUrl, setPauseFrameUrl] = useState(null);
     const [scrubTime, setScrubTime] = useState(null);
+    const [hoverRatio, setHoverRatio] = useState(null);
 
     const { isPlayerReady, isVideoLoaded, isPlaying, currentTime, duration, volume, isMute, subText, maxVolume, audio, subs } = useVideoState(activePath);
     const { isFullscreen, toggleFullscreen } = useFullscreen();
@@ -81,6 +82,18 @@ export const Player = () => {
         }
     });
 
+    const handleProgressMouseMove = (e) => {
+        if (!progressBarRef.current) return;
+        const rect = progressBarRef.current.getBoundingClientRect();
+        let ratio = (e.clientX - rect.left) / rect.width;
+        ratio = Math.max(0, Math.min(1, ratio));
+        setHoverRatio(ratio);
+    };
+
+    const handleProgressMouseLeave = () => {
+        setHoverRatio(null);
+    };
+
     useEffect(() => {
         let timeout;
         async function getAndSetFrame() {
@@ -93,7 +106,7 @@ export const Player = () => {
         } else {
             timeout = setTimeout(getAndSetFrame, 15000);
         }
-        
+
         return () => clearTimeout(timeout);
     }, [isPlaying, isScrubbing, showControls]);
 
@@ -171,6 +184,9 @@ export const Player = () => {
     const displayTime = isScrubbing && scrubTime !== null ? scrubTime : currentTime;
     const progress = duration > 0 ? (displayTime / duration) * 100 : 0;
 
+    const tooltipTime = hoverRatio !== null && !isScrubbing ? hoverRatio * duration : displayTime;
+    const tooltipProgress = hoverRatio !== null && !isScrubbing ? hoverRatio * 100 : progress;
+
     useKeyboardShortcuts({ togglePlay, toggleFullscreen, toggleMute });
 
     return (
@@ -197,16 +213,16 @@ export const Player = () => {
                 <div className={`w-full bg-[linear-gradient(to_top,rgba(0,0,0,0.5)_30%,transparent_100%),radial-gradient(6000px_circle_at_50%_6000px,rgba(0,0,0,.85)_99%,transparent_100%)]
                     flex flex-col justify-center items-stretch ${showControls ? 'opacity-100' : 'opacity-0'} transition-opacity duration-200`} onMouseEnter={handleInteractiveEnter} onMouseLeave={handleInteractiveLeave}>
 
-                    <div ref={progressBarRef} className='relative mx-4 py-2 group cursor-pointer' onMouseDown={onProgressMouseDown} onTouchStart={onProgressTouchStart}>
+                    <div ref={progressBarRef} className='relative mx-4 py-2 group cursor-pointer' onMouseDown={onProgressMouseDown} onTouchStart={onProgressTouchStart} onMouseMove={handleProgressMouseMove} onMouseLeave={handleProgressMouseLeave}>
                         <div className='relative flex-1 h-1 group-hover:h-1.5 transition-[height] duration-100'>
                             <div className='absolute inset-0 bg-white/20 border rounded-full group-hover:bg-white/40 transition-colors duration-100 border-white/10 group-hover:border-white/30' />
                             <div className='absolute inset-0 bg-red-500 border rounded-full border-white/20 flex items-center' style={{ width: `${progress}%` }}>
                                 <div className={`absolute bg-red-500 border border-white/20 rounded-full w-3 h-3 -right-1.5 transition-transform scale-0 ${isScrubbing ? 'scale-100' : ''} flex items-center duration-200`}>
                                 </div>
                             </div>
-                            <span className={`bg-black/20 absolute text-center bottom-4 py-1 px-3 whitespace-nowrap rounded-sm opacity-0 group-hover:opacity-100 ${isScrubbing ? 'opacity-100' : ''} transition-opacity duration-100 pointer-events-none`}
-                                style={{ left: `clamp(2rem, ${progress}%, calc(100% - 2rem))`, transform: 'translateX(-50%)' }}>
-                                {formatTime(displayTime)}
+                            <span className={`bg-black/40 absolute text-center bottom-4 py-1 px-3 whitespace-nowrap rounded-sm opacity-0 group-hover:opacity-100 ${isScrubbing ? 'opacity-100' : ''} transition-opacity duration-100 pointer-events-none`}
+                                style={{ left: `clamp(2rem, ${tooltipProgress}%, calc(100% - 2rem))`, transform: 'translateX(-50%)' }}>
+                                {formatTime(tooltipTime)}
                             </span>
                         </div>
                     </div>
@@ -217,20 +233,20 @@ export const Player = () => {
                                 {isPlaying ? (
                                     <PauseIcon size={25} fill='white' />
                                 ) : (
-                                    <PlayIcon size={25} fill='white'/>
+                                    <PlayIcon size={25} fill='white' />
                                 )}
                             </PlayerButton>
 
                             <PlayerButton className='flex group p-0!'>
                                 <div onClick={toggleMute} className='p-1.5'>
                                     {isMute ? (
-                                        <VolumeOffIcon size={25}/>
+                                        <VolumeOffIcon size={25} />
                                     ) : volume === 0 ? (
-                                        <VolumeXIcon size={25}/>
+                                        <VolumeXIcon size={25} />
                                     ) : volumeProgress < 50 ? (
-                                        <Volume1Icon size={25}/>
+                                        <Volume1Icon size={25} />
                                     ) : (
-                                        <Volume2Icon size={25}/>
+                                        <Volume2Icon size={25} />
                                     )}
                                 </div>
 

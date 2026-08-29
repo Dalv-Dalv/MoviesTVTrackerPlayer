@@ -32,8 +32,6 @@ export function WindowTitlebar() {
         };
     }, []);
 
-    if (isFullscreen) return null;
-
     return (
         <div
             data-tauri-drag-region

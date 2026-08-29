@@ -34,10 +34,8 @@ export function useFullscreen() {
             if (newState) {
                 try {
                     wasMaximizedBeforeFullscreen = await appWindow.isMaximized();
-                    if (wasMaximizedBeforeFullscreen) {
-                        await appWindow.setDecorations(true);
-                    }
-                } catch (e) { console.warn("isMaximized not supported", e); }
+                    await appWindow.setDecorations(true);
+                } catch (e) { console.warn("isMaximized or decorations not supported", e); }
 
                 try {
                     await document.documentElement.requestFullscreen();
@@ -55,12 +53,12 @@ export function useFullscreen() {
                 }
                 await appWindow.setFullscreen(false);
                 
-                if (wasMaximizedBeforeFullscreen) {
-                    try {
-                        await appWindow.setDecorations(false);
+                try {
+                    await appWindow.setDecorations(false);
+                    if (wasMaximizedBeforeFullscreen) {
                         await appWindow.maximize();
-                    } catch (e) { console.warn("maximize not supported", e); }
-                }
+                    }
+                } catch (e) { console.warn("decorations or maximize not supported", e); }
             }
 
             setIsFullscreen(newState);
