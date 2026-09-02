@@ -22,23 +22,6 @@ export function MediaDetails({ className = '' }) {
 
     return (
         <motion.div className={`absolute inset-0 z-50 flex flex-col items-center md:p-12 md:pt-22 md:gap-12 p-4 pt-16 gap-6 ${className}`}>
-            <motion.div
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-background/95 backdrop-blur-xl -z-10"
-            />
-
-            <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className='absolute top-0 pointer-events-none'
-            >
-                <MovieImage
-                    relativePath={media.backdropPath}
-                    className='mask-[linear-gradient(to_top,transparent,black_50%)] pointer-events-none'
-                />
-            </motion.div>
 
             <motion.button
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -54,4 +37,4 @@ export function MediaDetails({ className = '' }) {
             }
         </motion.div>
     );
-}
+}

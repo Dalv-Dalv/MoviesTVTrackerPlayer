@@ -255,9 +255,9 @@ export function VideoLibraryProvider({ children }) {
                     newMediaItems[tmdbId] = {
                         tmdbId: match.id.toString(),
                         mediaType: isShow ? 'show' : 'movie',
-                        title: match.title,
+                        title: match.title || match.name,
                         genreIds: match.genre_ids,
-                        releaseDate: match.release_date,
+                        releaseDate: match.release_date || match.first_air_date,
                         overview: match.overview,
                         posterPath: localPosterPath,
                         backdropPath: localBackdropPath,
@@ -309,6 +309,19 @@ export function VideoLibraryProvider({ children }) {
         await addVideosFolder(selectedFolder);
     };
 
+    const clearCacheAndRescan = async () => {
+        try {
+            const cacheExists = await exists(CACHE_FILE, { baseDir: BaseDirectory.AppData });
+            if (cacheExists) {
+                await remove(CACHE_FILE, { baseDir: BaseDirectory.AppData });
+            }
+            setLibrary({});
+            await rescanLibrary();
+        } catch (error) {
+            console.error("Failed to clear cache:", error);
+        }
+    };
+
     useEffect(() => {
         if (!isLoaded) return;
         rescanLibrary();
@@ -320,7 +333,8 @@ export function VideoLibraryProvider({ children }) {
             isScanning,
             isLoaded,
             rescanLibrary,
-            addFolderAndScan
+            addFolderAndScan,
+            clearCacheAndRescan
         }}>
             {children}
 

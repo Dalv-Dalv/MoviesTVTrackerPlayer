@@ -307,10 +307,10 @@
           "markdownDescription": "Denies the ping command without any pre-configured scope."
         },
         {
-          "description": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-ping`\n- `allow-loadVideo`\n- `allow-playPause`\n- `allow-setPaused`\n- `allow-seek`\n- `allow-seekTo`\n- `allow-seekToPercentage`\n- `allow-setVolume`\n- `allow-addVolume`\n- `allow-toggleMute`\n- `allow-setResizeMode`\n- `allow-stop`\n- `allow-setSubVisibility`\n- `allow-captureFrame`\n- `allow-setAudioTrack`\n- `allow-setSubtitleTrack`\n- `allow-addSubtitle`",
+          "description": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-ping`\n- `allow-loadVideo`\n- `allow-playPause`\n- `allow-setPaused`\n- `allow-seek`\n- `allow-seekTo`\n- `allow-seekToPercentage`\n- `allow-setVolume`\n- `allow-addVolume`\n- `allow-toggleMute`\n- `allow-setResizeMode`\n- `allow-stop`\n- `allow-setSubVisibility`\n- `allow-captureFrame`\n- `allow-setAudioTrack`\n- `allow-setSubtitleTrack`\n- `allow-addSubtitle`\n- `allow-setBrightness`\n- `allow-addBrightness`\n- `allow-getBrightness`\n- `allow-getVolume`\n- `allow-restoreBrightness`",
           "type": "string",
           "const": "default",
-          "markdownDescription": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-ping`\n- `allow-loadVideo`\n- `allow-playPause`\n- `allow-setPaused`\n- `allow-seek`\n- `allow-seekTo`\n- `allow-seekToPercentage`\n- `allow-setVolume`\n- `allow-addVolume`\n- `allow-toggleMute`\n- `allow-setResizeMode`\n- `allow-stop`\n- `allow-setSubVisibility`\n- `allow-captureFrame`\n- `allow-setAudioTrack`\n- `allow-setSubtitleTrack`\n- `allow-addSubtitle`"
+          "markdownDescription": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-ping`\n- `allow-loadVideo`\n- `allow-playPause`\n- `allow-setPaused`\n- `allow-seek`\n- `allow-seekTo`\n- `allow-seekToPercentage`\n- `allow-setVolume`\n- `allow-addVolume`\n- `allow-toggleMute`\n- `allow-setResizeMode`\n- `allow-stop`\n- `allow-setSubVisibility`\n- `allow-captureFrame`\n- `allow-setAudioTrack`\n- `allow-setSubtitleTrack`\n- `allow-addSubtitle`\n- `allow-setBrightness`\n- `allow-addBrightness`\n- `allow-getBrightness`\n- `allow-getVolume`\n- `allow-restoreBrightness`"
         },
         {
           "description": "Allows React to trigger the Kotlin ExoPlayer commands",
@@ -389,6 +389,36 @@
           "type": "string",
           "const": "allow-captureFrame",
           "markdownDescription": "Enables the captureFrame command."
+        },
+        {
+          "description": "Enables the setBrightness command.",
+          "type": "string",
+          "const": "allow-setBrightness",
+          "markdownDescription": "Enables the setBrightness command."
+        },
+        {
+          "description": "Enables the addBrightness command.",
+          "type": "string",
+          "const": "allow-addBrightness",
+          "markdownDescription": "Enables the addBrightness command."
+        },
+        {
+          "description": "Enables the getBrightness command.",
+          "type": "string",
+          "const": "allow-getBrightness",
+          "markdownDescription": "Enables the getBrightness command."
+        },
+        {
+          "description": "Enables the getVolume command.",
+          "type": "string",
+          "const": "allow-getVolume",
+          "markdownDescription": "Enables the getVolume command."
+        },
+        {
+          "description": "Enables the restoreBrightness command.",
+          "type": "string",
+          "const": "allow-restoreBrightness",
+          "markdownDescription": "Enables the restoreBrightness command."
         },
         {
           "description": "Enables the setAudioTrack command.",

@@ -17,5 +17,10 @@ permissions = [
     "allow-captureFrame",
     "allow-setAudioTrack",
     "allow-setSubtitleTrack",
-    "allow-addSubtitle"
+    "allow-addSubtitle",
+    "allow-setBrightness",
+    "allow-addBrightness",
+    "allow-getBrightness",
+    "allow-getVolume",
+    "allow-restoreBrightness"
 ]

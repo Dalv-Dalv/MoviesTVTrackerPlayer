@@ -13,6 +13,14 @@ import androidx.media3.ui.PlayerView
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.common.C
 import androidx.media3.exoplayer.SeekParameters
+import androidx.media3.exoplayer.DefaultLoadControl
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.exoplayer.DefaultRenderersFactory
+import androidx.media3.exoplayer.text.TextRenderer
+import androidx.media3.exoplayer.text.TextOutput
+import androidx.media3.exoplayer.Renderer
+import android.content.Context
+import java.util.ArrayList
 import android.graphics.Bitmap
 import androidx.media3.common.VideoSize
 import android.widget.FrameLayout
@@ -39,6 +47,7 @@ internal class SetPauseArgs {
 @InvokeArg
 internal class LoadVideoArgs {
     lateinit var url: String
+    var startTime: Double? = null
 }
 
 @InvokeArg
@@ -84,6 +93,16 @@ internal class AddVolumeArgs {
 @InvokeArg
 internal class SetSubVisibilityArgs {
     var visible: Boolean = true
+}
+
+@InvokeArg
+internal class SetBrightnessArgs {
+    var brightness: Double = 0.0
+}
+
+@InvokeArg
+internal class AddBrightnessArgs {
+    var brightness: Double = 0.0
 }
 
 @TauriPlugin
@@ -132,18 +151,33 @@ class ExoplayerPlugin(private val activity: Activity): Plugin(activity) {
             val parent = webView.parent as ViewGroup
             parent.addView(playerView, 0)
 
-            val loadControl = androidx.media3.exoplayer.DefaultLoadControl.Builder()
+            val loadControl = DefaultLoadControl.Builder()
                 .setBufferDurationsMs(
-                    32000,
-                    120000,
-                    2500,
-                    5000
-                )
-                .setTargetBufferBytes(400 * 1024 * 1024)
-                .setPrioritizeTimeOverSizeThresholds(false)
-                .build()
+                    2000,  // minBufferMs (2 seconds)
+                    5000,  // maxBufferMs (5 seconds)
+                    100,
+                    500
+                ).build()
 
-            player = ExoPlayer.Builder(activity)
+            val mediaSourceFactory = DefaultMediaSourceFactory(activity)
+                .experimentalParseSubtitlesDuringExtraction(false)
+
+            val renderersFactory = object : DefaultRenderersFactory(activity) {
+                override fun buildTextRenderers(
+                    context: Context,
+                    output: TextOutput,
+                    outputLooper: Looper,
+                    extensionRendererMode: Int,
+                    out: ArrayList<Renderer>
+                ) {
+                    val textRenderer = TextRenderer(output, outputLooper)
+                    textRenderer.experimentalSetLegacyDecodingEnabled(true)
+                    out.add(textRenderer)
+                }
+            }
+
+            player = ExoPlayer.Builder(activity, renderersFactory)
+                .setMediaSourceFactory(mediaSourceFactory)
                 .setLoadControl(loadControl)
                 .build()
             
@@ -156,6 +190,13 @@ class ExoplayerPlugin(private val activity: Activity): Plugin(activity) {
             playerView?.player = player
 
             player?.addListener(object : Player.Listener {
+                override fun onRenderedFirstFrame() {
+                    emitEvent(JSObject().apply {
+                        put("name", "first-frame-rendered")
+                        put("data", true)
+                    })
+                }
+
                 override fun onIsPlayingChanged(isPlaying: Boolean) {
                     emitEvent(JSObject().apply {
                         put("name", "pause")
@@ -185,6 +226,11 @@ class ExoplayerPlugin(private val activity: Activity): Plugin(activity) {
                 }
 
                 override fun onPlaybackStateChanged(playbackState: Int) {
+                    emitEvent(JSObject().apply {
+                        put("name", "buffering")
+                        put("data", playbackState == Player.STATE_BUFFERING)
+                    })
+
                     if (playbackState == Player.STATE_READY) {
                         val durationMs = player?.duration ?: 0L
                         if (durationMs > 0) {
@@ -272,10 +318,17 @@ class ExoplayerPlugin(private val activity: Activity): Plugin(activity) {
         val urlString = args.url
 
         activity.runOnUiThread {
-            val uri = Uri.parse(urlString)
+            val uri = if (urlString.startsWith("/")) Uri.fromFile(File(urlString)) else Uri.parse(urlString)
             val mediaItem = MediaItem.fromUri(uri)
             
             player?.setMediaItem(mediaItem)
+            
+            args.startTime?.let { startTime ->
+                if (startTime > 0) {
+                    player?.seekTo((startTime * 1000).toLong())
+                }
+            }
+            
             player?.prepare()
             player?.play()
             
@@ -363,14 +416,22 @@ class ExoplayerPlugin(private val activity: Activity): Plugin(activity) {
         val args = invoke.parseArgs(SetVolumeArgs::class.java)
 
         activity.runOnUiThread {
-            player?.let {
-                val maxDeviceVol = it.deviceInfo.maxVolume
+            try {
+                val audioManager = activity.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
+                val maxVol = audioManager.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC)
+                val targetVol = (maxVol * (args.vol / 100.0)).toInt().coerceIn(0, maxVol)
+                audioManager.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, targetVol, 0)
                 
-                val targetVol = (maxDeviceVol * (args.vol / 100.0)).toInt()
+                emitEvent(JSObject().apply {
+                    put("name", "volume")
+                    put("data", (targetVol.toDouble() / maxVol) * 100.0)
+                })
                 
-                it.setDeviceVolume(targetVol, C.VOLUME_FLAG_VIBRATE)
+                invoke.resolve()
+            } catch (e: Exception) {
+                e.printStackTrace()
+                invoke.resolve()
             }
-            invoke.resolve()
         }
     }
 
@@ -379,20 +440,84 @@ class ExoplayerPlugin(private val activity: Activity): Plugin(activity) {
         val args = invoke.parseArgs(AddVolumeArgs::class.java)
 
         activity.runOnUiThread {
-            player?.let {
-                val maxDeviceVol = it.deviceInfo.maxVolume
-                val deviceVol = it.deviceVolume
+            try {
+                val audioManager = activity.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
+                val maxVol = audioManager.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC)
+                val currentVol = audioManager.getStreamVolume(android.media.AudioManager.STREAM_MUSIC)
+                var step = (maxVol * (args.vol / 100.0)).toInt()
                 
-                val step = (maxDeviceVol * (args.vol / 100.0)).toInt()
+                if (step == 0 && args.vol > 0) step = 1
+                if (step == 0 && args.vol < 0) step = -1
                 
-                val targetVol = (deviceVol + step).coerceIn(0, maxDeviceVol)
+                val targetVol = (currentVol + step).coerceIn(0, maxVol)
+                audioManager.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, targetVol, 0)
                 
-                it.setDeviceVolume(targetVol, C.VOLUME_FLAG_VIBRATE)
+                emitEvent(JSObject().apply {
+                    put("name", "volume")
+                    put("data", (targetVol.toDouble() / maxVol) * 100.0)
+                })
+                
+                invoke.resolve()
+            } catch (e: Exception) {
+                e.printStackTrace()
+                invoke.resolve()
             }
-            invoke.resolve()
         }
     }
 
+    @Command
+    fun getVolume(invoke: Invoke) {
+        activity.runOnUiThread {
+            try {
+                val audioManager = activity.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
+                val maxVol = audioManager.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC)
+                val currentVol = audioManager.getStreamVolume(android.media.AudioManager.STREAM_MUSIC)
+                val percent = (currentVol.toDouble() / maxVol.toDouble()) * 100.0
+                invoke.resolve(JSObject().apply { put("volume", percent) })
+            } catch (e: Exception) {
+                e.printStackTrace()
+                invoke.resolve(JSObject().apply { put("volume", 100.0) })
+            }
+        }
+    }
+
+    @Command
+    fun restoreBrightness(invoke: Invoke) {
+        activity.runOnUiThread {
+            try {
+                val window = activity.window
+                val layoutParams = window.attributes
+                layoutParams.screenBrightness = android.view.WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
+                window.attributes = layoutParams
+                invoke.resolve()
+            } catch (e: Exception) {
+                e.printStackTrace()
+                invoke.resolve()
+            }
+        }
+    }
+
+    @Command
+    fun getBrightness(invoke: Invoke) {
+        activity.runOnUiThread {
+            try {
+                val window = activity.window
+                val layoutParams = window.attributes
+                var current = layoutParams.screenBrightness
+                if (current < 0) {
+                    current = android.provider.Settings.System.getInt(
+                        activity.contentResolver,
+                        android.provider.Settings.System.SCREEN_BRIGHTNESS,
+                        128
+                    ) / 255.0f
+                }
+                invoke.resolve(JSObject().apply { put("brightness", (current * 100.0).coerceIn(0.0, 100.0)) })
+            } catch (e: Exception) {
+                e.printStackTrace()
+                invoke.resolve(JSObject().apply { put("brightness", 50.0) })
+            }
+        }
+    }
     @Command
     fun toggleMute(invoke: Invoke) {
         activity.runOnUiThread {
@@ -400,6 +525,58 @@ class ExoplayerPlugin(private val activity: Activity): Plugin(activity) {
                 it.setDeviceMuted(!it.isDeviceMuted, C.VOLUME_FLAG_VIBRATE)
             }
             invoke.resolve()
+        }
+    }
+
+    @Command
+    fun setBrightness(invoke: Invoke) {
+        val args = invoke.parseArgs(SetBrightnessArgs::class.java)
+
+        activity.runOnUiThread {
+            try {
+                val window = activity.window
+                val layoutParams = window.attributes
+                layoutParams.screenBrightness = (args.brightness / 100.0).toFloat().coerceIn(0.0f, 1.0f)
+                window.attributes = layoutParams
+                
+                emitEvent(JSObject().apply {
+                    put("name", "brightness")
+                    put("data", args.brightness)
+                })
+                
+                invoke.resolve()
+            } catch (e: Exception) {
+                e.printStackTrace()
+                invoke.resolve()
+            }
+        }
+    }
+
+    @Command
+    fun addBrightness(invoke: Invoke) {
+        val args = invoke.parseArgs(AddBrightnessArgs::class.java)
+
+        activity.runOnUiThread {
+            try {
+                val window = activity.window
+                val layoutParams = window.attributes
+                var current = layoutParams.screenBrightness
+                if (current < 0) {
+                    current = 0.5f 
+                }
+                layoutParams.screenBrightness = (current + (args.brightness / 100.0).toFloat()).coerceIn(0.0f, 1.0f)
+                window.attributes = layoutParams
+                
+                emitEvent(JSObject().apply {
+                    put("name", "brightness")
+                    put("data", layoutParams.screenBrightness * 100.0)
+                })
+                
+                invoke.resolve()
+            } catch (e: Exception) {
+                e.printStackTrace()
+                invoke.resolve()
+            }
         }
     }
 

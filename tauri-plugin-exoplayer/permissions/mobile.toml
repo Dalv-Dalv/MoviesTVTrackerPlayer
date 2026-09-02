@@ -59,3 +59,26 @@ commands.allow = ["setSubVisibility"]
 identifier = "allow-captureFrame"
 description = "Enables the captureFrame command."
 commands.allow = ["captureFrame"]
+[[permission]]
+identifier = "allow-setBrightness"
+description = "Enables the setBrightness command."
+commands.allow = ["setBrightness"]
+
+[[permission]]
+identifier = "allow-addBrightness"
+description = "Enables the addBrightness command."
+commands.allow = ["addBrightness"]
+
+[[permission]]
+identifier = "allow-getBrightness"
+description = "Enables the getBrightness command."
+commands.allow = ["getBrightness"]
+
+[[permission]]
+identifier = "allow-getVolume"
+description = "Enables the getVolume command."
+commands.allow = ["getVolume"]
+[[permission]]
+identifier = "allow-restoreBrightness"
+description = "Enables the restoreBrightness command."
+commands.allow = ["restoreBrightness"]

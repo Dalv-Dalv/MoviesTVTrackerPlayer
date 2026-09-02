@@ -11,4 +11,7 @@ export const VideoEvents = {
     onMute: new Set(),
     onSubText: new Set(),
     onTrackListChange: new Set(),
+    onBuffering: new Set(),
+    onFirstFrameRendered: new Set(),
+    onBrightness: new Set(),
 };

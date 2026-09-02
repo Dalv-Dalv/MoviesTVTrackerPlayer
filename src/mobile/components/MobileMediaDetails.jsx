@@ -18,15 +18,15 @@ export function MobileMediaDetails({ media, tmdbId, navigate }) {
                     ease: [0.5, 0, 0, 1],
                     duration: 0.5
                 }}
-                className="w-2/3 max-w-64 shrink-0 aspect-2/3 relative"
+                className="w-full pt-10 shrink-0 aspect-2/3 relative"
             >
                 <MovieImage
                     relativePath={media.posterPath}
                     altText={media.title}
-                    className='absolute inset-0 blur-2xl opacity-50'
+                    className='w-2/3 absolute inset-0 blur-2xl opacity-50'
                 />
 
-                <div className="relative z-10 w-full h-full rounded-lg overflow-hidden shadow-2xl shadow-black/50 bg-neutral-900">
+                <div className="relative z-10 w-full h-full rounded-lg shadow-2xl shadow-black/50 bg-neutral-900">
                     <MovieImage
                         relativePath={media.posterPath}
                         altText={media.title}

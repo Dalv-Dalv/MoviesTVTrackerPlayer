@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { type } from '@tauri-apps/plugin-os';
 
 import MobileApp from './mobile/MobileApp';
@@ -12,13 +12,13 @@ import { Player as MobilePlayer } from './mobile/components/Player';
 import { WindowTitlebar } from './desktop/components/WindowTitlebar';
 import { useFullscreen } from './shared/hooks/useFullscreen';
 import { isMobile } from './shared/utils/PlatformUtils';
-import SettingsPage from './shared/components/SettingsPage';
+import SettingsPage from './mobile/components/SettingsPage';
 import MoviesPage from './shared/components/MoviesPage';
 import ShowsPage from './shared/components/ShowsPage';
 import SearchPage from './shared/components/SearchPage';
 import MobileNavbar from './mobile/components/MobileNavbar';
 import HomePage from './shared/components/HomePage';
-import FolderSettingsPage from './shared/components/FolderSettingsPage';
+import FolderSettingsPage from './mobile/components/FolderSettingsPage';
 import DesktopNavbar from './desktop/components/DesktopNavbar';
 import DesktopSettingsModal from './desktop/components/DesktopSettingsModal';
 
@@ -65,13 +65,30 @@ function App() {
 const HIDDEN_NAVBAR_ROUTES = ['/play', '/details', '/settings'];
 function AnimatedRoutes() {
     const location = useLocation();
-    const isPlayer = location.pathname.startsWith('/play/');
+    const isPlayerRoute = location.pathname.startsWith('/play/');
+    const [isPlayerLoading, setIsPlayerLoading] = useState(true);
 
-    const showNavbar = !HIDDEN_NAVBAR_ROUTES.some(path => location.pathname.startsWith(path));;
+    useEffect(() => {
+        if (!isPlayerRoute) {
+            setIsPlayerLoading(true);
+        }
+    }, [isPlayerRoute]);
+
+    useEffect(() => {
+        const handler = (e) => setIsPlayerLoading(e.detail.isLoading);
+        window.addEventListener('player-loading', handler);
+        return () => window.removeEventListener('player-loading', handler);
+    }, []);
+
+    const showNavbar = !HIDDEN_NAVBAR_ROUTES.some(path => location.pathname.startsWith(path));
+
+    const bgClass = isPlayerRoute 
+        ? (isPlayerLoading ? 'bg-black' : 'bg-transparent') 
+        : 'bg-background';
 
     return (
         <>
-            <div className={`absolute -z-50 inset-0 pointer-events-none transition-colors duration-500 ease-in-out ${isPlayer ? 'bg-transparent' : 'bg-background'}`} />
+            <div className={`absolute -z-50 inset-0 pointer-events-none transition-colors duration-500 ease-in-out ${bgClass}`} />
 
             <AnimatePresence>
                 <Routes location={location} key={location.pathname}>

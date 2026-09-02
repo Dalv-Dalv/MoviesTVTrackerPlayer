@@ -14,6 +14,7 @@ const OBSERVED_PROPERTIES = [
     ['volume', 'double', 'none'],
     ['max-volume', 'double', 'none'],
     ['mute', 'flag'],
+    ['paused-for-cache', 'flag'],
 ]
 const mpvConfig = {
     initialOptions: {
@@ -32,6 +33,7 @@ const mpvConfig = {
         'osd-level': '0',
         'sub-visibility': 'no',
         'keep-open': 'yes',
+        'force-window': 'immediate',
         // 'sid':'no'
     },
     observedProperties: OBSERVED_PROPERTIES,
@@ -57,6 +59,7 @@ const PROPERTY_DISPATCHER = {
     'volume': (data) => data !== null && VideoEvents.onVolume.forEach(cb => cb(data)),
     'max-volume': (data) => data !== null && VideoEvents.onMaxVolume.forEach(cb => cb(data)),
     'mute': (data) => VideoEvents.onMute.forEach(cb => cb(data)),
+    'paused-for-cache': (data) => VideoEvents.onBuffering.forEach(cb => cb(data)),
     'sub-text': (data) => VideoEvents.onSubText.forEach(cb => cb(data)),
     'track-list': (data) => {
         if (!data) return;
@@ -68,6 +71,7 @@ const PROPERTY_DISPATCHER = {
 };
 
 let isMpvInitialized = false;
+let firstFrameFired = false;
 
 export const DesktopEngine = {
     init: async () => {
@@ -83,7 +87,13 @@ export const DesktopEngine = {
         setInterval(async () => {
             try {
                 const time = await getProperty('time-pos', 'double');
-                if (time !== null) PROPERTY_DISPATCHER['time-pos'](time);
+                if (time !== null) {
+                    PROPERTY_DISPATCHER['time-pos'](time);
+                    if (!firstFrameFired) {
+                        VideoEvents.onFirstFrameRendered.forEach(cb => cb(true));
+                        firstFrameFired = true;
+                    }
+                }
             } catch (e) {
                 // Ignore errors when nothing is playing
             }
@@ -92,7 +102,15 @@ export const DesktopEngine = {
         isMpvInitialized = true;
     },
 
-    load: async (url) => await command('loadfile', [url]),
+    load: async (url, startTime = 0) => {
+        firstFrameFired = false;
+        VideoEvents.onBuffering.forEach(cb => cb(true));
+        
+        if (startTime > 0) {
+            await command('set', ['start', startTime.toString()]);
+        }
+        await command('loadfile', [url]);
+    },
 
     stop: async () => await command('stop'),
 
@@ -102,11 +120,23 @@ export const DesktopEngine = {
     seekTo: async (seconds) => await command('seek', [seconds.toString(), 'absolute']),
     seekToPercentage: async (percentage) => await command('seek', [percentage.toString(), 'absolute-percent']),
 
+    getVolume: async () => {
+        try {
+            return { volume: parseFloat(await command('get_property', ['volume'])) || 100.0 };
+        } catch { return { volume: 100.0 }; }
+    },
     addVolume: async (vol) => await command('add', ['volume', vol]),
     setVolume: async (vol) => await command('set', ['volume', vol]),
     toggleMute: async () => await command('cycle', ['mute']),
     setMaxVolume: async (maxVol) => await command('set', ['max-volume', maxVol]),
-
+    
+    getBrightness: async () => {
+        try {
+            return { brightness: parseFloat(await command('get_property', ['brightness'])) || 50.0 };
+        } catch { return { brightness: 50.0 }; }
+    },
+    addBrightness: async (val) => await command('add', ['brightness', val.toString()]),
+    setBrightness: async (val) => await command('set', ['brightness', val.toString()]),
     setAudioTrack: async (id) => await command('set', ['aid', id.toString()]),
     setSubtitleTrack: async (id) => await command('set', ['sid', id.toString()]),
     addSubtitle: async (url) => await command('sub-add', [url]),

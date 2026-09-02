@@ -5,6 +5,11 @@ export function useVideoState(videoPath) {
     const [isPlaying, setIsPlaying] = useState(true);
     const [isPlayerReady, setIsPlayerReady] = useState(false);
     const [isVideoLoaded, setIsVideoLoaded] = useState(false);
+    const [isBuffering, setIsBuffering] = useState(false);
+    const [showBufferingSpinner, setShowBufferingSpinner] = useState(false);
+    const bufferingTimeoutRef = useRef(null);
+    const [isFirstFrameRendered, setIsFirstFrameRendered] = useState(false);
+    const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
 
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
@@ -24,7 +29,18 @@ export function useVideoState(videoPath) {
         setDuration(0);
         setCurrentTime(0);
         setSubText(undefined);
+        setIsBuffering(false);
+        setShowBufferingSpinner(false);
+        setIsFirstFrameRendered(false);
+        setIsInitialLoadComplete(false);
+        if (bufferingTimeoutRef.current) clearTimeout(bufferingTimeoutRef.current);
     }, [videoPath]);
+
+    useEffect(() => {
+        if (isFirstFrameRendered && !isBuffering) {
+            setIsInitialLoadComplete(true);
+        }
+    }, [isFirstFrameRendered, isBuffering]);
 
     useEffect(() => {
         const handlePlayStateChange = setIsPlaying;
@@ -49,6 +65,18 @@ export function useVideoState(videoPath) {
             setSubText(subText);
             console.log(`Sub text: ${subText}`);
         };
+        const handleBuffering = (buffering) => {
+            setIsBuffering(buffering);
+            if (buffering) {
+                bufferingTimeoutRef.current = setTimeout(() => {
+                    setShowBufferingSpinner(true);
+                }, 1000);
+            } else {
+                if (bufferingTimeoutRef.current) clearTimeout(bufferingTimeoutRef.current);
+                setShowBufferingSpinner(false);
+            }
+        };
+        const handleFirstFrame = () => setIsFirstFrameRendered(true);
         const handleTrackListChange = ({ audio, subs }) => {
             setAudio(prev => ({ ...prev, tracks: audio }));
             setSubs(prev => ({ ...prev, tracks: subs }));
@@ -67,7 +95,9 @@ export function useVideoState(videoPath) {
             onMaxVolume: handleMaxVolume,
             onMute: handleMute,
             onSubText: handleSubText,
-            onTrackListChange: handleTrackListChange
+            onTrackListChange: handleTrackListChange,
+            onBuffering: handleBuffering,
+            onFirstFrameRendered: handleFirstFrame
         };
 
         Object.entries(eventHandlers).forEach(([eventName, handler]) => {
@@ -96,5 +126,5 @@ export function useVideoState(videoPath) {
         }
     }, [subs.id, subs.tracks]);
 
-    return { isPlayerReady, isVideoLoaded, isPlaying, currentTime, duration, volume, isMute, subText, maxVolume, audio, subs };
+    return { isPlayerReady, isVideoLoaded, isPlaying, currentTime, duration, volume, isMute, subText, maxVolume, audio, subs, isBuffering, showBufferingSpinner, isFirstFrameRendered, isInitialLoadComplete };
 }

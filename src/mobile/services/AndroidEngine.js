@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core';
+import { invoke, convertFileSrc } from '@tauri-apps/api/core';
 import { VideoEvents } from '../../shared/services/VideoEvents';
 
 function fixMojibake(str) {
@@ -55,6 +55,9 @@ const PROPERTY_DISPATCHER = {
             subs: data.filter(track => track.type === 'sub')
         }));
     },
+    'buffering': (data) => VideoEvents.onBuffering.forEach(cb => cb(data)),
+    'first-frame-rendered': (data) => VideoEvents.onFirstFrameRendered.forEach(cb => cb(data)),
+    'brightness': (data) => data !== null && VideoEvents.onBrightness.forEach(cb => cb(data)),
 };
 
 export const AndroidEngine = {
@@ -71,14 +74,10 @@ export const AndroidEngine = {
         console.log("Android ExoPlayer ready.");
     },
 
-    load: async (url) => {
+    load: async (url, startTime = 0) => {
         try {
-            await invoke('plugin:exoplayer|loadVideo', { url });
+            await invoke('plugin:exoplayer|loadVideo', { url, startTime });
             await invoke('plugin:exoplayer|setSubVisibility', { visible: false });
-
-            setTimeout(() => {
-                VideoEvents.onDuration.forEach(cb => cb(0));
-            }, 500);
         } catch (e) {
             console.error("Failed to load video on Android:", e);
         }
@@ -90,13 +89,19 @@ export const AndroidEngine = {
     playPause: async () => await invoke('plugin:exoplayer|playPause'),
     seek: async (seconds) => await invoke('plugin:exoplayer|seek', { seconds }),
     seekTo: async (seconds) => await invoke('plugin:exoplayer|seekTo', { seconds }),
-    seekToPercentage: async (percent) => await invoke('plugin:exoplayer|seekToPercentage', { percent }),
+    seekToPercentage: async (percentage) => await invoke('plugin:exoplayer|seekToPercentage', { percent: percentage }),
     
-    setResizeMode: async (mode) => await invoke('plugin:exoplayer|setResizeMode', { mode }),
-    
+    getVolume: async () => await invoke('plugin:exoplayer|getVolume'),
     addVolume: async (vol) => await invoke('plugin:exoplayer|addVolume', { vol }),
     setVolume: async (vol) => await invoke('plugin:exoplayer|setVolume', { vol }),
     toggleMute: async () => await invoke('plugin:exoplayer|toggleMute'),
+    
+    getBrightness: async () => await invoke('plugin:exoplayer|getBrightness'),
+    addBrightness: async (brightness) => await invoke('plugin:exoplayer|addBrightness', { brightness }),
+    setBrightness: async (brightness) => await invoke('plugin:exoplayer|setBrightness', { brightness }),
+    restoreBrightness: async () => await invoke('plugin:exoplayer|restoreBrightness'),
+    
+    setResizeMode: async (mode) => await invoke('plugin:exoplayer|setResizeMode', { mode }),
     
     setSubVisibility: async (visible) => await invoke('plugin:exoplayer|setSubVisibility', { visible }),
     setAudioTrack: async (id) => await invoke('plugin:exoplayer|setAudioTrack', { id: id.toString() }),

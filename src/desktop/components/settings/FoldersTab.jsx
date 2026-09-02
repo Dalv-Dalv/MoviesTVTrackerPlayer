@@ -5,7 +5,7 @@ import { useVideoLibrary } from '../../../shared/contexts/VideoLibraryContext';
 
 export default function FoldersTab() {
     const [folders, setFolders] = useSetting('videoLibraryFolders', []);
-    const { addFolderAndScan, rescanLibrary, isScanning } = useVideoLibrary();
+    const { addFolderAndScan, rescanLibrary, clearCacheAndRescan, isScanning } = useVideoLibrary();
 
     const handleRemoveFolder = (folderToRemove) => {
         setFolders(prevFolders => prevFolders.filter(f => f !== folderToRemove));
@@ -55,6 +55,20 @@ export default function FoldersTab() {
                         ))
                     )}
                 </div>
+            </section>
+
+            <section>
+                <span className="text-sm font-semibold tracking-wide text-muted mb-3 block">
+                    Library Actions
+                </span>
+                <button
+                    onClick={clearCacheAndRescan}
+                    disabled={isScanning}
+                    className="w-full p-4 rounded-xl flex items-center justify-between transition-colors bg-white/5 hover:bg-white/10 active:bg-white/15 text-red-400 disabled:opacity-50"
+                >
+                    <span className="font-semibold">{isScanning ? 'Clearing & Scanning...' : 'Clear Cache & Rescan'}</span>
+                    <TrashIcon size={20} />
+                </button>
             </section>
         </div>
     );

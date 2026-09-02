@@ -9,7 +9,7 @@ import { LanguagePanel } from './LanguagePanel';
 import { useWatchHistory } from '../../shared/contexts/WatchHistoryContext';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useVideoLibrary } from '../../shared/contexts/VideoLibraryContext';
-import { Maximize2Icon, Minimize2Icon, PauseIcon, PlayIcon, Volume1Icon, Volume2Icon, VolumeIcon, VolumeOffIcon, VolumeXIcon } from 'lucide-react';
+import { Maximize2Icon, Minimize2Icon, PauseIcon, PlayIcon, Volume1Icon, Volume2Icon, VolumeIcon, VolumeOffIcon, VolumeXIcon, Loader2 } from 'lucide-react';
 
 export const PlayerButton = ({ children, onClick, className = '', ...props }) => {
     return (
@@ -36,9 +36,10 @@ export const Player = () => {
     const [isOverviewActive, setIsOverviewActive] = useState(false);
     const [pauseFrameUrl, setPauseFrameUrl] = useState(null);
     const [scrubTime, setScrubTime] = useState(null);
+    const [pendingSeek, setPendingSeek] = useState(null);
     const [hoverRatio, setHoverRatio] = useState(null);
 
-    const { isPlayerReady, isVideoLoaded, isPlaying, currentTime, duration, volume, isMute, subText, maxVolume, audio, subs } = useVideoState(activePath);
+    const { isPlayerReady, isVideoLoaded, isPlaying, currentTime, duration, volume, isMute, subText, maxVolume, audio, subs, isBuffering, showBufferingSpinner, isFirstFrameRendered, isInitialLoadComplete } = useVideoState(activePath);
     const { isFullscreen, toggleFullscreen } = useFullscreen();
     const { showControls, wakeUI, handleInteractiveEnter, handleInteractiveLeave } = useWakeUI({ holdOpen: languagePanelOpen });
 
@@ -52,17 +53,32 @@ export const Player = () => {
         console.log(media.filePaths[0]);
     }, []);
 
+    const hasLoaded = useRef(false);
     useEffect(() => {
-        if (isPlayerReady && activePath) {
-            VideoPlayer.load(activePath);
+        hasLoaded.current = false;
+    }, [activePath]);
+
+    useEffect(() => {
+        if (isPlayerReady && activePath && historyLoaded && !hasLoaded.current) {
+            let startPosition = 0;
+            const movieHistory = history[tmdbId];
+            if (movieHistory) {
+                startPosition = movieHistory.completed ? 0 : movieHistory.progress;
+            }
+            VideoPlayer.load(activePath, startPosition);
+            hasLoaded.current = true;
         }
-    }, [isPlayerReady, activePath]);
+    }, [isPlayerReady, activePath, historyLoaded, history, tmdbId]);
 
     useEffect(() => {
         if (isVideoLoaded) {
             VideoPlayer.setPaused(false);
         }
     }, [isVideoLoaded]);
+
+    useEffect(() => {
+        window.dispatchEvent(new CustomEvent('player-loading', { detail: { isLoading: !isInitialLoadComplete } }));
+    }, [isInitialLoadComplete]);
 
     const {
         trackRef: progressBarRef,
@@ -74,13 +90,26 @@ export const Player = () => {
         onChange: (ratio) => {
             if (duration === 0) return;
             setScrubTime(ratio * duration);
+            setPendingSeek(null);
             VideoPlayer.seekToPercentage(parseFloat((ratio * 100).toFixed(5)));
         },
         onScrubEnd: (ratio) => {
             if (duration === 0) return;
+            const finalTime = ratio * duration;
             setScrubTime(null);
+            setPendingSeek(finalTime);
+
+            setTimeout(() => {
+                setPendingSeek(prev => prev === finalTime ? null : prev);
+            }, 1000);
         }
     });
+
+    useEffect(() => {
+        if (pendingSeek !== null && Math.abs(currentTime - pendingSeek) < 3) {
+            setPendingSeek(null);
+        }
+    }, [currentTime, pendingSeek]);
 
     const handleProgressMouseMove = (e) => {
         if (!progressBarRef.current) return;
@@ -131,27 +160,7 @@ export const Player = () => {
         };
     }, [duration, tmdbId, sessionId]);
 
-    const hasResumed = useRef(false);
-    useEffect(() => {
-        hasResumed.current = false;
-    }, [activePath]);
 
-    useEffect(() => {
-        if (!historyLoaded || !isVideoLoaded || hasResumed.current) return;
-
-        const movieHistory = history[tmdbId];
-        let startPosition = 0;
-
-        if (movieHistory) {
-            startPosition = movieHistory.completed ? 0 : movieHistory.progress;
-        }
-
-        if (startPosition > 0) {
-            VideoPlayer.seekTo(startPosition);
-        }
-
-        hasResumed.current = true;
-    }, [historyLoaded, isVideoLoaded, history, tmdbId]);
 
     const togglePlay = () => VideoPlayer.playPause();
     const toggleMute = () => VideoPlayer.toggleMute();
@@ -181,7 +190,14 @@ export const Player = () => {
     });
 
     const volumeProgress = (volume / maxVolume) * 100;
-    const displayTime = isScrubbing && scrubTime !== null ? scrubTime : currentTime;
+    
+    let displayTime = currentTime;
+    if (isScrubbing && scrubTime !== null) {
+        displayTime = scrubTime;
+    } else if (pendingSeek !== null) {
+        displayTime = pendingSeek;
+    }
+
     const progress = duration > 0 ? (displayTime / duration) * 100 : 0;
 
     const tooltipTime = hoverRatio !== null && !isScrubbing ? hoverRatio * duration : displayTime;
@@ -195,6 +211,18 @@ export const Player = () => {
                 src={pauseFrameUrl} onLoad={() => setIsOverviewActive(true)} /> */}
 
             <div className='relative w-full flex-1 flex items-center flex-col justify-between noselect text-white' onMouseMove={wakeUI}>
+
+                <div className={`absolute inset-0 z-50 flex flex-col items-center justify-center bg-black transition-opacity duration-500 ${isInitialLoadComplete ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+                    <Loader2 className="w-12 h-12 text-white animate-spin mb-4" />
+                    <span className="text-white text-lg font-semibold tracking-wider">Loading {media?.title}...</span>
+                </div>
+                {isInitialLoadComplete && showBufferingSpinner && (
+                    <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none transition-opacity duration-300">
+                        <div className="bg-black/60 p-4 rounded-full">
+                            <Loader2 className="w-12 h-12 text-white animate-spin" />
+                        </div>
+                    </div>
+                )}
 
                 <div className={`relative w-full pt-6 px-6 flex flex-row justify-start items-center gap-2 ${showControls ? 'opacity-100' : 'opacity-0'} transition-opacity duration-200`}>
                     <PlayerButton onClick={exitPlayer} onMouseEnter={handleInteractiveEnter} onMouseLeave={handleInteractiveLeave}>

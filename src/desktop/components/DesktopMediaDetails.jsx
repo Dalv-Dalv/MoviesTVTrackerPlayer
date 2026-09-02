@@ -5,6 +5,19 @@ import { PlayIcon } from '@phosphor-icons/react';
 export function DesktopMediaDetails({ media, tmdbId, navigate }) {
     return (
         <div className="w-full flex-1 flex flex-row gap-12 items-end pb-12">
+            <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className='absolute left-0 top-0 w-full pointer-events-none'
+            >
+                <MovieImage
+                    relativePath={media.backdropPath}
+                    className='mask-[linear-gradient(to_top,transparent,black_50%)] pointer-events-none'
+                />
+            </motion.div>
+
             <div className="w-1/3 max-w-80 shrink-0 aspect-2/3 relative z-10">
                 <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
@@ -27,7 +40,7 @@ export function DesktopMediaDetails({ media, tmdbId, navigate }) {
                         className='absolute inset-0 blur-2xl opacity-50'
                     />
 
-                    <div className="relative z-10 w-full h-full rounded-lg overflow-hidden shadow-2xl shadow-black/50 bg-neutral-900">
+                    <div className="relative z-10 w-full h-full rounded-lg overflow-hidden shadow-2xl shadow-black/50">
                         <MovieImage
                             relativePath={media.posterPath}
                             altText={media.title}

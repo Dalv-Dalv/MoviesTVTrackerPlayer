@@ -1,11 +1,11 @@
 import { ArrowLeftIcon, FolderIcon, LayoutIcon, PlayIcon } from "@phosphor-icons/react";
 import { useNavigate } from "react-router-dom"
-import { useVideoLibrary } from "../contexts/VideoLibraryContext";
+import { useVideoLibrary } from "../../shared/contexts/VideoLibraryContext";
 import { motion } from "framer-motion";
 
-function SettingsButton({ label, Icon, onClick }) {
+function SettingsButton({ label, Icon, onClick, className = '' }) {
     return (
-        <button className="w-full p-4 rounded-full text-lg flex items-center gap-4 transition-colors bg-transparent active:bg-white/8" onClick={onClick}>
+        <button className={`w-full p-4 rounded-full text-lg flex items-center gap-4 transition-colors bg-transparent active:bg-white/8 ${className}`} onClick={onClick}>
             <Icon size={28} className="text-muted" />
             <span> {label} </span>
         </button>

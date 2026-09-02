@@ -27,7 +27,7 @@ export default function HomePage({ className = '' }) {
         <>
             <div className="w-full pb-24">
                 {mediaItems[1] && (
-                    <div className='relative w-full flex items-center justify-center px-4 d:px-6 overflow-hidden pb-32 pt-24 -mb-32'>
+                    <div className='relative w-full flex items-center justify-center px-4 d:px-6 overflow-hidden pb-32 pt-24 m:pt-14 -mb-32'>
                         <MovieImage relativePath={mediaItems[1].backdropPath} altText={mediaItems[1].title}
                             className='absolute inset-0 scale-180 d:scale-100 m:origin-top transform-gpu blur-lg opacity-75 mask-[linear-gradient(to_bottom,transparent,black,transparent)] d:mask-[linear-gradient(to_bottom,black,transparent)]' />
                             

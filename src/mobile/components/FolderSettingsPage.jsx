@@ -1,8 +1,8 @@
 import { ArrowLeftIcon, FolderIcon, LayoutIcon, PlayIcon, PlusIcon, TrashIcon } from "@phosphor-icons/react";
 import { useNavigate } from "react-router-dom"
-import { useVideoLibrary } from "../contexts/VideoLibraryContext";
+import { useVideoLibrary } from "../../shared/contexts/VideoLibraryContext";
 import { motion } from "framer-motion";
-import { useSetting } from "../contexts/SettingsContext";
+import { useSetting } from "../../shared/contexts/SettingsContext";
 
 function SettingsButton({ label, Icon }) {
     return (
@@ -17,7 +17,7 @@ export default function FolderSettingsPage({ className = '' }) {
     const navigate = useNavigate();
 
     const [folders, setFolders] = useSetting('videoLibraryFolders', []);
-    const { addFolderAndScan, rescanLibrary, isScanning } = useVideoLibrary();
+    const { addFolderAndScan, rescanLibrary, clearCacheAndRescan, isScanning } = useVideoLibrary();
 
     const handleRemoveFolder = (folderToRemove) => {
         setFolders(prevFolders => prevFolders.filter(f => f !== folderToRemove));
@@ -83,9 +83,17 @@ export default function FolderSettingsPage({ className = '' }) {
             </section>
 
             <section>
-                <span className="text-sm font-semibold tracking-wide text-muted">
-                    Scanning
+                <span className="text-sm font-semibold tracking-wide text-muted mb-3 block">
+                    Library Actions
                 </span>
+                <button
+                    onClick={clearCacheAndRescan}
+                    disabled={isScanning}
+                    className="w-full p-4 rounded-xl flex items-center justify-between transition-colors bg-white/5 active:bg-white/10 text-red-400 disabled:opacity-50"
+                >
+                    <span className="font-semibold text-lg">{isScanning ? 'Clearing & Scanning...' : 'Clear Cache & Rescan'}</span>
+                    <TrashIcon size={24} />
+                </button>
             </section>
         </motion.div>
     )

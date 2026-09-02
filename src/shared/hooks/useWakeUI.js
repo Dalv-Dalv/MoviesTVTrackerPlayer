@@ -4,17 +4,42 @@ import { useSettings } from '../contexts/SettingsContext';
 export function useWakeUI({holdOpen = false}) {
     const { settings } = useSettings();
     const [showControls, setShowControls] = useState(true);
+    const showControlsRef = useRef(true);
     const timeoutRef = useRef(null);
     const isHoveringInteractiveRef = useRef(false);
 
     const wakeUI = useCallback(() => {
         setShowControls(true);
+        showControlsRef.current = true;
         if (timeoutRef.current) clearTimeout(timeoutRef.current);
         
         timeoutRef.current = setTimeout(() => {
-            if (!isHoveringInteractiveRef.current && !holdOpen) setShowControls(false);
+            if (!isHoveringInteractiveRef.current && !holdOpen) {
+                setShowControls(false);
+                showControlsRef.current = false;
+            }
         }, settings.wakeUITimeout);
     }, [settings.wakeUITimeout, holdOpen]);
+
+    const hideUI = useCallback(() => {
+        setShowControls(false);
+        showControlsRef.current = false;
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    }, []);
+
+    const toggleUI = useCallback(() => {
+        if (showControlsRef.current) {
+            hideUI();
+        } else {
+            wakeUI();
+        }
+    }, [hideUI, wakeUI]);
+
+    const resetUITimerIfVisible = useCallback(() => {
+        if (showControlsRef.current) {
+            wakeUI();
+        }
+    }, [wakeUI]);
 
     useEffect(() => {
         wakeUI();
@@ -27,5 +52,5 @@ export function useWakeUI({holdOpen = false}) {
         wakeUI();
     };
 
-    return { showControls, wakeUI, handleInteractiveEnter, handleInteractiveLeave };
+    return { showControls, wakeUI, hideUI, toggleUI, resetUITimerIfVisible, handleInteractiveEnter, handleInteractiveLeave };
 }

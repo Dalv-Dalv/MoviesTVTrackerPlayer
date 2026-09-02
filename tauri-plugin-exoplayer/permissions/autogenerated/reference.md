@@ -21,6 +21,11 @@ Default permissions for the plugin
 - `allow-setAudioTrack`
 - `allow-setSubtitleTrack`
 - `allow-addSubtitle`
+- `allow-setBrightness`
+- `allow-addBrightness`
+- `allow-getBrightness`
+- `allow-getVolume`
+- `allow-restoreBrightness`
 
 ## Permission Table
 
@@ -222,6 +227,71 @@ Enables the setSubVisibility command.
 <td>
 
 Enables the captureFrame command.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`exoplayer:allow-setBrightness`
+
+</td>
+<td>
+
+Enables the setBrightness command.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`exoplayer:allow-addBrightness`
+
+</td>
+<td>
+
+Enables the addBrightness command.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`exoplayer:allow-getBrightness`
+
+</td>
+<td>
+
+Enables the getBrightness command.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`exoplayer:allow-getVolume`
+
+</td>
+<td>
+
+Enables the getVolume command.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`exoplayer:allow-restoreBrightness`
+
+</td>
+<td>
+
+Enables the restoreBrightness command.
 
 </td>
 </tr>
