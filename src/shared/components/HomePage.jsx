@@ -27,7 +27,7 @@ export default function HomePage({ className = '' }) {
         <>
             <div className="w-full pb-24">
                 {mediaItems[1] && (
-                    <div className='relative w-full flex items-center justify-center px-4 d:px-6 overflow-hidden pb-32 pt-24 m:pt-14 -mb-32'>
+                    <div className='relative w-full flex items-center justify-center px-4 d:px-6 overflow-hidden pb-32 pt-24 m:pt-14 -mb-32 noselect'>
                         <MovieImage relativePath={mediaItems[1].backdropPath} altText={mediaItems[1].title}
                             className='absolute inset-0 scale-180 d:scale-100 m:origin-top transform-gpu blur-lg opacity-75 mask-[linear-gradient(to_bottom,transparent,black,transparent)] d:mask-[linear-gradient(to_bottom,black,transparent)]' />
                             
@@ -70,7 +70,7 @@ export default function HomePage({ className = '' }) {
                 </div>
 
                 <div className='w-full noselect mb-100'>
-                    <Carousel className="relative z-0">
+                    <Carousel id="home-library" className="relative z-0">
                         {mediaItems.map((elem) => (
                             <div
                                 onClick={() => navigate(`/details/${elem.tmdbId}`)}

@@ -1,18 +1,40 @@
 import { CaretLeftIcon, CaretRightIcon } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
 
-export function Carousel({ children, className = "" }) {
+export function Carousel({ children, className = "", id = "default-carousel" }) {
     const rowRef = useRef(null);
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMaxScrolled, setIsMaxScrolled] = useState(false);
+    const isRestoring = useRef(true);
 
     const handleScroll = () => {
         if (!rowRef.current) return;
         const { scrollLeft, scrollWidth, clientWidth } = rowRef.current;
 
+        if (!isRestoring.current) {
+            sessionStorage.setItem(`carousel-scroll-${id}`, scrollLeft);
+        }
+
         setIsScrolled(scrollLeft > 0);
         setIsMaxScrolled(Math.ceil(scrollLeft + clientWidth) >= scrollWidth - 1);
     };
+
+    useEffect(() => {
+        if (rowRef.current) {
+            const savedScroll = sessionStorage.getItem(`carousel-scroll-${id}`);
+            if (savedScroll) {
+                rowRef.current.scrollLeft = parseInt(savedScroll, 10);
+                setTimeout(() => {
+                    if (rowRef.current) {
+                        rowRef.current.scrollLeft = parseInt(savedScroll, 10);
+                    }
+                    isRestoring.current = false;
+                }, 100);
+            } else {
+                isRestoring.current = false;
+            }
+        }
+    }, [id]);
 
     useEffect(() => {
         handleScroll();
