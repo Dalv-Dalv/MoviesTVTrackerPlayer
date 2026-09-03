@@ -5,6 +5,7 @@ import { useVideoLibrary } from '../contexts/VideoLibraryContext';
 import { isMobile } from '../utils/PlatformUtils';
 import { DesktopMediaDetails } from '../../desktop/components/DesktopMediaDetails';
 import { MobileMediaDetails } from '../../mobile/components/MobileMediaDetails';
+import { ArrowLeftIcon } from 'lucide-react';
 
 export function MediaDetails({ className = '' }) {
     const { tmdbId } = useParams();
@@ -21,16 +22,7 @@ export function MediaDetails({ className = '' }) {
     );
 
     return (
-        <motion.div className={`absolute inset-0 z-50 flex flex-col items-center md:p-12 md:pt-22 md:gap-12 p-4 pt-16 gap-6 ${className}`}>
-
-            <motion.button
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                onClick={() => navigate(-1)}
-                className="absolute top-8 md:top-20 right-6 md:right-8 text-white z-50 cursor-pointer"
-            >
-                Close
-            </motion.button>
-
+        <motion.div className={`absolute inset-0 z-50 flex flex-col items-center ${className}`}>
             {isMobile ? 
                 <MobileMediaDetails media={media} tmdbId={tmdbId} navigate={navigate} /> : 
                 <DesktopMediaDetails media={media} tmdbId={tmdbId} navigate={navigate} />
