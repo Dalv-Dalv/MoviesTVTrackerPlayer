@@ -12,13 +12,13 @@ const DEFAULT_SETTINGS = {
 export function SettingsProvider({ children }) {
     const [settings, setSettings] = useState(DEFAULT_SETTINGS);
     const [isLoaded, setIsLoaded] = useState(false);
-    
+
     const [storeInstance, setStoreInstance] = useState(null);
 
     useEffect(() => {
         async function initAndLoadSettings() {
             const store = await load('settings.json', { autoSave: false });
-            
+
             const savedSettings = {};
 
             for (const key of Object.keys(DEFAULT_SETTINGS)) {
@@ -56,7 +56,7 @@ export function SettingsProvider({ children }) {
 
     const addVideosFolder = async (newFolder) => {
         const currentFolders = settings.videoLibraryFolders || [];
-        
+
         if (currentFolders.includes(newFolder)) return currentFolders;
 
         const updated = [...currentFolders, newFolder];
@@ -71,16 +71,16 @@ export function SettingsProvider({ children }) {
         return updated;
     };
 
-    if (!isLoaded) return <div className="h-screen w-screen bg-neutral-900" />;
+    if (!isLoaded) return <div className="h-screen w-screen bg-background" />;
 
     return (
-        <SettingsContext.Provider value={{ 
-                settings,
-                updateSetting,
-                updateAndSaveSetting,
-                addVideosFolder,
-                removeVideosFolder
-            }}>
+        <SettingsContext.Provider value={{
+            settings,
+            updateSetting,
+            updateAndSaveSetting,
+            addVideosFolder,
+            removeVideosFolder
+        }}>
             {children}
         </SettingsContext.Provider>
     );
@@ -88,17 +88,17 @@ export function SettingsProvider({ children }) {
 
 export function useSetting(key, defaultValue) {
     const { settings, updateAndSaveSetting } = useSettings();
-    
+
     const value = settings[key] !== undefined ? settings[key] : defaultValue;
-    
+
     const setValue = (newValueOrUpdater) => {
         const nextValue = typeof newValueOrUpdater === 'function'
             ? newValueOrUpdater(settings[key] !== undefined ? settings[key] : defaultValue)
             : newValueOrUpdater;
-            
+
         return updateAndSaveSetting(key, nextValue);
     };
-    
+
     return [value, setValue];
 }
 

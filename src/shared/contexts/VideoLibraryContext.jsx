@@ -4,8 +4,9 @@ import { exists, mkdir, readDir, readTextFile, remove, writeFile, writeTextFile 
 import { BaseDirectory, basename, join } from '@tauri-apps/api/path';
 import { useTMDB } from '../hooks/useTMDB';
 import { getFullImagePath, ImageSizes, TMDB_IMAGE_BASE_URL } from '@api-wrappers/tmdb-wrapper';
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useMemo } from 'react';
 import { useSettings } from './SettingsContext';
+import { useGenres } from './GenresContext';
 import { deduplicateFolders } from '../utils/PathUtils';
 import { sleep, withRetry } from '../utils/GeneralUtils';
 import { isMobile } from '../utils/PlatformUtils';
@@ -98,6 +99,7 @@ export function VideoLibraryProvider({ children }) {
 
     const { settings, addVideosFolder } = useSettings();
     const tmdb = useTMDB();
+    const { movieGenres, tvGenres, isGenresLoaded } = useGenres();
 
     useEffect(() => {
         async function loadCacheOnBoot() {
@@ -327,9 +329,25 @@ export function VideoLibraryProvider({ children }) {
         rescanLibrary();
     }, [settings.videoLibraryFolders, isLoaded]);
 
+    const mappedLibrary = useMemo(() => {
+        if (!isGenresLoaded) return library;
+        
+        const mapped = {};
+        for (const [id, item] of Object.entries(library)) {
+            mapped[id] = {
+                ...item,
+                genres: (item.genreIds || []).map(gId => {
+                    const dict = item.mediaType === 'show' ? tvGenres : movieGenres;
+                    return dict[gId] || null;
+                }).filter(Boolean)
+            };
+        }
+        return mapped;
+    }, [library, movieGenres, tvGenres, isGenresLoaded]);
+
     return (
         <VideoLibraryContext.Provider value={{
-            library,
+            library: mappedLibrary,
             isScanning,
             isLoaded,
             rescanLibrary,
