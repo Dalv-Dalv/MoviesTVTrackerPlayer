@@ -78,10 +78,30 @@ export function WatchHistoryProvider({ children }) {
         });
     };
 
+    const setProgressAndSave = async (tmdbId, newProgress) => {
+        setHistory(prev => {
+            const newState = { ...prev };
+            const existing = newState[tmdbId] || { watchLog: [], loggedSessions: [] };
+            
+            newState[tmdbId] = {
+                ...existing,
+                progress: newProgress,
+                completed: newProgress === 0 ? false : existing.completed,
+                lastPlayed: Date.now()
+            };
+
+            writeTextFile(HISTORY_FILE, JSON.stringify(newState), { baseDir: BaseDirectory.AppData })
+                 .catch(e => console.error("Failed to save progress", e));
+                 
+            return newState;
+        });
+    };
+
     return (
         <WatchHistoryContext.Provider value={{
             history,
             updateProgressAndSave,
+            setProgressAndSave,
             toggleManualCompletion,
             isLoaded
         }}>
@@ -90,4 +110,18 @@ export function WatchHistoryProvider({ children }) {
     );
 }
 
-export const useWatchHistory = () => useContext(WatchHistoryContext);
+export const useWatchHistory = (tmdbId) => {
+    const context = useContext(WatchHistoryContext);
+    
+    if (tmdbId) {
+        return {
+            history: context.history[tmdbId] || null,
+            updateProgressAndSave: (currentTime, duration, sessionId) => context.updateProgressAndSave(tmdbId, currentTime, duration, sessionId),
+            setProgressAndSave: (newProgress) => context.setProgressAndSave(tmdbId, newProgress),
+            toggleManualCompletion: () => context.toggleManualCompletion(tmdbId),
+            isLoaded: context.isLoaded
+        };
+    }
+
+    return context;
+};

@@ -41,10 +41,9 @@ const FolderTreeNode = ({ node, selectedPaths, suppressedPaths, toggleFolder }) 
 
                 <div
                     onClick={() => toggleFolder(node.fullPath)}
-                    className={`w-6 h-6 rounded-md border-2 flex items-center justify-center cursor-pointer transition-colors ${isSelected ? 'bg-primary border-primary' : (isSuppressed ? 'bg-muted border-muted' : 'border-muted')
-                        }`}
+                    className={`w-6 h-6 rounded-md border-2 flex items-center justify-center cursor-pointer transition-colors ${isSelected ? 'bg-primary border-primary' : (isSuppressed ? 'bg-muted border-muted' : 'border-muted')}`}
                 >
-                    <div className='absolute right-0 top-0 bottom-0 w-16 transparent' /> {/* extended tap area  */}
+                    <div className='absolute right-0 top-0 bottom-0 w-16 transparent' /> {/* Extended tap area  */}
 
                     {(isSelected || isSuppressed) && <CheckIcon size={18} className='text-black' weight='bold' />}
                 </div>
@@ -205,11 +204,11 @@ export function MobileFolderPicker({ onClose, onSaveComplete }) {
                         />
                     ))
                 )}
-                
+
                 {!isLoading && treeData.length === 0 && (
                     <div className="flex flex-col items-center justify-center h-full text-muted gap-4 px-8 text-center pt-12">
                         <p>No media folders found, or storage permission was not granted.</p>
-                        <button 
+                        <button
                             onClick={discoverFolders}
                             className="px-6 py-2 bg-primary/20 text-primary rounded-full font-semibold active:bg-primary/30"
                         >

@@ -80,7 +80,7 @@ export const Player = () => {
         };
     }, []);
 
-    const { history, updateProgressAndSave, isLoaded: historyLoaded } = useWatchHistory();
+    const { history, updateProgressAndSave, isLoaded: historyLoaded } = useWatchHistory(tmdbId);
     const sessionId = useRef(Date.now()).current;
     const lastSaveTime = useRef(0);
     const latestTime = useRef(0);
@@ -108,9 +108,8 @@ export const Player = () => {
     useEffect(() => {
         if (isPlayerReady && activePath && historyLoaded && !hasLoaded.current) {
             let startPosition = 0;
-            const movieHistory = history[tmdbId];
-            if (movieHistory) {
-                startPosition = movieHistory.completed ? 0 : movieHistory.progress;
+            if (history) {
+                startPosition = history.completed ? 0 : history.progress;
             }
             VideoPlayer.load(activePath, startPosition);
             hasLoaded.current = true;
@@ -182,7 +181,7 @@ export const Player = () => {
         const timeNow = Date.now();
 
         if (timeNow - lastSaveTime.current >= 10000) {
-            updateProgressAndSave(tmdbId, currentTime, duration, sessionId);
+            updateProgressAndSave(currentTime, duration, sessionId);
             lastSaveTime.current = timeNow;
         }
     }, [currentTime, duration, isScrubbing, tmdbId, sessionId]);
@@ -190,7 +189,7 @@ export const Player = () => {
     useEffect(() => {
         return () => {
             if (latestTime.current > 0) {
-                updateProgressAndSave(tmdbId, latestTime.current, duration, sessionId);
+                updateProgressAndSave(latestTime.current, duration, sessionId);
             }
         };
     }, [duration, tmdbId, sessionId]);

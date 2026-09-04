@@ -57,7 +57,7 @@ export function MobileMediaDetails({ media, tmdbId, navigate }) {
                 </p>
                 <button
                     onClick={() => navigate(`/play/${tmdbId}`)}
-                    className="bg-body backdrop-brightness-200 text-black px-8 py-3.5 rounded-full w-fit font-bold flex flex-row items-center justify-center gap-2 cursor-pointer shadow-lg active:scale-95 transition-transform"
+                    className="bg-body backdrop-brightness-200 text-background px-8 py-3.5 rounded-full w-fit font-bold flex flex-row items-center justify-center gap-2 cursor-pointer shadow-lg active:scale-95 transition-transform"
                 >
                     <PlayIcon size={24} weight='fill' />
                     <span className="text-lg">Watch</span>

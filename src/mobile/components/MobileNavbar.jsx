@@ -48,10 +48,9 @@ export default function MobileNavbar({ className = '' }) {
 
     return (
         <motion.div
-            initial={{ y: 100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 100, opacity: 0 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
+            initial={{ "--nav-exit": 0 }}
+            animate={{ "--nav-exit": 1 }}
+            exit={{ "--nav-exit": 0, transition: { duration: 0.5 } }}
             className="fixed bottom-1 left-1 right-1 h-14 m-1 z-50 flex items-center justify-between gap-2"
         >
             <motion.div

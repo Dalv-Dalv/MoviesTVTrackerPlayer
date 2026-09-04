@@ -1,3 +1,4 @@
+import { motion } from "framer-motion";
 import { GearIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
 import { useNavigate } from "react-router-dom";
 
@@ -14,7 +15,12 @@ function NavbarButton({ children, className = '', onClick }) {
 export default function DesktopNavbar() {
     const navigate = useNavigate();
     return (
-        <div className={`absolute top-5 z-50 w-full flex items-center justify-between p-4 py-0 noselect gap-2 h-12 pointer-events-none`}>
+        <motion.div
+            initial={{ y: 0 }}
+            animate={{ y: 0 }}
+            exit={{ y: -50, transition: { duration: 0.2 } }}
+            className={`absolute top-5 z-50 w-full flex items-center justify-between p-4 py-0 noselect gap-2 h-12 pointer-events-none`}
+        >
             <NavbarButton className='flex gap-2 px-4'>
                 <button className="relative">Library</button>
                 <button className="relative">Explore</button>
@@ -37,6 +43,6 @@ export default function DesktopNavbar() {
 
                 <GearIcon size={28} className='relative text-body/50 transition-colors duration-200 group-hover:text-body/80' />
             </NavbarButton>
-        </div>  
+        </motion.div>
     );
 }

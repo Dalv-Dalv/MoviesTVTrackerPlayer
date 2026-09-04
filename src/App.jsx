@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { type } from '@tauri-apps/plugin-os';
 
 import MobileApp from './mobile/MobileApp';
-import DesktopApp from './desktop/DesktopApp';
 import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { PageWrapper } from './shared/components/PageWrapper';
@@ -93,49 +92,49 @@ function AnimatedRoutes() {
             <AnimatePresence>
                 <Routes location={location} key={location.pathname}>
                     <Route path='/' element={
-                        <PageWrapper edgeToEdge={true}>
+                        <PageWrapper depth={0} edgeToEdge={true}>
                             <HomePage />
                         </PageWrapper>
                     } />
 
                     <Route path='/details/:tmdbId' element={
-                        <PageWrapper>
+                        <PageWrapper depth={1}>
                             <MediaDetails />
                         </PageWrapper>
                     } />
 
                     <Route path='/settings' element={
-                        <PageWrapper useDefaultTransition={false} saveScroll={false}>
+                        <PageWrapper depth={1} useDefaultTransition={false} saveScroll={false}>
                             <SettingsPage />
                         </PageWrapper>
                     } />
 
                     <Route path='/settings/folders' element={
-                        <PageWrapper useDefaultTransition={false} saveScroll={false}>
+                        <PageWrapper depth={2} useDefaultTransition={false} saveScroll={false}>
                             <FolderSettingsPage />
                         </PageWrapper>
                     } />
 
                     <Route path='/movies' element={
-                        <PageWrapper>
+                        <PageWrapper depth={0}>
                             <MoviesPage />
                         </PageWrapper>
                     } />
 
                     <Route path='/shows' element={
-                        <PageWrapper>
+                        <PageWrapper depth={0}>
                             <ShowsPage />
                         </PageWrapper>
                     } />
 
                     <Route path='/search' element={
-                        <PageWrapper>
+                        <PageWrapper depth={0}>
                             <SearchPage />
                         </PageWrapper>
                     } />
 
                     <Route path='/play/:tmdbId' element={
-                        <PageWrapper transparent edgeToEdge={true} saveScroll={false}>
+                        <PageWrapper depth={3} transparent edgeToEdge={true} saveScroll={false}>
                             {isMobile ? <MobilePlayer /> : <DesktopPlayer />}
                         </PageWrapper>
                     } />
@@ -143,7 +142,7 @@ function AnimatedRoutes() {
             </AnimatePresence>
 
             <AnimatePresence>
-                {showNavbar && (isMobile ? <MobileNavbar /> : <DesktopNavbar/>)}
+                {showNavbar && (isMobile ? <MobileNavbar key="mobile-nav" /> : <DesktopNavbar key="desktop-nav" />)}
             </AnimatePresence>
 
             {!isMobile && <DesktopSettingsModal />}

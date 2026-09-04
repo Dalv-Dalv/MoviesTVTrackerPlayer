@@ -14,6 +14,9 @@ fn prevent_default() -> tauri::plugin::TauriPlugin<tauri::Wry> {
 }
 
 use std::io::{Read, Seek, SeekFrom};
+use std::sync::{Mutex, OnceLock};
+
+static FILE_CACHE: OnceLock<Mutex<Option<(String, std::fs::File)>>> = OnceLock::new();
 
 #[tauri::command]
 fn get_file_size(path: String) -> Result<u64, String> {
@@ -24,7 +27,20 @@ fn get_file_size(path: String) -> Result<u64, String> {
 
 #[tauri::command]
 fn read_file_chunk(path: String, offset: u64, size: usize) -> Result<Vec<u8>, String> {
-    let mut file = std::fs::File::open(&path).map_err(|e| format!("Failed to open file: {}", e))?;
+    let cache_mutex = FILE_CACHE.get_or_init(|| Mutex::new(None));
+    let mut cache = cache_mutex.lock().map_err(|_| "Mutex poisoned")?;
+    
+    let needs_open = match &*cache {
+        Some((cached_path, _)) => cached_path != &path,
+        None => true,
+    };
+    
+    if needs_open {
+        let file = std::fs::File::open(&path).map_err(|e| format!("Failed to open file: {}", e))?;
+        *cache = Some((path.clone(), file));
+    }
+    
+    let file = &mut cache.as_mut().unwrap().1;
 
     // Jump to the exact byte offset mediainfo.js requested
     file.seek(SeekFrom::Start(offset))

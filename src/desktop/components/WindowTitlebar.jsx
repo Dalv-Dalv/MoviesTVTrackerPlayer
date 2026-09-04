@@ -35,7 +35,7 @@ export function WindowTitlebar() {
     return (
         <div
             data-tauri-drag-region
-            className="h-5 select-none flex justify-end items-center fixed top-0 left-0 right-0 z-100 overflow-hidden bg-transparent"
+            className="h-5 select-none flex justify-end items-center fixed top-0 left-0 right-0 z-9999 overflow-hidden bg-transparent"
         >
             <div className="flex h-full pointer-events-auto text-white/0">
                 <button

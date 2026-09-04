@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
 import { useEffect, useRef } from 'react';
 
-export function PageWrapper({ children, transparent = false, edgeToEdge = false, useDefaultTransition = true, saveScroll = true }) {
+export function PageWrapper({ children, transparent = false, edgeToEdge = false, useDefaultTransition = true, saveScroll = true, depth = 0 }) {
     const location = useLocation();
     const scrollRef = useRef(null);
     const isRestoring = useRef(true);
@@ -53,6 +53,7 @@ export function PageWrapper({ children, transparent = false, edgeToEdge = false,
                 transition={{ duration: 0.5, ease: "easeInOut" }}
                 onScroll={handleScroll}
                 className={containerClassName}
+                style={{ zIndex: depth * 100 }}
             >
                 {children}
             </motion.div>
@@ -60,7 +61,7 @@ export function PageWrapper({ children, transparent = false, edgeToEdge = false,
     }
 
     return (
-        <div ref={scrollRef} onScroll={handleScroll} className={containerClassName}>
+        <div ref={scrollRef} onScroll={handleScroll} className={containerClassName} style={{ zIndex: depth * 100 }}>
             {children}
         </div>
     );

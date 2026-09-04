@@ -108,47 +108,22 @@ html {
 }
 
 :root {
-    --bg-primary: #f8fafc;
-    --surface: #ffffff;
-    --surface-elevated: #ffffff;
+    --bg-primary: #000000;
+    --surface: hsl(13, 4%, 9%);
+    --surface-elevated: #334155;
 
-    --text-primary: #0f172a;
-    --text-muted: #64748b;
+    --text-primary: hsl(352, 2%, 94%);
+    --text-muted: hsl(352, 3%, 60%);
     --text-inverted: #ffffff;
 
-    --primary: hsl(30, 60%, 55%);
-    --primary-hover: hsl(30, 60%, 45%);
+    --primary: hsl(13, 94%, 61%);
+    --primary-hover: hsl(358, 70%, 55%);
 
     --secondary: #8AEA92;
     --accent: #FFA62B;
-    --success: #10b981;
-    --failure: #ef4444;
 
-    --divider: #e2e8f0;
+    --divider: hsl(352, 2%, 20%);
     --ring: var(--primary);
-}
-
-@media (prefers-color-scheme: dark) {
-    :root {
-        --bg-primary: #000000;
-        --surface: #1e293b;
-        --surface-elevated: #334155;
-
-        --text-primary: hsl(352, 4%, 94%);
-        --text-muted: hsl(352, 3%, 60%);
-        --text-inverted: #ffffff;
-
-        --primary: hsl(13, 94%, 61%);
-        --primary-hover: hsl(358, 70%, 55%);
-
-        --secondary: #8AEA92;
-        --accent: #FFA62B;
-        --success: #10b981;
-        --failure: #ef4444;
-
-        --divider: hsl(352, 2%, 20%);
-        --ring: var(--primary);
-    }
 }
 
 
@@ -172,8 +147,29 @@ html {
     --color-secondary: var(--secondary);
     --color-accent: var(--accent);
 
-    --color-success: var(--success);
-    --color-failure: var(--failure);
+    --color-success-50: #ecfdf5;
+    --color-success-100: #d1fae5;
+    --color-success-200: #a7f3d0;
+    --color-success-300: #6ee7b7;
+    --color-success-400: #34d399;
+    --color-success-500: #10b981;
+    --color-success-600: #059669;
+    --color-success-700: #047857;
+    --color-success-800: #065f46;
+    --color-success-900: #064e3b;
+    --color-success-950: #022c22;
+
+    --color-danger-50: #fef2f2;
+    --color-danger-100: #fee2e2;
+    --color-danger-200: #fecaca;
+    --color-danger-300: #fca5a5;
+    --color-danger-400: #f87171;
+    --color-danger-500: #ef4444;
+    --color-danger-600: #dc2626;
+    --color-danger-700: #b91c1c;
+    --color-danger-800: #991b1b;
+    --color-danger-900: #7f1d1d;
+    --color-danger-950: #450a0a;
 
     --color-divider: var(--divider);
     --color-ring: var(--ring);
@@ -190,5 +186,11 @@ html {
         0% { opacity: 0; transform: scale(0.8); }
         20% { opacity: 1; }
         100% { opacity: 0; transform: scale(1.2); }
+    }
+
+    --animate-auto-scroll: auto-scroll 8s linear infinite alternate;
+    @keyframes auto-scroll {
+        0%, 20% { transform: translateX(0); }
+        80%, 100% { transform: translateX(var(--scroll-amount)); }
     }
 }
