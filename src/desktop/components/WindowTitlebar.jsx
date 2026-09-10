@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { CardsIcon, MinusIcon, SquareIcon, XIcon } from '@phosphor-icons/react';
 import { useFullscreen } from '../../shared/hooks/useFullscreen';
 
 export function WindowTitlebar() {
     const [isMaximized, setIsMaximized] = useState(false);
+    const [mounted, setMounted] = useState(false);
     const { isFullscreen } = useFullscreen();
     const appWindow = getCurrentWindow();
 
     useEffect(() => {
+        setMounted(true);
         let unlisten;
         const checkMaximized = async () => {
             const max = await appWindow.isMaximized();
@@ -32,21 +35,23 @@ export function WindowTitlebar() {
         };
     }, []);
 
-    return (
+    if (!mounted) return null;
+
+    return createPortal(
         <div
             data-tauri-drag-region
-            className="h-5 select-none flex justify-end items-center fixed top-0 left-0 right-0 z-9999 overflow-hidden bg-transparent"
+            className="h-5 select-none flex justify-end items-center fixed top-0 left-0 right-0 z-[10000] overflow-hidden bg-transparent"
         >
             <div className="flex h-full pointer-events-auto text-white/0">
                 <button
-                    className="h-full px-4 hover:bg-linear-to-b from-divider/50 to-transparent hover:text-white transition-colors duration-300 inline-flex justify-center items-center"
+                    className="h-full px-4 hover:bg-linear-to-b from-divider/50 to-transparent hover:text-white transition-colors duration-300 inline-flex justify-center items-center cursor-pointer"
                     onClick={() => appWindow.minimize()}
                     title="Minimize"
                 >
                     <MinusIcon size={16} />
                 </button>
                 <button
-                    className="h-full px-4 hover:bg-linear-to-b from-divider/50 to-transparent hover:text-white transition-colors duration-300 inline-flex justify-center items-center"
+                    className="h-full px-4 hover:bg-linear-to-b from-divider/50 to-transparent hover:text-white transition-colors duration-300 inline-flex justify-center items-center cursor-pointer"
                     onClick={() => appWindow.toggleMaximize()}
                     title={isMaximized ? "Restore" : "Maximize"}
                 >
@@ -57,13 +62,14 @@ export function WindowTitlebar() {
                     )}
                 </button>
                 <button
-                    className="h-full px-4 hover:bg-linear-to-b from-red-500/50 to-transparent hover:text-white transition-colors duration-300 inline-flex justify-center items-center"
+                    className="h-full px-4 hover:bg-linear-to-b from-red-500/50 to-transparent hover:text-white transition-colors duration-300 inline-flex justify-center items-center cursor-pointer"
                     onClick={() => appWindow.close()}
                     title="Close"
                 >
                     <XIcon size={16} weight='bold' />
                 </button>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }

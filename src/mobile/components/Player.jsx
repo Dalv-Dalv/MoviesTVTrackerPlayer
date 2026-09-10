@@ -9,7 +9,7 @@ import { useScrubber } from '../../desktop/hooks/useScrubber';
 import { LanguagePanel } from '../../desktop/components/LanguagePanel';
 import { useWatchHistory } from '../../shared/contexts/WatchHistoryContext';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useVideoLibrary } from '../../shared/contexts/VideoLibraryContext';
+import { useLibraryStore } from '../../shared/store/useLibraryStore';
 import { Maximize2Icon, Minimize2Icon, PauseIcon, PlayIcon, Volume1Icon, Volume2Icon, VolumeIcon, VolumeOffIcon, VolumeXIcon, RewindIcon, FastForwardIcon, Loader2, Sun } from 'lucide-react';
 import { Animated } from './Animated';
 import { useDrag } from '@use-gesture/react';
@@ -28,7 +28,7 @@ export const PlayerButton = ({ children, onClick, className = '', ...props }) =>
 export const Player = () => {
     const { tmdbId } = useParams();
     const navigate = useNavigate();
-    const { library } = useVideoLibrary();
+    const library = useLibraryStore(state => state.library);
     const media = library[tmdbId];
 
     const [activePath, setActivePath] = useState(null);

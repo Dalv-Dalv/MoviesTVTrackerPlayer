@@ -20,10 +20,34 @@ import HomePage from './shared/components/HomePage';
 import FolderSettingsPage from './mobile/components/FolderSettingsPage';
 import DesktopNavbar from './desktop/components/DesktopNavbar';
 import DesktopSettingsModal from './desktop/components/DesktopSettingsModal';
+import LibraryManagerPage from './desktop/components/LibraryManagerPage';
+
+import { useLibraryStore } from './shared/store/useLibraryStore';
+import { useSetting } from './shared/contexts/SettingsContext';
+import { useTMDB } from './shared/hooks/useTMDB';
 
 function App() {
     const osType = type();
     const { toggleFullscreen } = useFullscreen();
+    
+    const [folders] = useSetting('videoLibraryFolders', []);
+    const tmdb = useTMDB();
+    const loadCacheOnBoot = useLibraryStore(state => state.loadCacheOnBoot);
+    const rescan = useLibraryStore(state => state.rescan);
+    const isLoaded = useLibraryStore(state => Object.keys(state.library).length > 0);
+
+    useEffect(() => {
+        loadCacheOnBoot();
+    }, [loadCacheOnBoot]);
+
+    useEffect(() => {
+        useLibraryStore.setState({ tmdb, folders });
+    }, [tmdb, folders]);
+
+    useEffect(() => {
+        if (!tmdb) return;
+        rescan();
+    }, [folders, tmdb, rescan]);
 
     useEffect(() => {
         const initPlatform = () => {
@@ -46,7 +70,7 @@ function App() {
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [toggleFullscreen]);
+    }, [toggleFullscreen, osType]);
 
     return (
         <BrowserRouter>
@@ -81,8 +105,8 @@ function AnimatedRoutes() {
 
     const showNavbar = !HIDDEN_NAVBAR_ROUTES.some(path => location.pathname.startsWith(path));
 
-    const bgClass = isPlayerRoute 
-        ? (isPlayerLoading ? 'bg-black' : 'bg-transparent') 
+    const bgClass = isPlayerRoute
+        ? (isPlayerLoading ? 'bg-black' : 'bg-transparent')
         : 'bg-background';
 
     return (
@@ -112,6 +136,12 @@ function AnimatedRoutes() {
                     <Route path='/settings/folders' element={
                         <PageWrapper depth={2} useDefaultTransition={false} saveScroll={false}>
                             <FolderSettingsPage />
+                        </PageWrapper>
+                    } />
+
+                    <Route path='/library-manager' element={
+                        <PageWrapper depth={2} saveScroll={false}>
+                            <LibraryManagerPage />
                         </PageWrapper>
                     } />
 

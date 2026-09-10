@@ -1,6 +1,6 @@
 import { ArrowLeftIcon, FolderIcon, LayoutIcon, PlayIcon, PlusIcon, TrashIcon } from "@phosphor-icons/react";
 import { useNavigate } from "react-router-dom"
-import { useVideoLibrary } from "../../shared/contexts/VideoLibraryContext";
+import { useLibraryStore } from "../../shared/store/useLibraryStore";
 import { motion } from "framer-motion";
 import { useSetting } from "../../shared/contexts/SettingsContext";
 
@@ -17,7 +17,10 @@ export default function FolderSettingsPage({ className = '' }) {
     const navigate = useNavigate();
 
     const [folders, setFolders] = useSetting('videoLibraryFolders', []);
-    const { addFolderAndScan, rescanLibrary, clearCacheAndRescan, isScanning } = useVideoLibrary();
+    const rescanLibrary = useLibraryStore(state => state.rescan);
+    const clearCacheAndRescan = useLibraryStore(state => state.clearCacheAndRescan);
+    const isScanning = useLibraryStore(state => state.isScanning);
+    const addFolderAndScan = () => { console.warn("Mobile folder picker needs reimplementation"); };
 
     const handleRemoveFolder = (folderToRemove) => {
         setFolders(prevFolders => prevFolders.filter(f => f !== folderToRemove));

@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { useVideoLibrary } from "../contexts/VideoLibraryContext";
+import { useLibraryStore } from "../store/useLibraryStore";
 import { useEffect, useRef, useState } from "react";
 import { Carousel } from "./Carousel";
 import { MovieImage } from "./Poster";
@@ -7,7 +7,9 @@ import { ArrowClockwiseIcon } from "@phosphor-icons/react";
 
 export default function HomePage({ className = '' }) {
     const navigate = useNavigate();
-    const { library, isScanning, rescanLibrary, addFolderAndScan } = useVideoLibrary();
+    const library = useLibraryStore(state => state.library);
+    const isScanning = useLibraryStore(state => state.isScanning);
+    const rescanLibrary = useLibraryStore(state => state.rescan);
     const mediaItems = Object.values(library);
 
 

@@ -165,7 +165,7 @@ export function VideoLibraryProvider({ children }) {
             // Prune blacklist: only keep paths that are still in allVideos
             const allVideoPaths = new Set(allVideos.map(v => v.filePath));
             libraryCache.blacklist = libraryCache.blacklist.filter(p => allVideoPaths.has(p));
-            
+
             // Filter out blacklisted videos
             const blacklistedPaths = new Set(libraryCache.blacklist);
             const validParsedVideos = parsedVideos.filter(v => !blacklistedPaths.has(v.filePath));
@@ -241,7 +241,7 @@ export function VideoLibraryProvider({ children }) {
 
                         newMediaItems[fallbackId] = {
                             tmdbId: fallbackId,
-                            mediaType: video.type === 'series' ? 'show' : 'movie',
+                            type: video.type === 'series' ? 'show' : 'movie',
                             title: displayTitle,
                             genreIds: [],
                             releaseDate: rawYear ? `${rawYear}-01-01` : '',
@@ -270,7 +270,7 @@ export function VideoLibraryProvider({ children }) {
 
                     newMediaItems[tmdbId] = {
                         tmdbId: match.id.toString(),
-                        mediaType: isShow ? 'show' : 'movie',
+                        type: isShow ? 'show' : 'movie',
                         title: match.title || match.name,
                         genreIds: match.genre_ids,
                         releaseDate: match.release_date || match.first_air_date,
@@ -342,10 +342,10 @@ export function VideoLibraryProvider({ children }) {
         try {
             const cacheData = await readTextFile(CACHE_FILE, { baseDir: BaseDirectory.AppData });
             const libraryCache = JSON.parse(cacheData);
-            
+
             const oldData = libraryCache.mediaItems[oldTmdbId];
             if (!oldData) throw new Error("Old media item not found in cache");
-            
+
             const filePaths = oldData.filePaths;
             const tmdbId = match.id.toString();
             const isShow = match.media_type === "tv";
@@ -353,7 +353,7 @@ export function VideoLibraryProvider({ children }) {
 
             const newEntry = {
                 tmdbId: tmdbId,
-                mediaType: isShow ? 'show' : 'movie',
+                type: isShow ? 'show' : 'movie',
                 title: match.title || match.name,
                 genreIds: match.genre_ids,
                 releaseDate: match.release_date || match.first_air_date,
@@ -363,27 +363,27 @@ export function VideoLibraryProvider({ children }) {
                 logoPath: localLogoPath,
                 filePaths: filePaths
             };
-            
+
             if (oldData.posterPath) try { await remove(oldData.posterPath, { baseDir: BaseDirectory.AppData }); } catch (e) { }
             if (oldData.backdropPath) try { await remove(oldData.backdropPath, { baseDir: BaseDirectory.AppData }); } catch (e) { }
             if (oldData.logoPath) try { await remove(oldData.logoPath, { baseDir: BaseDirectory.AppData }); } catch (e) { }
-            
+
             delete libraryCache.mediaItems[oldTmdbId];
             libraryCache.mediaItems[tmdbId] = newEntry;
-            
+
             for (const p of filePaths) {
                 libraryCache.fileMap[p] = tmdbId;
             }
-            
+
             await writeTextFile(CACHE_FILE, JSON.stringify(libraryCache, null, 2), { baseDir: BaseDirectory.AppData });
-            
+
             setLibrary(prev => {
                 const newLib = { ...prev };
                 delete newLib[oldTmdbId];
                 newLib[tmdbId] = newEntry;
                 return newLib;
             });
-            
+
             return tmdbId;
         } catch (e) {
             console.error("Failed to update media match", e);
@@ -395,12 +395,12 @@ export function VideoLibraryProvider({ children }) {
         try {
             const cacheData = await readTextFile(CACHE_FILE, { baseDir: BaseDirectory.AppData });
             const libraryCache = { blacklist: [], ...JSON.parse(cacheData) };
-            
+
             const oldData = libraryCache.mediaItems[tmdbId];
             if (!oldData) return;
-            
+
             const filePaths = oldData.filePaths || [];
-            
+
             if (deleteFromDisk) {
                 for (const path of filePaths) {
                     try { await remove(path); } catch (e) { console.error("Failed to delete file from disk:", path, e); }
@@ -409,18 +409,18 @@ export function VideoLibraryProvider({ children }) {
                 libraryCache.blacklist.push(...filePaths);
                 libraryCache.blacklist = [...new Set(libraryCache.blacklist)];
             }
-            
+
             if (oldData.posterPath) try { await remove(oldData.posterPath, { baseDir: BaseDirectory.AppData }); } catch (e) { }
             if (oldData.backdropPath) try { await remove(oldData.backdropPath, { baseDir: BaseDirectory.AppData }); } catch (e) { }
             if (oldData.logoPath) try { await remove(oldData.logoPath, { baseDir: BaseDirectory.AppData }); } catch (e) { }
-            
+
             delete libraryCache.mediaItems[tmdbId];
             for (const p of filePaths) {
                 delete libraryCache.fileMap[p];
             }
-            
+
             await writeTextFile(CACHE_FILE, JSON.stringify(libraryCache, null, 2), { baseDir: BaseDirectory.AppData });
-            
+
             setLibrary(prev => {
                 const newLib = { ...prev };
                 delete newLib[tmdbId];
@@ -432,6 +432,60 @@ export function VideoLibraryProvider({ children }) {
         }
     };
 
+    const applyBulkRematch = async (stagedChanges) => {
+        try {
+            const cacheData = await readTextFile(CACHE_FILE, { baseDir: BaseDirectory.AppData });
+            const libraryCache = { blacklist: [], ...JSON.parse(cacheData) };
+
+            for (const change of stagedChanges) {
+                const { match, filePaths } = change;
+                const tmdbId = match.id.toString();
+                const isShow = match.media_type === "tv";
+
+                for (const path of filePaths) {
+                    const oldTmdbId = libraryCache.fileMap[path];
+                    if (oldTmdbId && libraryCache.mediaItems[oldTmdbId]) {
+                        libraryCache.mediaItems[oldTmdbId].filePaths = libraryCache.mediaItems[oldTmdbId].filePaths.filter(p => p !== path);
+
+                        if (libraryCache.mediaItems[oldTmdbId].filePaths.length === 0) {
+                            const oldData = libraryCache.mediaItems[oldTmdbId];
+                            if (oldData.posterPath) try { await remove(oldData.posterPath, { baseDir: BaseDirectory.AppData }); } catch (e) { }
+                            if (oldData.backdropPath) try { await remove(oldData.backdropPath, { baseDir: BaseDirectory.AppData }); } catch (e) { }
+                            if (oldData.logoPath) try { await remove(oldData.logoPath, { baseDir: BaseDirectory.AppData }); } catch (e) { }
+                            delete libraryCache.mediaItems[oldTmdbId];
+                        }
+                    }
+                    libraryCache.fileMap[path] = tmdbId;
+                }
+
+                if (libraryCache.mediaItems[tmdbId]) {
+                    libraryCache.mediaItems[tmdbId].filePaths.push(...filePaths);
+                    libraryCache.mediaItems[tmdbId].filePaths = [...new Set(libraryCache.mediaItems[tmdbId].filePaths)];
+                } else {
+                    const { localPosterPath, localBackdropPath, localLogoPath } = await downloadMediaImages(tmdb, tmdbId, match, isShow);
+                    libraryCache.mediaItems[tmdbId] = {
+                        tmdbId: tmdbId,
+                        type: isShow ? 'show' : 'movie',
+                        title: match.title || match.name,
+                        genreIds: match.genre_ids,
+                        releaseDate: match.release_date || match.first_air_date,
+                        overview: match.overview,
+                        posterPath: localPosterPath,
+                        backdropPath: localBackdropPath,
+                        logoPath: localLogoPath,
+                        filePaths: [...filePaths]
+                    };
+                }
+            }
+
+            await writeTextFile(CACHE_FILE, JSON.stringify(libraryCache, null, 2), { baseDir: BaseDirectory.AppData });
+            setLibrary(libraryCache.mediaItems);
+        } catch (e) {
+            console.error("Failed to apply bulk rematch", e);
+            throw e;
+        }
+    };
+
     useEffect(() => {
         if (!isLoaded) return;
         rescanLibrary();
@@ -439,7 +493,7 @@ export function VideoLibraryProvider({ children }) {
 
     const mappedLibrary = useMemo(() => {
         if (!isGenresLoaded) return library;
-        
+
         const mapped = {};
         for (const [id, item] of Object.entries(library)) {
             mapped[id] = {
@@ -462,6 +516,7 @@ export function VideoLibraryProvider({ children }) {
             addFolderAndScan,
             clearCacheAndRescan,
             updateMediaMatch,
+            applyBulkRematch,
             removeMedia
         }}>
             {children}
@@ -479,6 +534,5 @@ export function VideoLibraryProvider({ children }) {
         </VideoLibraryContext.Provider>
     );
 }
-
 
 export const useVideoLibrary = () => useContext(VideoLibraryContext);

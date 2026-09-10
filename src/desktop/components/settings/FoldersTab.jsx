@@ -1,14 +1,32 @@
 import React from 'react';
-import { FolderIcon, PlusIcon, TrashIcon } from "@phosphor-icons/react";
+import { useNavigate } from 'react-router-dom';
+import { FolderIcon, PlusIcon, TrashIcon, FadersHorizontalIcon } from "@phosphor-icons/react";
 import { useSetting } from '../../../shared/contexts/SettingsContext';
-import { useVideoLibrary } from '../../../shared/contexts/VideoLibraryContext';
+import { useLibraryStore } from '../../../shared/store/useLibraryStore';
+import { useTMDB } from '../../../shared/hooks/useTMDB';
+import { open } from '@tauri-apps/plugin-dialog';
 
 export default function FoldersTab() {
     const [folders, setFolders] = useSetting('videoLibraryFolders', []);
-    const { addFolderAndScan, rescanLibrary, clearCacheAndRescan, isScanning } = useVideoLibrary();
+    const rescanLibrary = useLibraryStore(state => state.rescan);
+    const clearCacheAndRescan = useLibraryStore(state => state.clearCacheAndRescan);
+    const isScanning = useLibraryStore(state => state.isScanning);
+    const navigate = useNavigate();
+    const tmdb = useTMDB();
+
+    const addFolderAndScan = async () => {
+        const selectedFolder = await open({ directory: true, multiple: false });
+        if (!selectedFolder) return;
+        const newFolders = [...new Set([...folders, selectedFolder])];
+        setFolders(newFolders);
+    };
 
     const handleRemoveFolder = (folderToRemove) => {
         setFolders(prevFolders => prevFolders.filter(f => f !== folderToRemove));
+    };
+
+    const handleClearAndRescan = () => {
+        clearCacheAndRescan();
     };
 
     return (
@@ -57,14 +75,26 @@ export default function FoldersTab() {
                 </div>
             </section>
 
-            <section>
-                <span className="text-sm font-semibold tracking-wide text-muted mb-3 block">
+            <section className='flex flex-col gap-3'>
+                <span className="text-sm font-semibold tracking-wide text-muted block">
                     Library Actions
                 </span>
+
                 <button
-                    onClick={clearCacheAndRescan}
+                    onClick={() => navigate('/library-manager')}
+                    className="w-full p-4 rounded-xl flex items-center justify-between transition-colors bg-white/5 hover:bg-white/10 active:bg-white/15 text-body border border-white/5"
+                >
+                    <div className="flex flex-col items-start gap-1">
+                        <span className="font-semibold">Library Manager</span>
+                        <span className="text-xs text-muted text-left">Audit miscategorized files and remotely assign them to correct TMDB entries in bulk.</span>
+                    </div>
+                    <FadersHorizontalIcon size={24} className="text-primary opacity-80" />
+                </button>
+
+                <button
+                    onClick={handleClearAndRescan}
                     disabled={isScanning}
-                    className="w-full p-4 rounded-xl flex items-center justify-between transition-colors bg-white/5 hover:bg-white/10 active:bg-white/15 text-red-400 disabled:opacity-50"
+                    className="w-full p-4 rounded-xl flex items-center justify-between transition-colors bg-white/5 hover:bg-white/10 active:bg-white/15 border border-white/5 text-red-400 disabled:opacity-50"
                 >
                     <span className="font-semibold">{isScanning ? 'Clearing & Scanning...' : 'Clear Cache & Rescan'}</span>
                     <TrashIcon size={20} />

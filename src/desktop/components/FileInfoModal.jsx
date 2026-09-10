@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Modal } from '../../shared/components/Modal';
 import { CaretDownIcon, InfoIcon } from '@phosphor-icons/react';
 import { extractVideoMetadata } from '../../shared/services/MetadataExtractor';
@@ -139,16 +139,27 @@ const FileInfoCard = ({ path, info, loading, media }) => {
 };
 
 export function FileInfoModal({ isOpen, onClose, media }) {
-    const filePaths = media?.filePaths;
+    const uniqueFilePaths = useMemo(() => {
+        const paths = media?.type === 'show'
+            ? [
+                ...(media.seasons || []).filter(Boolean).flatMap(s => 
+                    (s.episodes || []).filter(Boolean).flatMap(e => e.filePaths || [])
+                ),
+                ...(media.specials?.episodes || []).filter(Boolean).flatMap(e => e.filePaths || [])
+              ]
+            : media?.filePaths || [];
+        return [...new Set(paths)];
+    }, [media]);
+        
     const [results, setResults] = useState({});
 
     useEffect(() => {
-        if (!isOpen || !filePaths) return;
+        if (!isOpen || uniqueFilePaths.length === 0) return;
         
         let mounted = true;
         
         const loadSequential = async () => {
-            for (const path of filePaths) {
+            for (const path of uniqueFilePaths) {
                 if (!mounted) break;
                 if (results[path]) continue;
                 
@@ -169,12 +180,12 @@ export function FileInfoModal({ isOpen, onClose, media }) {
         loadSequential();
         
         return () => { mounted = false; };
-    }, [isOpen, filePaths]);
+    }, [isOpen, uniqueFilePaths]);
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="File Information" className="max-w-3xl">
             <div className="flex flex-col gap-4 max-h-[75vh] overflow-y-auto noScrollbar pr-2">
-                {isOpen && filePaths?.map(path => (
+                {isOpen && uniqueFilePaths.map(path => (
                     <FileInfoCard 
                         key={path} 
                         path={path} 

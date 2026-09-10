@@ -1,6 +1,6 @@
 import { Modal } from '../../shared/components/Modal';
 import { useTMDB } from '../../shared/hooks/useTMDB';
-import { useVideoLibrary } from '../../shared/contexts/VideoLibraryContext';
+import { useLibraryStore } from '../../shared/store/useLibraryStore';
 import { useState, useEffect, useRef } from 'react';
 import parseVideo from 'video-name-parser';
 
@@ -9,7 +9,7 @@ import { MagnifyingGlassIcon } from '@phosphor-icons/react';
 
 export function FixMatchModal({ isOpen, onClose, media, tmdbId, navigate }) {
     const tmdb = useTMDB();
-    const { updateMediaMatch } = useVideoLibrary();
+    const updateMediaMatch = useLibraryStore(state => state.updateMediaMatch);
 
     const [searchQuery, setSearchQuery] = useState("");
     const [searchResults, setSearchResults] = useState([]);
@@ -64,7 +64,7 @@ export function FixMatchModal({ isOpen, onClose, media, tmdbId, navigate }) {
 
         setIsSavingMatch(true);
         try {
-            const newTmdbId = await updateMediaMatch(tmdbId, selectedResult);
+            const newTmdbId = await updateMediaMatch(tmdb, tmdbId, selectedResult);
             onClose();
             navigate(`/details/${newTmdbId}`, { replace: true });
         } catch (e) {

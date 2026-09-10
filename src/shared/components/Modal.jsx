@@ -1,8 +1,15 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { XIcon } from '@phosphor-icons/react';
 
 export function Modal({ isOpen, onClose, title, children, className = "max-w-lg", hideHeader = false, unstyledBody = false }) {
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
     useEffect(() => {
         const handleKeyDown = (e) => {
             if (e.key === 'Escape') onClose();
@@ -13,10 +20,12 @@ export function Modal({ isOpen, onClose, title, children, className = "max-w-lg"
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isOpen, onClose]);
 
-    return (
+    if (!mounted) return null;
+
+    return createPortal(
         <AnimatePresence>
             {isOpen && (
-                <div className="fixed inset-0 z-100 flex items-center justify-center p-4 sm:p-6 noselect">
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 noselect">
                     {/* Backdrop */}
                     <motion.div
                         initial={{ opacity: 0 }}
@@ -45,7 +54,7 @@ export function Modal({ isOpen, onClose, title, children, className = "max-w-lg"
                                 <h2 className="text-xl font-semibold text-body tracking-wide">{title}</h2>
                                 <button
                                     onClick={onClose}
-                                    className="p-2 rounded-full text-muted hover:text-body hover:bg-divider transition-colors"
+                                    className="p-2 rounded-full text-muted hover:text-body hover:bg-divider transition-colors cursor-pointer"
                                 >
                                     <XIcon size={20} weight="bold" />
                                 </button>
@@ -59,6 +68,7 @@ export function Modal({ isOpen, onClose, title, children, className = "max-w-lg"
                     </motion.div>
                 </div>
             )}
-        </AnimatePresence>
+        </AnimatePresence>,
+        document.body
     );
 }

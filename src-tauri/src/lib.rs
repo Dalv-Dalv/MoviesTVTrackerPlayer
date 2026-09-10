@@ -29,17 +29,17 @@ fn get_file_size(path: String) -> Result<u64, String> {
 fn read_file_chunk(path: String, offset: u64, size: usize) -> Result<Vec<u8>, String> {
     let cache_mutex = FILE_CACHE.get_or_init(|| Mutex::new(None));
     let mut cache = cache_mutex.lock().map_err(|_| "Mutex poisoned")?;
-    
+
     let needs_open = match &*cache {
         Some((cached_path, _)) => cached_path != &path,
         None => true,
     };
-    
+
     if needs_open {
         let file = std::fs::File::open(&path).map_err(|e| format!("Failed to open file: {}", e))?;
         *cache = Some((path.clone(), file));
     }
-    
+
     let file = &mut cache.as_mut().unwrap().1;
 
     // Jump to the exact byte offset mediainfo.js requested
@@ -59,6 +59,7 @@ fn read_file_chunk(path: String, offset: u64, size: usize) -> Result<Vec<u8>, St
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let mut builder = tauri::Builder::default()
+        .plugin(tauri_plugin_persisted_scope::init())
         .plugin(tauri_plugin_android_mediastore::init())
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(prevent_default())

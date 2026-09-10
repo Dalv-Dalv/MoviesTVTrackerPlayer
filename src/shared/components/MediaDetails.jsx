@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { MovieImage } from './Poster';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useVideoLibrary } from '../contexts/VideoLibraryContext';
+import { useLibraryStore } from '../store/useLibraryStore';
 import { isMobile } from '../utils/PlatformUtils';
 import { DesktopMediaDetails } from '../../desktop/components/DesktopMediaDetails';
 import { MobileMediaDetails } from '../../mobile/components/MobileMediaDetails';
@@ -10,7 +10,7 @@ import { ArrowLeftIcon } from 'lucide-react';
 export function MediaDetails({ className = '' }) {
     const { tmdbId } = useParams();
     const navigate = useNavigate();
-    const { library } = useVideoLibrary();
+    const library = useLibraryStore(state => state.library);
 
     const media = library[tmdbId];
 

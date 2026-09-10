@@ -1,6 +1,5 @@
 import { ArrowLeftIcon, FolderIcon, LayoutIcon, PlayIcon } from "@phosphor-icons/react";
 import { useNavigate } from "react-router-dom"
-import { useVideoLibrary } from "../../shared/contexts/VideoLibraryContext";
 import { motion } from "framer-motion";
 
 function SettingsButton({ label, Icon, onClick, className = '' }) {

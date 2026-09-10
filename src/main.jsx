@@ -4,7 +4,6 @@ import App from "./App";
 import "./App.css";
 import "overlayscrollbars/overlayscrollbars.css";
 import { SettingsProvider } from './shared/contexts/SettingsContext';
-import { VideoLibraryProvider } from './shared/contexts/VideoLibraryContext';
 import { WatchHistoryProvider } from './shared/contexts/WatchHistoryContext';
 import { GenresProvider } from './shared/contexts/GenresContext';
 import { VideoPlayer } from './shared/services/VideoEngine';
@@ -16,9 +15,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         <SettingsProvider>
             <WatchHistoryProvider>
                 <GenresProvider>
-                    <VideoLibraryProvider>
-                        <App />
-                    </VideoLibraryProvider>
+                    <App />
                 </GenresProvider>
             </WatchHistoryProvider>
         </SettingsProvider>

@@ -1,11 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { open } from '@tauri-apps/plugin-dialog';
 import { VideoPlayer } from '../shared/services/VideoEngine';
-import { useVideoLibrary } from '../shared/contexts/VideoLibraryContext';
+import { useLibraryStore } from '../shared/store/useLibraryStore';
 import HomePage from '../shared/components/HomePage';
 
 export default function MobileApp() {
-    const { mediaItems, isScanning, rescanLibrary, addFolderAndScan } = useVideoLibrary();
+    const library = useLibraryStore(state => state.library);
+    const mediaItems = Object.values(library);
+    const isScanning = useLibraryStore(state => state.isScanning);
+    const rescanLibrary = useLibraryStore(state => state.rescan);
+    const addFolderAndScan = () => {};
 
     return (
         <div className='h-full overflow-y-auto'>

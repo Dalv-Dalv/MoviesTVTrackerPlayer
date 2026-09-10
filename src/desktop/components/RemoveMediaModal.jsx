@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { Modal } from '../../shared/components/Modal';
 import { CheckIcon } from '@phosphor-icons/react';
-import { useVideoLibrary } from '../../shared/contexts/VideoLibraryContext';
+import { useLibraryStore } from '../../shared/store/useLibraryStore';
 
 export function RemoveMediaModal({ isOpen, onClose, tmdbId, navigate }) {
-    const { removeMedia } = useVideoLibrary();
+    const removeMedia = useLibraryStore(state => state.removeMedia);
     const [deleteFromDisk, setDeleteFromDisk] = useState(false);
 
     return (
