@@ -2,12 +2,19 @@ import { useState, useEffect } from 'react';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { appDataDir, join } from '@tauri-apps/api/path';
 
-export function useLocalImage(relativePath) {
-    const [imgUrl, setImgUrl] = useState(null);
+export function useLocalImage(imagePath) {
+    const isDirectUrl = (path) => path && (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('blob:') || path.startsWith('data:'));
+    
+    const [imgUrl, setImgUrl] = useState(() => isDirectUrl(imagePath) ? imagePath : null);
 
     useEffect(() => {
-        if (!relativePath) {
+        if (!imagePath) {
             setImgUrl(null);
+            return;
+        }
+
+        if (isDirectUrl(imagePath)) {
+            setImgUrl(imagePath);
             return;
         }
 
@@ -15,7 +22,7 @@ export function useLocalImage(relativePath) {
             try {
                 const appData = await appDataDir();
                 
-                const absolutePath = await join(appData, relativePath);
+                const absolutePath = await join(appData, imagePath);
                 
                 const assetUrl = convertFileSrc(absolutePath);
                 
@@ -26,7 +33,7 @@ export function useLocalImage(relativePath) {
         }
 
         resolveImagePath();
-    }, [relativePath]);
+    }, [imagePath]);
 
     return imgUrl;
 }

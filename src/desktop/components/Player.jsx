@@ -2,13 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { VideoPlayer } from '../../shared/services/VideoEngine';
 import { ArrowLeftIcon } from '@phosphor-icons/react';
 import { formatTime } from '../../shared/utils/PlayerUtils';
-import { useKeyboardShortcuts, useVideoState } from '../hooks';
-import { useWakeUI, useFullscreen } from '../../shared/hooks';
-import { useScrubber } from '../hooks/useScrubber';
+import { useKeyboardShortcuts } from '../hooks';
+import { useWakeUI, useFullscreen, usePlaybackSession, useScrubber, useLanguagePreferences } from '../../shared/hooks';
 import { LanguagePanel } from './LanguagePanel';
-import { useWatchHistory } from '../../shared/contexts/WatchHistoryContext';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useLibraryStore } from '../../shared/store/useLibraryStore';
 import { Maximize2Icon, Minimize2Icon, PauseIcon, PlayIcon, Volume1Icon, Volume2Icon, VolumeIcon, VolumeOffIcon, VolumeXIcon, Loader2 } from 'lucide-react';
 
 export const PlayerButton = ({ children, onClick, className = '', ...props }) => {
@@ -25,10 +22,6 @@ export const PlayerButton = ({ children, onClick, className = '', ...props }) =>
 export const Player = () => {
     const { tmdbId } = useParams();
     const navigate = useNavigate();
-    const library = useLibraryStore(state => state.library);
-    const media = library[tmdbId];
-
-    const [activePath, setActivePath] = useState(null);
 
     const [showRemainingTime, setShowRemainingTime] = useState(true);
     const [languagePanelOpen, setLanguagePanelOpen] = useState(false);
@@ -39,46 +32,18 @@ export const Player = () => {
     const [pendingSeek, setPendingSeek] = useState(null);
     const [hoverRatio, setHoverRatio] = useState(null);
 
-    const { isPlayerReady, isVideoLoaded, isPlaying, currentTime, duration, volume, isMute, subText, maxVolume, audio, subs, isBuffering, showBufferingSpinner, isFirstFrameRendered, isInitialLoadComplete } = useVideoState(activePath);
+    const {
+        media, activePath, currentSeason, currentEpisode,
+        isPlayerReady, isVideoLoaded, isPlaying, currentTime, duration,
+        volume, isMute, subText, maxVolume, audio, subs,
+        isBuffering, showBufferingSpinner, isFirstFrameRendered, isInitialLoadComplete
+    } = usePlaybackSession(tmdbId, scrubTime !== null);
+
     const { isFullscreen, toggleFullscreen } = useFullscreen();
     const { showControls, wakeUI, handleInteractiveEnter, handleInteractiveLeave } = useWakeUI({ holdOpen: languagePanelOpen });
 
-    const { history, updateProgressAndSave, isLoaded: historyLoaded } = useWatchHistory(tmdbId);
-    const sessionId = useRef(Date.now()).current;
-    const lastSaveTime = useRef(0);
-    const latestTime = useRef(0);
 
-    useEffect(() => {
-        setActivePath(media.filePaths[0]);
-        console.log(media.filePaths[0]);
-    }, []);
-
-    const hasLoaded = useRef(false);
-    useEffect(() => {
-        hasLoaded.current = false;
-    }, [activePath]);
-
-    useEffect(() => {
-        if (isPlayerReady && activePath && historyLoaded && !hasLoaded.current) {
-            let startPosition = 0;
-            if (history) {
-                startPosition = history.completed ? 0 : history.progress;
-            }
-            VideoPlayer.load(activePath, startPosition);
-            hasLoaded.current = true;
-        }
-    }, [isPlayerReady, activePath, historyLoaded, history, tmdbId]);
-
-    useEffect(() => {
-        if (isVideoLoaded) {
-            VideoPlayer.setPaused(false);
-        }
-    }, [isVideoLoaded]);
-
-    useEffect(() => {
-        window.dispatchEvent(new CustomEvent('player-loading', { detail: { isLoading: !isInitialLoadComplete } }));
-    }, [isInitialLoadComplete]);
-
+    // Seek bar
     const {
         trackRef: progressBarRef,
         isScrubbing,
@@ -122,6 +87,8 @@ export const Player = () => {
         setHoverRatio(null);
     };
 
+
+    // Overview frame
     useEffect(() => {
         let timeout;
         async function getAndSetFrame() {
@@ -138,26 +105,6 @@ export const Player = () => {
         return () => clearTimeout(timeout);
     }, [isPlaying, isScrubbing, showControls]);
 
-    useEffect(() => {
-        latestTime.current = currentTime;
-
-        if (duration === 0 || isScrubbing) return;
-
-        const timeNow = Date.now();
-
-        if (timeNow - lastSaveTime.current >= 10000) {
-            updateProgressAndSave(currentTime, duration, sessionId);
-            lastSaveTime.current = timeNow;
-        }
-    }, [currentTime, duration, isScrubbing, tmdbId, sessionId]);
-
-    useEffect(() => {
-        return () => {
-            if (latestTime.current > 0) {
-                updateProgressAndSave(latestTime.current, duration, sessionId);
-            }
-        };
-    }, [duration, tmdbId, sessionId]);
 
 
 
@@ -189,7 +136,7 @@ export const Player = () => {
     });
 
     const volumeProgress = (volume / maxVolume) * 100;
-    
+
     let displayTime = currentTime;
     if (isScrubbing && scrubTime !== null) {
         displayTime = scrubTime;
@@ -204,10 +151,12 @@ export const Player = () => {
 
     useKeyboardShortcuts({ togglePlay, toggleFullscreen, toggleMute });
 
+    useLanguagePreferences(audio, subs);
+
     return (
         <div className='w-screen h-screen relative overflow-hidden flex flex-col items-center justify-center'>
-            {/* <img className={`absolute w-full scale-105 max-h-full object-contain blur-lg ${isOverviewActive ? 'opacity-100' : 'opacity-0'} transition-opacity duration-1000`}
-                src={pauseFrameUrl} onLoad={() => setIsOverviewActive(true)} /> */}
+            <img className={`absolute w-full scale-105 max-h-full object-contain blur-lg ${isOverviewActive ? 'opacity-100' : 'opacity-0'} transition-opacity duration-1000`}
+                src={pauseFrameUrl} onLoad={() => setIsOverviewActive(true)} />
 
             <div className='relative w-full flex-1 flex items-center flex-col justify-between noselect text-white' onMouseMove={wakeUI}>
 
@@ -243,8 +192,8 @@ export const Player = () => {
                     <div ref={progressBarRef} className='relative mx-4 py-2 group cursor-pointer' onMouseDown={onProgressMouseDown} onTouchStart={onProgressTouchStart} onMouseMove={handleProgressMouseMove} onMouseLeave={handleProgressMouseLeave}>
                         <div className='relative flex-1 h-1 group-hover:h-1.5 transition-[height] duration-100'>
                             <div className='absolute inset-0 bg-white/20 border rounded-full group-hover:bg-white/40 transition-colors duration-100 border-white/10 group-hover:border-white/30' />
-                            <div className='absolute inset-0 bg-red-500 border rounded-full border-white/20 flex items-center' style={{ width: `${progress}%` }}>
-                                <div className={`absolute bg-red-500 border border-white/20 rounded-full w-3 h-3 -right-1.5 transition-transform scale-0 ${isScrubbing ? 'scale-100' : ''} flex items-center duration-200`}>
+                            <div className='absolute inset-0 bg-primary border rounded-full border-white/20 flex items-center' style={{ width: `${progress}%` }}>
+                                <div className={`absolute bg-primary border border-white/20 rounded-full w-3 h-3 -right-1.5 transition-transform scale-0 ${isScrubbing ? 'scale-100' : ''} flex items-center duration-200`}>
                                 </div>
                             </div>
                             <span className={`bg-black/40 absolute text-center bottom-4 py-1 px-3 whitespace-nowrap rounded-sm opacity-0 group-hover:opacity-100 ${isScrubbing ? 'opacity-100' : ''} transition-opacity duration-100 pointer-events-none`}

@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FolderIcon, PlusIcon, TrashIcon, FadersHorizontalIcon } from "@phosphor-icons/react";
-import { useSetting } from '../../../shared/contexts/SettingsContext';
+import { useSetting } from '../../../shared/store/useSettingsStore';
 import { useLibraryStore } from '../../../shared/store/useLibraryStore';
 import { useTMDB } from '../../../shared/hooks/useTMDB';
 import { open } from '@tauri-apps/plugin-dialog';

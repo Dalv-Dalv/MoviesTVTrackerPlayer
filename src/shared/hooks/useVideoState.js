@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { VideoPlayer, VideoEvents } from '../../shared/services/VideoEngine';
+import { VideoPlayer, VideoEvents } from '../services/VideoEngine';
 
 export function useVideoState(videoPath) {
     const [isPlaying, setIsPlaying] = useState(true);
@@ -63,7 +63,6 @@ export function useVideoState(videoPath) {
         const handleMute = (isMute) => setIsMute(isMute);
         const handleSubText = (subText) => {
             setSubText(subText);
-            console.log(`Sub text: ${subText}`);
         };
         const handleBuffering = (buffering) => {
             setIsBuffering(buffering);
@@ -80,8 +79,6 @@ export function useVideoState(videoPath) {
         const handleTrackListChange = ({ audio, subs }) => {
             setAudio(prev => ({ ...prev, tracks: audio }));
             setSubs(prev => ({ ...prev, tracks: subs }));
-            console.log(audio);
-            console.log(subs);
         };
 
         const eventHandlers = {

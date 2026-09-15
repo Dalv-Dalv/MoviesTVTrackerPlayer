@@ -3,13 +3,9 @@ import { VideoPlayer } from '../../shared/services/VideoEngine';
 import { VideoEvents } from '../../shared/services/VideoEvents';
 import { ArrowLeftIcon, FrameCornersIcon } from '@phosphor-icons/react';
 import { formatTime } from '../../shared/utils/PlayerUtils';
-import { useKeyboardShortcuts, useVideoState } from '../../desktop/hooks';
-import { useWakeUI, useFullscreen, useDoubleTap } from '../../shared/hooks';
-import { useScrubber } from '../../desktop/hooks/useScrubber';
+import { useWakeUI, useFullscreen, useDoubleTap, usePlaybackSession, useScrubber, useLanguagePreferences } from '../../shared/hooks';
 import { LanguagePanel } from '../../desktop/components/LanguagePanel';
-import { useWatchHistory } from '../../shared/contexts/WatchHistoryContext';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useLibraryStore } from '../../shared/store/useLibraryStore';
 import { Maximize2Icon, Minimize2Icon, PauseIcon, PlayIcon, Volume1Icon, Volume2Icon, VolumeIcon, VolumeOffIcon, VolumeXIcon, RewindIcon, FastForwardIcon, Loader2, Sun } from 'lucide-react';
 import { Animated } from './Animated';
 import { useDrag } from '@use-gesture/react';
@@ -28,10 +24,7 @@ export const PlayerButton = ({ children, onClick, className = '', ...props }) =>
 export const Player = () => {
     const { tmdbId } = useParams();
     const navigate = useNavigate();
-    const library = useLibraryStore(state => state.library);
-    const media = library[tmdbId];
 
-    const [activePath, setActivePath] = useState(null);
     const [centerIcon, setCenterIcon] = useState(() => PlayIcon);
 
     const leftAnim = useRef(null);
@@ -56,7 +49,13 @@ export const Player = () => {
     const [scrubTime, setScrubTime] = useState(null);
     const [pendingSeek, setPendingSeek] = useState(null);
 
-    const { isPlayerReady, isVideoLoaded, isPlaying, currentTime, duration, volume, isMute, subText, maxVolume, audio, subs, isBuffering, showBufferingSpinner, isFirstFrameRendered, isInitialLoadComplete } = useVideoState(activePath);
+    const {
+        media, activePath, currentSeason, currentEpisode,
+        isPlayerReady, isVideoLoaded, isPlaying, currentTime, duration,
+        volume, isMute, subText, maxVolume, audio, subs,
+        isBuffering, showBufferingSpinner, isFirstFrameRendered, isInitialLoadComplete
+    } = usePlaybackSession(tmdbId, scrubTime !== null);
+
     const { isFullscreen, toggleFullscreen } = useFullscreen();
     const { showControls, wakeUI, hideUI, toggleUI, resetUITimerIfVisible, handleInteractiveEnter, handleInteractiveLeave } = useWakeUI({ holdOpen: languagePanelOpen });
 
@@ -80,16 +79,6 @@ export const Player = () => {
         };
     }, []);
 
-    const { history, updateProgressAndSave, isLoaded: historyLoaded } = useWatchHistory(tmdbId);
-    const sessionId = useRef(Date.now()).current;
-    const lastSaveTime = useRef(0);
-    const latestTime = useRef(0);
-
-    useEffect(() => {
-        setActivePath(media.filePaths[0]);
-        console.log(media.filePaths[0]);
-    }, []);
-
     useEffect(() => {
         window.__android_immersive_state = true;
         toggleFullscreen(true);
@@ -100,31 +89,7 @@ export const Player = () => {
         };
     }, [toggleFullscreen]);
 
-    const hasLoaded = useRef(false);
-    useEffect(() => {
-        hasLoaded.current = false;
-    }, [activePath]);
 
-    useEffect(() => {
-        if (isPlayerReady && activePath && historyLoaded && !hasLoaded.current) {
-            let startPosition = 0;
-            if (history) {
-                startPosition = history.completed ? 0 : history.progress;
-            }
-            VideoPlayer.load(activePath, startPosition);
-            hasLoaded.current = true;
-        }
-    }, [isPlayerReady, activePath, historyLoaded, history, tmdbId]);
-
-    useEffect(() => {
-        if (isVideoLoaded) {
-            VideoPlayer.setPaused(false);
-        }
-    }, [isVideoLoaded]);
-
-    useEffect(() => {
-        window.dispatchEvent(new CustomEvent('player-loading', { detail: { isLoading: !isInitialLoadComplete } }));
-    }, [isInitialLoadComplete]);
 
     const {
         trackRef: progressBarRef,
@@ -173,26 +138,7 @@ export const Player = () => {
         return () => clearTimeout(timeout);
     }, [isPlaying, isScrubbing, showControls]);
 
-    useEffect(() => {
-        latestTime.current = currentTime;
 
-        if (duration === 0 || isScrubbing) return;
-
-        const timeNow = Date.now();
-
-        if (timeNow - lastSaveTime.current >= 10000) {
-            updateProgressAndSave(currentTime, duration, sessionId);
-            lastSaveTime.current = timeNow;
-        }
-    }, [currentTime, duration, isScrubbing, tmdbId, sessionId]);
-
-    useEffect(() => {
-        return () => {
-            if (latestTime.current > 0) {
-                updateProgressAndSave(latestTime.current, duration, sessionId);
-            }
-        };
-    }, [duration, tmdbId, sessionId]);
 
 
 
@@ -220,7 +166,7 @@ export const Player = () => {
     const handleCenterTap = useDoubleTap(togglePlay, wakeUI);
 
     const DRAG_SENSITIVITY_BRIGHTNESS = 500; // Lower number = more sensitive
-    const DRAG_SENSITIVITY_VOLUME = 1200; // Higher number = less sensitive
+    const DRAG_SENSITIVITY_VOLUME = 1200;
 
     const bindLeft = useDrag(({ delta: [_, dy], active, last }) => {
         resetUITimerIfVisible();
@@ -297,8 +243,8 @@ export const Player = () => {
 
     const progress = duration > 0 ? (displayTime / duration) * 100 : 0;
 
-    console.log(`Debug stuffs: ${isPlaying} ${isPlayerReady} ${isVideoLoaded}`);
-    
+    useLanguagePreferences(audio, subs);
+
     return (
         <div className='w-screen h-screen relative overflow-hidden flex flex-col items-center justify-center'>
             {/* <img className={`absolute w-full scale-105 max-h-full object-contain blur-lg ${isOverviewActive ? 'opacity-100' : 'opacity-0'} transition-opacity duration-1000`}

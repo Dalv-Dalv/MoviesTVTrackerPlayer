@@ -20,7 +20,7 @@ export function useFullscreen() {
                 } else {
                     try { if (document.fullscreenElement) await document.exitFullscreen(); } catch (e) { console.warn(e); }
                 }
-                
+
                 window.__android_immersive_state = newState;
                 setIsFullscreen(newState);
                 return;
@@ -29,7 +29,7 @@ export function useFullscreen() {
             const isCurrentlyFullscreen = await appWindow.isFullscreen();
             const newState = forceState === undefined ? !isCurrentlyFullscreen : forceState;
 
-            if (newState === isCurrentlyFullscreen) return;
+            if (newState === isCurrentlyFullscreen && forceState === undefined) return;
 
             if (newState) {
                 try {
@@ -52,7 +52,7 @@ export function useFullscreen() {
                     console.warn(e);
                 }
                 await appWindow.setFullscreen(false);
-                
+
                 try {
                     await appWindow.setDecorations(false);
                     if (wasMaximizedBeforeFullscreen) {
@@ -69,16 +69,25 @@ export function useFullscreen() {
 
     useEffect(() => {
         if (isMobile) return;
-        
+
         let unlistenPromise = appWindow.onResized(async () => {
             const isNowFullscreen = await appWindow.isFullscreen();
             setIsFullscreen(prev => prev !== isNowFullscreen ? isNowFullscreen : prev);
         });
 
+        const handleFullscreenChange = () => {
+            if (!document.fullscreenElement) {
+                toggleFullscreen(false);
+            }
+        };
+
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+
         return () => {
             unlistenPromise.then(unlisten => unlisten());
+            document.removeEventListener('fullscreenchange', handleFullscreenChange);
         };
-    }, []);
+    }, [toggleFullscreen]);
 
     return { isFullscreen, toggleFullscreen };
 }

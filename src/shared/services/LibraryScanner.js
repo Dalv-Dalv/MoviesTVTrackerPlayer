@@ -31,7 +31,7 @@ const scanDirectory = async (dirPath) => {
     return foundVideos;
 };
 
-export const rescanLibrary = async (tmdb, rawFolders) => {
+export const rescanLibrary = async (tmdb, rawFolders, onProgress) => {
     if (!rawFolders || rawFolders.length === 0) return { mediaItems: {}, fileMap: {}, blacklist: [] };
 
     const cleanFolders = deduplicateFolders(rawFolders);
@@ -62,6 +62,15 @@ export const rescanLibrary = async (tmdb, rawFolders) => {
 
     const newMediaItems = {};
     const newFileMap = {};
+
+    const newVideos = validParsedVideos.filter(v => {
+        const knownTmdbId = libraryCache.fileMap[v.filePath];
+        return !(knownTmdbId && libraryCache.mediaItems[knownTmdbId]);
+    });
+    
+    if (onProgress && newVideos.length > 0) {
+        onProgress({ type: 'init', queue: newVideos });
+    }
 
     for (const video of validParsedVideos) {
         const knownTmdbId = libraryCache.fileMap[video.filePath];
@@ -202,6 +211,9 @@ export const rescanLibrary = async (tmdb, rawFolders) => {
                 }
 
                 newFileMap[video.filePath] = fallbackId;
+                if (onProgress) {
+                    onProgress({ type: 'completed', file: video, mediaItem: newMediaItems[fallbackId] });
+                }
                 continue;
             }
 
@@ -248,6 +260,9 @@ export const rescanLibrary = async (tmdb, rawFolders) => {
                 }
             }
             newFileMap[video.filePath] = tmdbId;
+            if (onProgress) {
+                onProgress({ type: 'completed', file: video, mediaItem: newMediaItems[tmdbId] });
+            }
 
         } catch (error) {
             console.error(`TMDB search/fetch failed for ${video.name}:`, error);
@@ -300,25 +315,11 @@ export const updateMediaMatch = async (tmdb, oldTmdbId, match) => {
 
         const tmdbId = match.id.toString();
         const isShow = match.media_type === "tv";
-        const { downloadMediaImages } = await import('./TMDBMetadata');
-        const { localPosterPath, localBackdropPath, localLogoPath } = await downloadMediaImages(tmdb, tmdbId, match, isShow);
-
-        const newEntry = {
-            tmdbId: tmdbId,
-            type: isShow ? 'show' : 'movie',
-            isDownloaded: true,
-            isFullyLoaded: false,
-            title: match.title || match.name,
-            genreIds: match.genre_ids || [],
-            releaseDate: match.release_date || match.first_air_date,
-            overview: match.overview,
-            posterPath: localPosterPath,
-            backdropPath: localBackdropPath,
-            logoPath: localLogoPath,
-            filePaths: isShow ? undefined : filePaths,
-            seasons: [],
-            specials: null
-        };
+        
+        const newEntry = await fetchDetailedMetadata(tmdb, tmdbId, isShow ? 'show' : 'movie', true);
+        if (!isShow) {
+            newEntry.filePaths = filePaths;
+        }
 
         if (isShow) {
             for (const path of filePaths) {
@@ -432,7 +433,6 @@ export const applyBulkRematch = async (tmdb, stagedChanges) => {
     try {
         const cacheData = await readTextFile(CACHE_FILE, { baseDir: BaseDirectory.AppData });
         const libraryCache = { blacklist: [], ...JSON.parse(cacheData) };
-        const { downloadMediaImages } = await import('./TMDBMetadata');
         
         for (const change of stagedChanges) {
             const { match, filePaths } = change;
@@ -478,23 +478,7 @@ export const applyBulkRematch = async (tmdb, stagedChanges) => {
             }
             
             if (!libraryCache.mediaItems[tmdbId]) {
-                const { localPosterPath, localBackdropPath, localLogoPath } = await downloadMediaImages(tmdb, tmdbId, match, isShow);
-                libraryCache.mediaItems[tmdbId] = {
-                    tmdbId: tmdbId,
-                    type: isShow ? 'show' : 'movie',
-                    isDownloaded: true,
-                    isFullyLoaded: false,
-                    title: match.title || match.name,
-                    genreIds: match.genre_ids || [],
-                    releaseDate: match.release_date || match.first_air_date,
-                    overview: match.overview,
-                    posterPath: localPosterPath,
-                    backdropPath: localBackdropPath,
-                    logoPath: localLogoPath,
-                    filePaths: isShow ? undefined : [],
-                    seasons: [],
-                    specials: null
-                };
+                libraryCache.mediaItems[tmdbId] = await fetchDetailedMetadata(tmdb, tmdbId, isShow ? 'show' : 'movie', true);
             }
 
             const item = libraryCache.mediaItems[tmdbId];
@@ -542,6 +526,87 @@ export const applyBulkRematch = async (tmdb, stagedChanges) => {
         return libraryCache.mediaItems;
     } catch (e) {
         console.error("Failed to apply bulk rematch", e);
+        throw e;
+    }
+};
+
+export const updateEpisodeFile = async (tmdbId, seasonNum, episodeNum, newFilePath) => {
+    try {
+        const cacheData = await readTextFile(CACHE_FILE, { baseDir: BaseDirectory.AppData });
+        const libraryCache = { blacklist: [], ...JSON.parse(cacheData) };
+        const item = libraryCache.mediaItems[tmdbId];
+        if (!item || item.type !== 'show') throw new Error("Show not found in cache");
+        
+        let targetSeason;
+        if (seasonNum === 0) {
+            if (!item.specials) item.specials = { number: 0, name: 'Specials', episodes: [] };
+            targetSeason = item.specials;
+        } else {
+            if (!item.seasons) item.seasons = [];
+            if (!item.seasons[seasonNum - 1]) item.seasons[seasonNum - 1] = { number: seasonNum, name: `Season ${seasonNum}`, episodes: [] };
+            targetSeason = item.seasons[seasonNum - 1];
+        }
+
+        if (!targetSeason.episodes) targetSeason.episodes = [];
+        if (!targetSeason.episodes[episodeNum - 1]) {
+            targetSeason.episodes[episodeNum - 1] = { number: episodeNum, name: `Episode ${episodeNum}`, filePaths: [], isDownloaded: false };
+        }
+        
+        const ep = targetSeason.episodes[episodeNum - 1];
+        const newPaths = Array.isArray(newFilePath) ? newFilePath : [newFilePath];
+        for (const path of newPaths) {
+            if (!ep.filePaths.includes(path)) {
+                ep.filePaths.push(path);
+                ep.isDownloaded = true;
+            }
+            libraryCache.fileMap[path] = tmdbId;
+        }
+        
+        await writeTextFile(CACHE_FILE, JSON.stringify(libraryCache, null, 2), { baseDir: BaseDirectory.AppData });
+        return libraryCache.mediaItems;
+    } catch (e) {
+        console.error("Failed to update episode file", e);
+        throw e;
+    }
+};
+
+export const removeEpisodeFile = async (tmdbId, seasonNum, episodeNum, deleteFromDisk = false) => {
+    try {
+        const cacheData = await readTextFile(CACHE_FILE, { baseDir: BaseDirectory.AppData });
+        const libraryCache = { blacklist: [], ...JSON.parse(cacheData) };
+        const item = libraryCache.mediaItems[tmdbId];
+        if (!item || item.type !== 'show') return libraryCache.mediaItems;
+        
+        let ep;
+        if (seasonNum === 0 && item.specials && item.specials.episodes) {
+            ep = item.specials.episodes[episodeNum - 1];
+        } else if (seasonNum > 0 && item.seasons && item.seasons[seasonNum - 1] && item.seasons[seasonNum - 1].episodes) {
+            ep = item.seasons[seasonNum - 1].episodes[episodeNum - 1];
+        }
+        
+        if (!ep || !ep.filePaths || ep.filePaths.length === 0) return libraryCache.mediaItems;
+        
+        const filePaths = [...ep.filePaths];
+        if (deleteFromDisk) {
+            for (const path of filePaths) {
+                try { await remove(path); } catch (e) { console.error("Failed to delete file from disk:", path, e); }
+            }
+        } else {
+            libraryCache.blacklist.push(...filePaths);
+            libraryCache.blacklist = [...new Set(libraryCache.blacklist)];
+        }
+        
+        ep.filePaths = [];
+        ep.isDownloaded = false;
+        
+        for (const p of filePaths) {
+            delete libraryCache.fileMap[p];
+        }
+        
+        await writeTextFile(CACHE_FILE, JSON.stringify(libraryCache, null, 2), { baseDir: BaseDirectory.AppData });
+        return libraryCache.mediaItems;
+    } catch (e) {
+        console.error("Failed to remove episode file", e);
         throw e;
     }
 };

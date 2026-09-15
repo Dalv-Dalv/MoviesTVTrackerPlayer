@@ -23,7 +23,7 @@ import DesktopSettingsModal from './desktop/components/DesktopSettingsModal';
 import LibraryManagerPage from './desktop/components/LibraryManagerPage';
 
 import { useLibraryStore } from './shared/store/useLibraryStore';
-import { useSetting } from './shared/contexts/SettingsContext';
+import { useSetting, useSettingsStore } from './shared/store/useSettingsStore';
 import { useTMDB } from './shared/hooks/useTMDB';
 
 function App() {
@@ -35,6 +35,7 @@ function App() {
     const loadCacheOnBoot = useLibraryStore(state => state.loadCacheOnBoot);
     const rescan = useLibraryStore(state => state.rescan);
     const isLoaded = useLibraryStore(state => Object.keys(state.library).length > 0);
+    const settingsLoaded = useSettingsStore(state => state.isLoaded);
 
     useEffect(() => {
         loadCacheOnBoot();
@@ -71,6 +72,8 @@ function App() {
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [toggleFullscreen, osType]);
+
+    if (!settingsLoaded) return <div className="h-screen w-screen bg-background" />;
 
     return (
         <BrowserRouter>
@@ -122,7 +125,7 @@ function AnimatedRoutes() {
                     } />
 
                     <Route path='/details/:tmdbId' element={
-                        <PageWrapper depth={1}>
+                        <PageWrapper depth={1} edgeToEdge={true}>
                             <MediaDetails />
                         </PageWrapper>
                     } />

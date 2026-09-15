@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { invoke } from '@tauri-apps/api/core';
-import { useSettings } from '../../shared/contexts/SettingsContext';
+import { useSettingsStore } from '../../shared/store/useSettingsStore';
 import { ArrowLeftIcon, CaretRightIcon, CheckIcon, DotOutlineIcon } from '@phosphor-icons/react';
 
 const FolderTreeNode = ({ node, selectedPaths, suppressedPaths, toggleFolder }) => {
@@ -70,7 +70,8 @@ const FolderTreeNode = ({ node, selectedPaths, suppressedPaths, toggleFolder }) 
 
 
 export function MobileFolderPicker({ onClose, onSaveComplete }) {
-    const { settings, updateAndSaveSetting } = useSettings();
+    const settings = useSettingsStore(state => state.settings);
+    const updateSetting = useSettingsStore(state => state.updateSetting);
     const [treeData, setTreeData] = useState([]);
     const [selectedPaths, setSelectedPaths] = useState(new Set());
     const [suppressedPaths, setSuppressedPaths] = useState(new Set());
@@ -164,7 +165,7 @@ export function MobileFolderPicker({ onClose, onSaveComplete }) {
     };
 
     const handleSave = async () => {
-        await updateAndSaveSetting('videoLibraryFolders', Array.from(selectedPaths));
+        await updateSetting('videoLibraryFolders', Array.from(selectedPaths));
         onClose();
         onSaveComplete();
     };

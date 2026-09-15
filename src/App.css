@@ -3,8 +3,20 @@
 
 @custom-variant d (:root[data-platform="desktop"] &);
 @custom-variant m (:root[data-platform="mobile"] &);
-@custom-variant mp (:root[data-platform="mobile"] &@media (orientation: portrait));
-@custom-variant ml (:root[data-platform="mobile"] &@media (orientation: landscape));
+@custom-variant mp {
+  @media (orientation: portrait) {
+    :root[data-platform="mobile"] & {
+      @slot;
+    }
+  }
+}
+@custom-variant ml {
+  @media (orientation: landscape) {
+    :root[data-platform="mobile"] & {
+      @slot;
+    }
+  }
+}
 body,
 html {
     background-color: transparent !important;

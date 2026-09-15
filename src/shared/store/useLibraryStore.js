@@ -6,6 +6,7 @@ import { fetchDetailedMetadata } from '../services/TMDBMetadata';
 
 export const useLibraryStore = create((set, get) => ({
     library: {},
+    scanQueue: [],
     isScanning: false,
     isLoaded: false,
 
@@ -33,12 +34,25 @@ export const useLibraryStore = create((set, get) => ({
         const { tmdb, folders, isScanning } = get();
         if (!tmdb || isScanning) return;
         
-        set({ isScanning: true });
+        set({ isScanning: true, scanQueue: [] });
         try {
-            const finalCache = await rescanLibrary(tmdb, folders);
-            set({ library: finalCache.mediaItems });
+            const finalCache = await rescanLibrary(tmdb, folders, (event) => {
+                const state = get();
+                if (event.type === 'init') {
+                    set({ scanQueue: event.queue });
+                } else if (event.type === 'completed') {
+                    const newQueue = state.scanQueue.filter(v => v.filePath !== event.file.filePath);
+                    const newLibrary = { ...state.library };
+                    if (event.mediaItem) {
+                        newLibrary[event.mediaItem.tmdbId] = event.mediaItem;
+                    }
+                    set({ scanQueue: newQueue, library: newLibrary });
+                }
+            });
+            set({ library: finalCache.mediaItems, scanQueue: [] });
         } catch (error) {
             console.error("Rescan failed:", error);
+            set({ scanQueue: [] });
         } finally {
             set({ isScanning: false });
         }
@@ -107,6 +121,28 @@ export const useLibraryStore = create((set, get) => ({
             set({ library: newLibItems });
         } catch (error) {
             console.error("Failed to apply bulk rematch", error);
+            throw error;
+        }
+    },
+
+    updateEpisodeFile: async (tmdbId, seasonNum, episodeNum, newFilePath) => {
+        try {
+            const { updateEpisodeFile: uefScanner } = await import('../services/LibraryScanner');
+            const newLibItems = await uefScanner(tmdbId, seasonNum, episodeNum, newFilePath);
+            set({ library: newLibItems });
+        } catch (error) {
+            console.error("Failed to update episode file", error);
+            throw error;
+        }
+    },
+
+    removeEpisodeFile: async (tmdbId, seasonNum, episodeNum, deleteFromDisk = false) => {
+        try {
+            const { removeEpisodeFile: refScanner } = await import('../services/LibraryScanner');
+            const newLibItems = await refScanner(tmdbId, seasonNum, episodeNum, deleteFromDisk);
+            set({ library: newLibItems });
+        } catch (error) {
+            console.error("Failed to remove episode file", error);
             throw error;
         }
     }

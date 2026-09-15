@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChatDotsIcon, ClosedCaptioningIcon, SubtitlesIcon } from '@phosphor-icons/react';
 import { formatLanguage } from '../../shared/utils/PlayerUtils';
-import { useVideoState } from '../hooks';
+import { useVideoState } from '../../shared/hooks';
 import { PlayerButton } from './Player';
 import { VideoPlayer } from '../../shared/services/VideoEngine';
 
@@ -53,9 +53,6 @@ export const LanguagePanel = ({ isOpen, setIsOpen }) => {
     const [languagePanelTab, setLanguagePanelTab] = useState(1);
     const languagePanelRef = useRef(null);
 
-    const setSubtitles = (id) => VideoPlayer.setSubtitleTrack(id);
-    const setAudioTrack = (id) => VideoPlayer.setAudioTrack(id);
-
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (languagePanelRef.current && !languagePanelRef.current.contains(event.target)) {
@@ -73,8 +70,6 @@ export const LanguagePanel = ({ isOpen, setIsOpen }) => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, [isOpen, setIsOpen]);
-
-    console.log(subs);
 
     return (
         <div className='relative' ref={languagePanelRef}>

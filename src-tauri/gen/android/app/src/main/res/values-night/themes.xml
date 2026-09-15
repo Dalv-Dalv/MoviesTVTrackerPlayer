@@ -2,5 +2,6 @@
     <!-- Base application theme. -->
     <style name="Theme.movies_tv_tracker" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <!-- Customize your theme here. -->
+        <item name="colorControlActivated">@color/homereel_primary</item>
     </style>
 </resources>

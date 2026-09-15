@@ -1,15 +1,18 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { MovieImage } from '../../shared/components/Poster';
+import { MovieImage } from '../../shared/components/MovieImage';
 import { Modal } from '../../shared/components/Modal';
 import { DotsThreeVerticalIcon, PlayIcon, PlusIcon, XIcon, MagnifyingGlassIcon, ClockCounterClockwiseIcon, TrashIcon, CheckIcon, ArrowLeftIcon, CaretDownIcon, CaretRightIcon, ClockCountdownIcon, ClockIcon } from '@phosphor-icons/react';
-import { useWatchHistory } from '../../shared/contexts/WatchHistoryContext';
+import { useWatchHistoryStore, getResumeEpisode } from '../../shared/store/useWatchHistoryStore';
 import { useLibraryStore } from '../../shared/store/useLibraryStore';
 import { InfoIcon } from '@phosphor-icons/react';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { formatRuntime } from '../../shared/utils/PlayerUtils';
 import { FixMatchModal } from './FixMatchModal';
 import { RemoveMediaModal } from './RemoveMediaModal';
 import { FileInfoModal } from './FileInfoModal';
 import { useGenres } from '../../shared/contexts/GenresContext';
+import { Dropdown } from '../../shared/components/Dropdown';
+import { open } from '@tauri-apps/plugin-dialog';
 
 function TabsButton({ name, onClick, isSelected = false, className = '' }) {
     return (
@@ -30,13 +33,14 @@ function TabsButton({ name, onClick, isSelected = false, className = '' }) {
 }
 
 
-function SeasonSection({season, className = ''}) {
-    const [isExpanded, setIsExpanded] = useState(false);
+function SeasonSection({ season, navigate, tmdbId, className = '' }) {
+    const [isExpanded, setIsExpanded] = useState(season.isLastWatched);
+    const [isAnimating, setIsAnimating] = useState(false);
 
     return (
         <div className={`rounded-2xl text-lg ${className}`}>
-            <div 
-                className='relative px-4 py-2 flex items-center gap-4 rounded-lg cursor-pointer group bg-background' 
+            <div
+                className='relative px-4 py-2 flex items-center gap-4 rounded-lg cursor-pointer group bg-background'
                 onClick={() => setIsExpanded(!isExpanded)}
             >
                 <div className='absolute inset-px overflow-hidden rounded-full'>
@@ -48,9 +52,9 @@ function SeasonSection({season, className = ''}) {
                     <div className="absolute z-10 inset-0 pointer-events-none mix-blend-overlay rounded-full border border-white" />
                 </div>
 
-                <CaretRightIcon 
-                    size={20} 
-                    weight='bold' 
+                <CaretRightIcon
+                    size={20}
+                    weight='bold'
                     className={`text-muted transition-transform duration-300 ${isExpanded ? 'rotate-90' : 'rotate-0'}`}
                 />
                 <span>{season.name}</span>
@@ -63,12 +67,20 @@ function SeasonSection({season, className = ''}) {
                         animate={{ height: "auto", opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
                         transition={{ duration: 0.5, ease: "easeInOut" }}
-                        className="overflow-hidden"
+                        className={isAnimating || !isExpanded ? "overflow-hidden" : ""}
+                        onAnimationStart={() => setIsAnimating(true)}
+                        onAnimationComplete={() => setIsAnimating(false)}
                     >
                         <div className="px-4 py-4">
                             <div className="flex flex-col gap-4">
                                 {season.episodes.map((episode, index) => (
-                                    <EpisodeCard key={`season_${season.number}_episode_${episode.number}`} episode={episode}/>
+                                    <EpisodeCard
+                                        key={`season_${season.number}_episode_${episode.number}`}
+                                        episode={episode}
+                                        navigate={navigate}
+                                        tmdbId={tmdbId}
+                                        seasonNumber={season.number}
+                                    />
                                 ))}
                             </div>
                         </div>
@@ -79,29 +91,66 @@ function SeasonSection({season, className = ''}) {
     );
 }
 
-function EpisodeCard({ episode, className = '' }) {
-    return (
-        <div className={`relative flex items-center gap-4 overflow-hidden bg-background group cursor-pointer ${className}`}>
-            <div className='relative z-20'>
-                <div className='relative h-35'>
-                    <img src={episode.stillPath} className='h-full rounded-2xl'/>
+function EpisodeCard({ episode, tmdbId, seasonNumber, navigate, className = '' }) {
+    const toggleManualCompletion = useWatchHistoryStore(state => state.toggleManualCompletion);
+    const updateEpisodeFile = useLibraryStore(state => state.updateEpisodeFile);
+    const removeEpisodeFile = useLibraryStore(state => state.removeEpisodeFile);
 
-                    <div className='absolute inset-0 bg-black/40 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300'>
-                        <div className="bg-black/60 rounded-full p-4 text-body">
-                            <PlayIcon size={24} weight="fill" />
-                        </div>
-                    </div>
-                </div>
-                
-                <div className="absolute rounded-2xl inset-0 ring-1 ring-inset ring-white/70 pointer-events-none mix-blend-soft-light" />
+    const watchProgressRatio = !episode.history ? 0 : (episode.history.completed ? 1 : episode.history.progress / episode.history.duration);
+
+
+    const handleFixMatch = async () => {
+        try {
+            const selected = await open({
+                multiple: true,
+                filters: [{ name: 'Video', extensions: ['mkv', 'mp4', 'avi', 'webm', 'mov'] }]
+            });
+            if (selected && selected.length > 0) {
+                await updateEpisodeFile(tmdbId, seasonNumber, episode.number, selected);
+            }
+        } catch (e) {
+            console.error("Failed to select file", e);
+        }
+    };
+
+    return (
+        <div className={`relative flex items-center gap-4 bg-background rounded-2xl group ${className}`}>
+            <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none">
+                <img src={episode.stillPath} className='absolute w-full h-35 blur-xl rounded-2xl mask-[linear-gradient(to_right,black_0%,transparent_100%)] opacity-0 group-hover:opacity-80 transition-opacity duration-300' />
+                <div className="absolute rounded-2xl inset-0 ring-1 ring-inset ring-white/70 mix-blend-soft-light" />
             </div>
 
-            <img src={episode.stillPath} className='absolute w-full h-35 blur-xl rounded-2xl mask-[linear-gradient(to_right,black_0%,transparent_100%)] opacity-0 group-hover:opacity-80 transition-opacity duration-300'/>
-            <div className="absolute rounded-2xl inset-0 ring-1 ring-inset ring-white/70 pointer-events-none mix-blend-soft-light" />
+            <div className='relative z-20'>
+                {/* Thubmnail */}
+                <div 
+                    className={`relative h-35 rounded-2xl overflow-hidden shadow-lg shadow-background ${episode.isDownloaded ? 'cursor-pointer' : ''}`} 
+                    onClick={episode.isDownloaded ? (() => navigate(`/play/${tmdbId}?s=${seasonNumber}&e=${episode.number}`)) : (() => {})}
+                >
+                    <img src={episode.stillPath} className='h-full rounded-2xl' />
+
+                    {episode.isDownloaded && (
+                        <div className='absolute inset-0 bg-black/20 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300'>
+                            <div className="bg-black/60 rounded-full p-4 text-body">
+                                <PlayIcon size={24} weight="fill" />
+                            </div>
+                        </div>
+                    )}
+
+                    {watchProgressRatio > 0 && (
+                        <div className='absolute bottom-0 inset-x-0 h-1 rounded-full mb-2 mx-3 overflow-hidden'>
+                            <div className="absolute rounded-full inset-0 bg-white/30 group-hover:bg-white/70 transition-colors duration-300 pointer-events-none mix-blend-soft-light backdrop-blur-sm" />
+                            <div className='relative z-10 h-full rounded-full bg-primary' style={{ width: `${watchProgressRatio * 100}%` }} />
+                            <div className="absolute z-20 rounded-full inset-0 ring-1 ring-inset ring-white/70 pointer-events-none mix-blend-soft-light" />
+                        </div>
+                    )}
+                    
+                    <div className="absolute rounded-2xl inset-0 ring-1 ring-inset ring-white/70 pointer-events-none mix-blend-soft-light" />
+                </div>
+            </div>
 
             <div className='relative z-20 flex flex-col flex-1 justify-center gap-1'>
                 <span>
-                    {episode.name || `Episode ${episode.episodeNumber}`}
+                    {episode.name || `Episode ${episode.number}`}
                 </span>
 
                 <p className='text-muted text-sm'>
@@ -112,38 +161,186 @@ function EpisodeCard({ episode, className = '' }) {
                     {episode.runtime}m
                 </span>
             </div>
+
+            <div className='absolute top-4 right-4 z-30'>
+                <Dropdown
+                    usePortal={true}
+                    dropdownClassName="min-w-32"
+                    Trigger={({ isOpen, toggle }) => (
+                        <div 
+                            className={`text-body aspect-square cursor-pointer transition-opacity flex items-center justify-center p-2 rounded-full ${isOpen ? 'opacity-100 bg-white/10' : 'opacity-0 group-hover:opacity-100 hover:bg-white/10'}`} 
+                            onClick={toggle}
+                        >
+                            <DotsThreeVerticalIcon size={24} weight='bold'/>
+                        </div>
+                    )}
+                >
+                    {({ close }) => (
+                        <>
+                            <button
+                                onClick={() => { toggleManualCompletion(tmdbId, seasonNumber, episode.number); close(); }}
+                                className='flex gap-2 items-center text-nowrap tracking-wide px-3 py-2 rounded-lg transition-all duration-300 hover:bg-white/10'
+                            >
+                                <CheckIcon size={20} weight="bold" />
+                                <span>{episode.history?.completed ? 'Mark as unwatched' : 'Mark as watched'}</span>
+                            </button>
+                            <button
+                                onClick={() => { handleFixMatch(); close(); }}
+                                className='flex gap-2 items-center text-nowrap tracking-wide px-3 py-2 rounded-lg transition-all duration-300 hover:bg-white/10'
+                            >
+                                <MagnifyingGlassIcon size={20} weight="bold" />
+                                <span>Fix match</span>
+                            </button>
+
+                            <button
+                                onClick={() => { useWatchHistoryStore.getState().setProgressAndSave(tmdbId, 0, seasonNumber, episode.number); close(); }}
+                                className='flex gap-2 items-center text-nowrap tracking-wide px-3 py-2 text-red-400 hover:bg-red-400/10 rounded-lg transition-all duration-300'
+                            >
+                                <ClockCounterClockwiseIcon size={20} weight="bold" />
+                                <span>Reset watch time</span>
+                            </button>
+
+                            {episode.isDownloaded && (
+                                <button
+                                    onClick={() => { removeEpisodeFile(tmdbId, seasonNumber, episode.number, false); close(); }}
+                                    className='flex gap-2 items-center text-nowrap tracking-wide px-3 py-2 text-red-400 hover:bg-red-400/10 rounded-lg transition-all duration-300'
+                                >
+                                    <TrashIcon size={20} weight="bold" />
+                                    <span>Remove file</span>
+                                </button>
+                            )}
+                        </>
+                    )}
+                </Dropdown>
+            </div>
         </div>
     )
 }
 
 
-export function DesktopMediaDetails({ media, tmdbId, navigate }) {
-    const { history, setProgressAndSave, isLoaded: historyLoaded } = useWatchHistory(tmdbId);
+const TAB_STORAGE_KEY = 'desktopMediaDetailsTabs';
+const MAX_STORED_TABS = 50;
+
+function getSavedTab(tmdbId, mediaType) {
+    try {
+        const stored = JSON.parse(localStorage.getItem(TAB_STORAGE_KEY) || '{}');
+        const saved = stored[tmdbId]?.tab;
+        if (saved === 'episodes' && mediaType !== 'show') return 'details';
+        return saved || 'details';
+    } catch {
+        return 'details';
+    }
+}
+
+function saveTab(tmdbId, tab) {
+    try {
+        const stored = JSON.parse(localStorage.getItem(TAB_STORAGE_KEY) || '{}');
+        stored[tmdbId] = { tab, ts: Date.now() };
+        
+        const keys = Object.keys(stored);
+        if (keys.length > MAX_STORED_TABS) {
+            keys.sort((a, b) => stored[b].ts - stored[a].ts);
+            const pruned = {};
+            for (let i = 0; i < MAX_STORED_TABS; i++) {
+                pruned[keys[i]] = stored[keys[i]];
+            }
+            localStorage.setItem(TAB_STORAGE_KEY, JSON.stringify(pruned));
+        } else {
+            localStorage.setItem(TAB_STORAGE_KEY, JSON.stringify(stored));
+        }
+    } catch (e) {
+        console.error("Failed to save tab", e);
+    }
+}
+
+export function DesktopMediaDetails({ media: rawMedia, tmdbId, navigate }) {
+    const history = useWatchHistoryStore(state => state.history[tmdbId]);
+    const historyLoaded = useWatchHistoryStore(state => state.isLoaded);
+    const setProgressAndSave = (progress) => useWatchHistoryStore.getState().setProgressAndSave(tmdbId, progress);
+    
     const { movieGenres, tvGenres } = useGenres();
-    const [settingsOpen, setSettingsOpen] = useState(false);
     const [activeModal, setActiveModal] = useState(null);
-    const settingsRef = useRef(null);
-    const [activeTab, setAcitveTab] = useState('details');
+    const [activeTab, setAcitveTab] = useState(() => getSavedTab(tmdbId, rawMedia?.type));
+    const prevTmdbId = useRef(tmdbId);
+    const [isOverviewExpanded, setIsOverviewExpanded] = useState(false);
+    const [isTruncated, setIsTruncated] = useState(false);
+    const overviewRef = useRef(null);
+
+    if (tmdbId !== prevTmdbId.current) {
+        prevTmdbId.current = tmdbId;
+        setAcitveTab(getSavedTab(tmdbId, rawMedia?.type));
+    }
+
     const [trailerPlaying, setTrailerPlaying] = useState(false);
 
     useEffect(() => {
-        setTrailerPlaying(false);
-    }, [media.trailerKey]);
+        if (activeTab === 'episodes' && rawMedia?.type !== 'show') {
+            setAcitveTab('details');
+        } else {
+            saveTab(tmdbId, activeTab);
+        }
+    }, [activeTab, rawMedia?.type, tmdbId]);
+
+    const media = useMemo(() => {
+        if (!rawMedia) return null;
+
+        if (rawMedia.type === 'movie') {
+            return {
+                ...rawMedia,
+                history: history || null,
+            };
+        }
+
+        if (rawMedia.type === 'show') {
+            return {
+                ...rawMedia,
+                history: history || null,
+                seasons: rawMedia.seasons?.map(season => ({
+                    ...season,
+                    isLastWatched: history?.lastPlayedSeason ? history.lastPlayedSeason === season.number : season.number === 1,
+                    episodes: season.episodes?.map(episode => {
+                        const epHistory = season.number === 0
+                            ? history?.specials?.episodes?.[episode.number - 1]
+                            : history?.seasons?.[season.number - 1]?.episodes?.[episode.number - 1];
+
+                        return {
+                            ...episode,
+                            history: epHistory || null
+                        };
+                    })
+                }))
+            };
+        }
+
+        return rawMedia;
+    }, [rawMedia, history]);
 
     useEffect(() => {
-        if (!settingsOpen) return;
+        if (overviewRef.current) {
+            setIsTruncated(overviewRef.current.scrollHeight > overviewRef.current.clientHeight);
+        }
+    }, [media?.overview]);
 
-        const handleClickOutside = (event) => {
-            if (settingsRef.current && !settingsRef.current.contains(event.target)) {
-                setSettingsOpen(false);
+    useEffect(() => {
+        setTrailerPlaying(false);
+    }, [media?.trailerKey]);
+
+    if (!media) return null;
+
+    let playButtonText = 'Play';
+    if (historyLoaded) {
+        if (media.type === 'show' && history?.lastPlayedSeason != null) {
+            const resumeData = getResumeEpisode(history, rawMedia);
+            if (resumeData) {
+                playButtonText = `Resume S${resumeData.season} E${resumeData.episode}`;
             }
-        };
+        } else if (media.type === 'movie' && history?.progress > 0 && !history?.completed) {
+            playButtonText = 'Resume';
+        }
+    }
 
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [settingsOpen]);
-
-    console.log(media);
+    const releaseYear = media?.releaseDate?.split('-')[0] || 'Unknown Year';
+    const runtimeText = media?.type === 'movie' ? `${formatRuntime(media.runtime)}` : `${media.seasons.length} Seasons`;
 
     return (
         <div className="w-full pb-400">
@@ -156,13 +353,13 @@ export function DesktopMediaDetails({ media, tmdbId, navigate }) {
                 className='absolute left-0 top-0 w-full pointer-events-none noselect'
             >
                 <MovieImage
-                    relativePath={media.backdropPath}
+                    relativePath={media.backdropPathFull || media.backdropPath}
                     className='mask-[linear-gradient(to_top,transparent_1%,black_60%)] pointer-events-none'
                 />
             </motion.div>
 
-            {/* Back button */}
-            <div ref={settingsRef} className='fixed top-6 inset-x-6 z-50 flex items-center justify-between gap-2 pointer-events-none'>
+            {/* Top buttons */}
+            <div className='fixed top-6 inset-x-6 z-50 flex items-center justify-between gap-2 pointer-events-none'>
                 <button
                     onClick={() => navigate(-1)}
                     className="text-white/80 aspect-square flex items-center justify-center gap-1 hover:text-body transition-colors bg-black/10 hover:bg-black/50 active:bg-black/70 rounded-full px-3 py-2 noselect pointer-events-auto"
@@ -170,63 +367,55 @@ export function DesktopMediaDetails({ media, tmdbId, navigate }) {
                     <ArrowLeftIcon size={25} weight='bold' />
                 </button>
 
-                <button
-                    onClick={() => setSettingsOpen(!settingsOpen)}
-                    className={`text-white/80 aspect-square flex items-center justify-center gap-1 hover:text-body bg-black/10 hover:bg-black/50 active:bg-black/70 rounded-4xl px-3 py-2 noselect pointer-events-auto
-                            transition-all duration-300 ${settingsOpen ? '-rotate-90 bg-black/50 rounded-l-2xl hover:bg-black/60' : 'rotate-0'}`}
-                >
-                    <DotsThreeVerticalIcon size={26} weight="bold" />
-                </button>
-
-                {/* Properties panel */}
-                <AnimatePresence>
-                    {settingsOpen && (
-                        <motion.div
-                            initial={{ y: -10, opacity: 0 }}
-                            animate={{ y: 0, opacity: 1 }}
-                            exit={{ y: -10, opacity: 0 }}
-                            transition={{
-                                type: "tween",
-                                ease: [0.5, 0, 0, 1],
-                                duration: 0.3
-                            }}
-                            className='top-[110%] right-0 z-40 absolute bg-black/50 text-body flex flex-col items-stretch p-2 rounded-2xl backdrop-blur-sm pointer-events-auto'
+                <Dropdown
+                    usePortal={true}
+                    dropdownClassName="min-w-32"
+                    Trigger={({ isOpen, toggle }) => (
+                        <button
+                            onClick={toggle}
+                            className={`text-white/80 aspect-square flex items-center justify-center gap-1 hover:text-body bg-black/10 hover:bg-black/50 active:bg-black/70 rounded-4xl px-3 py-2 noselect pointer-events-auto
+                                    transition-all duration-300 ${isOpen ? '-rotate-90 bg-black/50 rounded-l-2xl hover:bg-black/60' : 'rotate-0'}`}
                         >
+                            <DotsThreeVerticalIcon size={26} weight="bold" />
+                        </button>
+                    )}
+                >
+                    {({ close }) => (
+                        <>
                             <button
-                                onClick={() => { setActiveModal('FIX_MATCH'); setSettingsOpen(false); }}
-                                className='flex gap-2 items-center text-nowrap tracking-wide px-3 py-2 rounded-lg transition-all duration-300 shadow-none hover:shadow-md shadow-black/20 hover:bg-white/3'
+                                onClick={() => { setActiveModal('FIX_MATCH'); close(); }}
+                                className='flex gap-2 items-center text-nowrap tracking-wide px-3 py-2 rounded-lg transition-all duration-300 hover:bg-white/10'
                             >
                                 <MagnifyingGlassIcon size={20} weight="bold" />
                                 <span>Fix Match</span>
                             </button>
 
                             <button
-                                onClick={() => { setActiveModal('FILE_INFO'); setSettingsOpen(false); }}
-                                className='flex gap-2 items-center text-nowrap tracking-wide px-3 py-2 rounded-lg transition-all duration-300 shadow-none hover:shadow-md shadow-black/20 hover:bg-white/3'
+                                onClick={() => { setActiveModal('FILE_INFO'); close(); }}
+                                className='flex gap-2 items-center text-nowrap tracking-wide px-3 py-2 rounded-lg transition-all duration-300 hover:bg-white/10'
                             >
                                 <InfoIcon size={20} weight="bold" />
                                 <span>View Files Info</span>
                             </button>
 
                             <button
-                                onClick={() => { setActiveModal('CONFIRM_RESET'); setSettingsOpen(false); }}
-                                className='flex gap-2 items-center text-nowrap tracking-wide px-3 py-2 text-red-400 hover:bg-red-400/10 rounded-lg transition-all duration-300 shadow-none hover:shadow-md shadow-black/20'
+                                onClick={() => { setActiveModal('CONFIRM_RESET'); close(); }}
+                                className='flex gap-2 items-center text-nowrap tracking-wide px-3 py-2 text-red-400 hover:bg-red-400/10 rounded-lg transition-all duration-300'
                             >
                                 <ClockCounterClockwiseIcon size={20} weight="bold" />
                                 <span>Reset Watch Time</span>
                             </button>
 
                             <button
-                                onClick={() => { setActiveModal('CONFIRM_REMOVE'); setSettingsOpen(false); }}
-                                className='flex gap-2 items-center text-nowrap tracking-wide px-3 py-2 text-red-400 hover:bg-red-400/10 rounded-lg transition-all duration-300 shadow-none hover:shadow-md shadow-black/20'
+                                onClick={() => { setActiveModal('CONFIRM_REMOVE'); close(); }}
+                                className='flex gap-2 items-center text-nowrap tracking-wide px-3 py-2 text-red-400 hover:bg-red-400/10 rounded-lg transition-all duration-300'
                             >
                                 <TrashIcon size={20} weight="bold" />
                                 <span>Remove from Library</span>
                             </button>
-                        </motion.div>
+                        </>
                     )}
-                </AnimatePresence>
-
+                </Dropdown>
             </div>
 
             {/* Main details */}
@@ -248,7 +437,7 @@ export function DesktopMediaDetails({ media, tmdbId, navigate }) {
                             ease: [0.5, 0, 0, 1],
                             duration: 0.7
                         }}
-                        className="w-full max-w-80 z-10 sticky top-12"
+                        className="w-full max-w-80 z-10 sticky top-22"
                     >
                         <MovieImage
                             relativePath={media.posterPath}
@@ -263,8 +452,8 @@ export function DesktopMediaDetails({ media, tmdbId, navigate }) {
                                 className='w-full h-full object-cover block'
                             />
 
-                            <div className="absolute rounded-lg inset-0 ring-2 ring-inset ring-white/70 pointer-events-none mix-blend-soft-light" />
-                            <div className="absolute rounded-lg inset-0 ring-2 ring-inset ring-white/8 pointer-events-none" />
+                            <div className="absolute rounded-lg inset-0 ring-1 ring-inset ring-white/70 pointer-events-none mix-blend-soft-light" />
+                            <div className="absolute rounded-lg inset-0 ring-1 ring-inset ring-white/8 pointer-events-none" />
                         </div>
                     </motion.div>
                 </div>
@@ -277,7 +466,12 @@ export function DesktopMediaDetails({ media, tmdbId, navigate }) {
                             {media.title}
                         </h1>
 
-                        <div className='flex items-center gap-2 noselect mt-4 pb-6 text-muted w-full overflow-x-auto '>
+                        <div className='text-muted font-semibold flex gap-4'>
+                            <span>{releaseYear}</span>
+                            <span>{runtimeText}</span>
+                        </div>
+
+                        <div className='flex items-center gap-2 noselect mt-2 pb-6 text-body/80 w-full overflow-x-auto '>
                             {(media.genreIds || media.genres || []).map(id => {
                                 const dict = media.type === 'show' ? tvGenres : movieGenres;
                                 const text = dict[id] || id;
@@ -298,7 +492,7 @@ export function DesktopMediaDetails({ media, tmdbId, navigate }) {
                             >
                                 <PlayIcon size={20} weight='fill' />
                                 <span>
-                                    {historyLoaded && history?.progress > 10 ? 'Resume' : 'Play'}
+                                    {playButtonText}
                                 </span>
                             </button>
 
@@ -325,15 +519,30 @@ export function DesktopMediaDetails({ media, tmdbId, navigate }) {
                     </div>
 
                     {activeTab === 'details' && (
-                        <p className="text-xl text-body max-w-2/3 text-justify">
-                            {media.overview}
-                        </p>
+                        <>
+                        <div className="flex flex-col mb-4 text-muted">
+                            <span className='text-body font-semibold'>
+                                Overview
+                            </span>
+                            <p ref={overviewRef} className={`max-w-2/3 text-justify indent-4 ${!isOverviewExpanded ? 'line-clamp-2' : ''}`}>
+                                {media.overview}
+                            </p>
+                            {isTruncated && (
+                                <button 
+                                    onClick={() => setIsOverviewExpanded(!isOverviewExpanded)}
+                                    className="italic font-semibold hover:underline self-start mt-1"
+                                >
+                                    {isOverviewExpanded ? 'Show less' : 'Show more'}
+                                </button>
+                            )}
+                        </div>
+                        </>
                     )}
 
                     {activeTab === 'details' && media.trailerKey && (
                         <div className="w-full max-w-2/3 aspect-video mt-8 relative z-50 pointer-events-auto group">
                             {!trailerPlaying ? (
-                                <div 
+                                <div
                                     className="w-full h-full relative cursor-pointer"
                                     onClick={() => setTrailerPlaying(true)}
                                 >
@@ -341,9 +550,9 @@ export function DesktopMediaDetails({ media, tmdbId, navigate }) {
                                         src={`https://img.youtube.com/vi/${media.trailerKey}/maxresdefault.jpg`}
                                         onError={(e) => { e.target.onerror = null; e.target.src = `https://img.youtube.com/vi/${media.trailerKey}/hqdefault.jpg`; }}
                                         alt="Trailer Thumbnail"
-                                        className='absolute inset-0 blur-lg rounded-2xl -z-10'
+                                        className='absolute inset-0 blur-lg opacity-50 rounded-2xl -z-10'
                                     />
-                                    
+
                                     <img
                                         src={`https://img.youtube.com/vi/${media.trailerKey}/maxresdefault.jpg`}
                                         onError={(e) => { e.target.onerror = null; e.target.src = `https://img.youtube.com/vi/${media.trailerKey}/hqdefault.jpg`; }}
@@ -374,7 +583,7 @@ export function DesktopMediaDetails({ media, tmdbId, navigate }) {
                     {activeTab === 'episodes' && (
                         <div className='flex flex-col gap-2 text-body pr-12 noselect'>
                             {media.seasons && media.seasons.filter(season => season.episodes && season.episodes.length > 0).map((season) => (
-                                <SeasonSection key={`season_${season.number}`} season={season}/>
+                                <SeasonSection key={`season_${season.number}`} season={season} navigate={navigate} tmdbId={tmdbId} />
                             ))}
                         </div>
                     )}

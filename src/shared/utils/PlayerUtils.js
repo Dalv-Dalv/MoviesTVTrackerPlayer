@@ -12,6 +12,17 @@ export const formatTime = (secs) => {
     return `${m}:${s.toString().padStart(2, '0')}`;
 };
 
+export const formatRuntime = (mins) => {
+    const h = Math.floor(mins / 60);
+    const m = Math.floor(mins % 60);
+
+    if (h > 0) {
+        return `${h}h ${m}m`
+    }
+
+    return `${m}m`;
+};
+
 
 
 const languageNames = new Intl.DisplayNames(["en"], {

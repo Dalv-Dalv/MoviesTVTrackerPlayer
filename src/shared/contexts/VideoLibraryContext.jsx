@@ -5,7 +5,7 @@ import { BaseDirectory, basename, join } from '@tauri-apps/api/path';
 import { useTMDB } from '../hooks/useTMDB';
 import { getFullImagePath, ImageSizes, TMDB_IMAGE_BASE_URL } from '@api-wrappers/tmdb-wrapper';
 import { createContext, useContext, useEffect, useState, useMemo } from 'react';
-import { useSettings } from './SettingsContext';
+import { useSettingsStore } from '../store/useSettingsStore';
 import { useGenres } from './GenresContext';
 import { deduplicateFolders } from '../utils/PathUtils';
 import { sleep, withRetry } from '../utils/GeneralUtils';
@@ -115,7 +115,8 @@ export function VideoLibraryProvider({ children }) {
     const [isLoaded, setIsLoaded] = useState(false);
     const [showMobilePicker, setShowMobilePicker] = useState(false);
 
-    const { settings, addVideosFolder } = useSettings();
+    const settings = useSettingsStore(state => state.settings);
+    const addVideosFolder = useSettingsStore(state => state.addVideosFolder);
     const tmdb = useTMDB();
     const { movieGenres, tvGenres, isGenresLoaded } = useGenres();
 

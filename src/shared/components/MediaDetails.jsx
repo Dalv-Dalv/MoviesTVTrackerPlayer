@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { MovieImage } from './Poster';
+import { MovieImage } from './MovieImage';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useLibraryStore } from '../store/useLibraryStore';
 import { isMobile } from '../utils/PlatformUtils';
@@ -22,7 +22,7 @@ export function MediaDetails({ className = '' }) {
     );
 
     return (
-        <motion.div className={`absolute inset-0 z-50 flex flex-col items-center ${className}`}>
+        <motion.div className={`w-full min-h-full flex flex-col items-center relative z-50 ${className}`}>
             {isMobile ? 
                 <MobileMediaDetails media={media} tmdbId={tmdbId} navigate={navigate} /> : 
                 <DesktopMediaDetails media={media} tmdbId={tmdbId} navigate={navigate} />

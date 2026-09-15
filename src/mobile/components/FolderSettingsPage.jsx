@@ -1,8 +1,10 @@
 import { ArrowLeftIcon, FolderIcon, LayoutIcon, PlayIcon, PlusIcon, TrashIcon } from "@phosphor-icons/react";
 import { useNavigate } from "react-router-dom"
 import { useLibraryStore } from "../../shared/store/useLibraryStore";
-import { motion } from "framer-motion";
-import { useSetting } from "../../shared/contexts/SettingsContext";
+import { motion, AnimatePresence } from "framer-motion";
+import { useSetting } from "../../shared/store/useSettingsStore";
+import { useState } from "react";
+import { MobileFolderPicker } from "./MobileFolderPicker";
 
 function SettingsButton({ label, Icon }) {
     return (
@@ -20,7 +22,11 @@ export default function FolderSettingsPage({ className = '' }) {
     const rescanLibrary = useLibraryStore(state => state.rescan);
     const clearCacheAndRescan = useLibraryStore(state => state.clearCacheAndRescan);
     const isScanning = useLibraryStore(state => state.isScanning);
-    const addFolderAndScan = () => { console.warn("Mobile folder picker needs reimplementation"); };
+    const [isPickerOpen, setIsPickerOpen] = useState(false);
+    
+    const addFolderAndScan = () => {
+        setIsPickerOpen(true);
+    };
 
     const handleRemoveFolder = (folderToRemove) => {
         setFolders(prevFolders => prevFolders.filter(f => f !== folderToRemove));
@@ -98,6 +104,15 @@ export default function FolderSettingsPage({ className = '' }) {
                     <TrashIcon size={24} />
                 </button>
             </section>
+
+            <AnimatePresence>
+                {isPickerOpen && (
+                    <MobileFolderPicker 
+                        onClose={() => setIsPickerOpen(false)} 
+                        onSaveComplete={rescanLibrary} 
+                    />
+                )}
+            </AnimatePresence>
         </motion.div>
     )
 }

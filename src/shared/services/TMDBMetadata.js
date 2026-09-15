@@ -3,15 +3,15 @@ import { join } from '@tauri-apps/api/path';
 import { getFullImagePath, ImageSizes, TMDB_IMAGE_BASE_URL } from '@api-wrappers/tmdb-wrapper';
 import { withRetry, sleep } from '../utils/GeneralUtils';
 
-export const getPosterUrl = (posterPath) => {
-    if (!posterPath) return null;
-    return getFullImagePath(TMDB_IMAGE_BASE_URL, ImageSizes.ORIGINAL, posterPath);
+export const getImageUrl = (imagePath, size = "original") => {
+    if (!imagePath) return null;
+    return getFullImagePath(TMDB_IMAGE_BASE_URL, size, imagePath);
 };
 
 export const downloadImage = async (url, localFileName) => {
     try {
         if (!url) return null;
-        
+
         if (!(await exists('images', { baseDir: BaseDirectory.AppData }))) {
             await mkdir('images', { baseDir: BaseDirectory.AppData });
         }
@@ -42,7 +42,7 @@ export const downloadLogo = async (tmdb, tmdbId, isShow) => {
         if (!imagesData || !imagesData.logos || imagesData.logos.length <= 0) return null;
 
         const logoPath = imagesData.logos[0].file_path;
-        const fullLogoUrl = getPosterUrl(logoPath);
+        const fullLogoUrl = getImageUrl(logoPath, "w500");
         return await downloadImage(fullLogoUrl, `Logo_${tmdbId}.png`);
     } catch (imageError) {
         console.error(`Failed to fetch extra images for ${tmdbId}:`, imageError);
@@ -53,13 +53,13 @@ export const downloadLogo = async (tmdb, tmdbId, isShow) => {
 export const downloadMediaImages = async (tmdb, tmdbId, match, isShow) => {
     let localPosterPath = null;
     if (match.poster_path) {
-        const fullUrl = getPosterUrl(match.poster_path);
+        const fullUrl = getImageUrl(match.poster_path, "original");
         localPosterPath = await downloadImage(fullUrl, `Poster_${tmdbId}.jpg`);
     }
 
     let localBackdropPath = null;
     if (match.backdrop_path) {
-        const fullUrl = getPosterUrl(match.backdrop_path);
+        const fullUrl = getImageUrl(match.backdrop_path, "original");
         localBackdropPath = await downloadImage(fullUrl, `Backdrop_${tmdbId}.jpg`);
     }
 
@@ -76,7 +76,7 @@ const getTrailerKey = (videos) => {
 
 export const fetchDetailedMetadata = async (tmdb, tmdbId, type, isLocalScan = false) => {
     const isShow = type === "show";
-    
+
     try {
         const details = await withRetry(() => isShow
             ? tmdb.tvShows.details(tmdbId, ["videos", "images", "credits"])
@@ -96,15 +96,17 @@ export const fetchDetailedMetadata = async (tmdb, tmdbId, type, isLocalScan = fa
             voteAverage: details.vote_average,
             voteCount: details.vote_count,
             status: details.status,
-            posterPath: getPosterUrl(details.poster_path),
-            backdropPath: getPosterUrl(details.backdrop_path),
+            posterPath: getImageUrl(details.poster_path, "w500"),
+            posterPathFull: getImageUrl(details.poster_path, "original"),
+            backdropPath: getImageUrl(details.backdrop_path, "w780"),
+            backdropPathFull: getImageUrl(details.backdrop_path, "original"),
             logoPath: null,
             trailerKey: getTrailerKey(details.videos),
             cast: details.credits?.cast?.slice(0, 10).map(c => ({
                 id: c.id,
                 name: c.name,
                 character: c.character,
-                profilePath: getPosterUrl(c.profile_path)
+                profilePath: getImageUrl(c.profile_path, "w185")
             })) || [],
             directors: details.credits?.crew?.filter(c => c.job === "Director" || c.job === "Creator").map(c => ({
                 name: c.name,
@@ -120,13 +122,13 @@ export const fetchDetailedMetadata = async (tmdb, tmdbId, type, isLocalScan = fa
             let totalEpisodes = 0;
             mediaItem.seasons = [];
             mediaItem.specials = null;
-            
+
             if (details.seasons && details.seasons.length > 0) {
                 for (const season of details.seasons) {
                     const seasonNumber = season.season_number;
-                    
+
                     const seasonDetails = await withRetry(() => tmdb.tvSeasons.details({ tvShowID: tmdbId, seasonNumber: seasonNumber }));
-                    
+
                     const episodes = [];
                     if (seasonDetails.episodes) {
                         for (const ep of seasonDetails.episodes) {
@@ -134,7 +136,8 @@ export const fetchDetailedMetadata = async (tmdb, tmdbId, type, isLocalScan = fa
                                 number: ep.episode_number,
                                 name: ep.name,
                                 overview: ep.overview,
-                                stillPath: getPosterUrl(ep.still_path),
+                                stillPath: getImageUrl(ep.still_path, "w300"),
+                                stillPathFull: getImageUrl(ep.still_path, "original"),
                                 airDate: ep.air_date,
                                 runtime: ep.runtime,
                                 voteAverage: ep.vote_average,
@@ -150,17 +153,17 @@ export const fetchDetailedMetadata = async (tmdb, tmdbId, type, isLocalScan = fa
                         number: seasonNumber,
                         name: season.name,
                         overview: season.overview,
-                        posterPath: getPosterUrl(season.poster_path),
+                        posterPath: getImageUrl(season.poster_path, "w500"),
                         episodes: episodes
                     };
-                    
+
                     if (seasonNumber === 0) {
                         mediaItem.specials = seasonData;
                     } else {
                         mediaItem.seasons[seasonNumber - 1] = seasonData;
                     }
-                    
-                    await sleep(200); 
+
+                    await sleep(200);
                 }
             }
 
@@ -173,7 +176,9 @@ export const fetchDetailedMetadata = async (tmdb, tmdbId, type, isLocalScan = fa
 
             const { localPosterPath, localBackdropPath, localLogoPath } = await downloadMediaImages(tmdb, tmdbId, details, isShow);
             mediaItem.posterPath = localPosterPath || mediaItem.posterPath;
+            mediaItem.posterPathFull = localPosterPath || mediaItem.posterPathFull;
             mediaItem.backdropPath = localBackdropPath || mediaItem.backdropPath;
+            mediaItem.backdropPathFull = localBackdropPath || mediaItem.backdropPathFull;
             mediaItem.logoPath = localLogoPath;
         }
 
@@ -188,9 +193,9 @@ export const fetchDetailedMetadata = async (tmdb, tmdbId, type, isLocalScan = fa
 
 export const extractBasicMetadata = (match, type = null) => {
     if (!match) return null;
-    
+
     const isShow = type === 'show' || match.media_type === "tv";
-    
+
     return {
         tmdbId: match.id.toString(),
         type: isShow ? 'show' : 'movie',
@@ -200,8 +205,8 @@ export const extractBasicMetadata = (match, type = null) => {
         genreIds: match.genre_ids || [],
         releaseDate: match.release_date || match.first_air_date,
         overview: match.overview,
-        posterPath: getPosterUrl(match.poster_path),
-        backdropPath: getPosterUrl(match.backdrop_path),
+        posterPath: getImageUrl(match.poster_path, "w500"),
+        backdropPath: getImageUrl(match.backdrop_path, "w780"),
         logoPath: null,
         voteAverage: match.vote_average,
         voteCount: match.vote_count

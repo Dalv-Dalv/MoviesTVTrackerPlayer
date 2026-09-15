@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "movies-tv-tracker",
+  "productName": "HomeReel",
   "version": "0.1.0",
   "identifier": "com.movies.tracker",
   "build": {
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "movies-tv-tracker",
+        "title": "HomeReel",
         "decorations": false,
         "width": 1280,
         "height": 720,
@@ -20,7 +20,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self' ipc: http://ipc.localhost; connect-src 'self' ipc: http://ipc.localhost https://*.tmdb.org https://*.themoviedb.org; img-src 'self' asset: http://asset.localhost",
+      "csp": "default-src 'self' ipc: http://ipc.localhost; connect-src 'self' ipc: http://ipc.localhost https://*.tmdb.org https://*.themoviedb.org; img-src 'self' asset: http://asset.localhost https://*.tmdb.org https://*.themoviedb.org https://img.youtube.com https://i.ytimg.com; frame-src 'self' https://www.youtube.com",
       "assetProtocol": {
         "enable": true,
         "scope": [

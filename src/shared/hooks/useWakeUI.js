@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useSettings } from '../contexts/SettingsContext';
+import { useSettingsStore } from '../store/useSettingsStore';
 
 export function useWakeUI({holdOpen = false}) {
-    const { settings } = useSettings();
+    const settings = useSettingsStore(state => state.settings);
     const [showControls, setShowControls] = useState(true);
     const showControlsRef = useRef(true);
     const timeoutRef = useRef(null);

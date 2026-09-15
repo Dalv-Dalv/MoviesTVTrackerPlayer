@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
 import { useEffect, useRef } from 'react';
+import { isMobile } from '../utils/PlatformUtils';
 
 export function PageWrapper({ children, transparent = false, edgeToEdge = false, useDefaultTransition = true, saveScroll = true, depth = 0 }) {
     const location = useLocation();
@@ -16,7 +17,7 @@ export function PageWrapper({ children, transparent = false, edgeToEdge = false,
         }
 
         const savedScroll = sessionStorage.getItem(scrollKey);
-        
+
         if (savedScroll && scrollRef.current) {
             scrollRef.current.scrollTop = parseInt(savedScroll, 10);
 
@@ -33,7 +34,7 @@ export function PageWrapper({ children, transparent = false, edgeToEdge = false,
 
     const handleScroll = (e) => {
         const scrollTop = e.currentTarget.scrollTop;
-        
+
         window.dispatchEvent(new CustomEvent('page-scroll', { detail: { scrollTop } }));
 
         if (saveScroll && !isRestoring.current) {
@@ -44,13 +45,15 @@ export function PageWrapper({ children, transparent = false, edgeToEdge = false,
     const containerClassName = `absolute inset-0 w-full h-full overflow-hidden overflow-y-auto ${transparent ? 'bg-transparent' : 'bg-background'} ${!edgeToEdge ? 'pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]' : ''}`;
 
     if (useDefaultTransition) {
+        const animationProps = isMobile
+            ? { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } }
+            : { initial: { opacity: 0, scale: 1.02 }, animate: { opacity: 1, scale: 1 }, exit: { opacity: 0, scale: 1.02 } };
+
         return (
             <motion.div
                 ref={scrollRef}
-                initial={{ opacity: 0, scale: 1.02 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 1.02 }}
-                transition={{ duration: 0.5, ease: "easeInOut" }}
+                {...animationProps}
+                transition={{ duration: isMobile ? 0.3 : 0.5, ease: "easeInOut" }}
                 onScroll={handleScroll}
                 className={containerClassName}
                 style={{ zIndex: depth * 100 }}
