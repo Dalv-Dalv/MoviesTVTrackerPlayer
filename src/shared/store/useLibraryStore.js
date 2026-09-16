@@ -3,6 +3,8 @@ import { exists, readTextFile, remove, writeTextFile } from '@tauri-apps/plugin-
 import { BaseDirectory } from '@tauri-apps/api/path';
 import { CACHE_FILE, rescanLibrary } from '../services/LibraryScanner';
 import { fetchDetailedMetadata } from '../services/TMDBMetadata';
+import { useTMDB } from '../hooks/useTMDB';
+import { useSettingsStore } from './useSettingsStore';
 
 export const useLibraryStore = create((set, get) => ({
     library: {},
@@ -27,11 +29,12 @@ export const useLibraryStore = create((set, get) => ({
         }
     },
 
-    tmdb: null,
-    folders: [],
-
     rescan: async () => {
-        const { tmdb, folders, isScanning } = get();
+        const { isScanning } = get();
+        
+        const tmdb = useTMDB();
+        const folders = useSettingsStore.getState().settings.videoLibraryFolders || [];
+        
         if (!tmdb || isScanning) return;
         
         set({ isScanning: true, scanQueue: [] });
@@ -64,21 +67,21 @@ export const useLibraryStore = create((set, get) => ({
             if (cacheExists) {
                 await remove(CACHE_FILE, { baseDir: BaseDirectory.AppData });
             }
-            
-            try {
-                const imagesExist = await exists('images', { baseDir: BaseDirectory.AppData });
-                if (imagesExist) {
-                    await remove('images', { baseDir: BaseDirectory.AppData, recursive: true });
-                }
-            } catch (imgError) {
-                console.error("Failed to delete images directory:", imgError);
-            }
-            
-            set({ library: {} });
-            await get().rescan();
         } catch (error) {
-            console.error("Failed to clear cache:", error);
+            console.error("Failed to clear cache file:", error);
         }
+            
+        try {
+            const imagesExist = await exists('images', { baseDir: BaseDirectory.AppData });
+            if (imagesExist) {
+                await remove('images', { baseDir: BaseDirectory.AppData, recursive: true });
+            }
+        } catch (imgError) {
+            console.error("Failed to delete images directory:", imgError);
+        }
+            
+        set({ library: {} });
+        await get().rescan();
     },
     
     removeMedia: async (tmdbId, deleteFromDisk = false) => {

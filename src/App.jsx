@@ -42,10 +42,6 @@ function App() {
     }, [loadCacheOnBoot]);
 
     useEffect(() => {
-        useLibraryStore.setState({ tmdb, folders });
-    }, [tmdb, folders]);
-
-    useEffect(() => {
         if (!tmdb) return;
         rescan();
     }, [folders, tmdb, rescan]);

@@ -4,7 +4,6 @@ import { BaseDirectory } from '@tauri-apps/api/path';
 import { deduplicateFolders } from '../utils/PathUtils';
 import { sleep, withRetry } from '../utils/GeneralUtils';
 import { fetchDetailedMetadata, getImageUrl, downloadImage, getImageFilename, downloadMediaImages, IMAGE_SIZES } from './TMDBMetadata';
-import { useLibraryStore } from '../store/useLibraryStore';
 
 const VIDEO_EXTENSIONS = ['.mkv', '.mp4', '.avi', '.webm', '.mov'];
 export const CACHE_FILE = 'library_cache.json';
@@ -44,6 +43,7 @@ export const rescanLibrary = async (tmdb, rawFolders, onProgress) => {
     });
 
     let libraryCache = { mediaItems: {}, fileMap: {}, blacklist: [] };
+    
     const cacheExists = await exists(CACHE_FILE, { baseDir: BaseDirectory.AppData });
     if (cacheExists) {
         try {
@@ -305,7 +305,12 @@ export const rescanLibrary = async (tmdb, rawFolders, onProgress) => {
     }
 
     const finalCache = { mediaItems: newMediaItems, fileMap: newFileMap, blacklist: libraryCache.blacklist };
-    await writeTextFile(CACHE_FILE, JSON.stringify(finalCache, null, 2), { baseDir: BaseDirectory.AppData });
+    
+    try {
+        await withRetry(() => writeTextFile(CACHE_FILE, JSON.stringify(finalCache, null, 2), { baseDir: BaseDirectory.AppData }), 5, 250);
+    } catch (e) {
+        console.error("Failed to write cache file after retries:", e);
+    }
 
     return finalCache;
 };
