@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { MovieImage } from '../../shared/components/MovieImage';
 import { Modal } from '../../shared/components/Modal';
-import { DotsThreeVerticalIcon, PlayIcon, PlusIcon, XIcon, MagnifyingGlassIcon, ClockCounterClockwiseIcon, TrashIcon, CheckIcon, ArrowLeftIcon, CaretDownIcon, CaretRightIcon, ClockCountdownIcon, ClockIcon } from '@phosphor-icons/react';
+import { DotsThreeVerticalIcon, PlayIcon, PlusIcon, XIcon, MagnifyingGlassIcon, ClockCounterClockwiseIcon, TrashIcon, CheckIcon, ArrowLeftIcon, CaretDownIcon, CaretRightIcon, ClockCountdownIcon, ClockIcon, ImageSquareIcon, EyeIcon } from '@phosphor-icons/react';
 import { useWatchHistoryStore, getResumeEpisode } from '../../shared/store/useWatchHistoryStore';
 import { useLibraryStore } from '../../shared/store/useLibraryStore';
 import { InfoIcon } from '@phosphor-icons/react';
@@ -13,6 +13,8 @@ import { FileInfoModal } from './FileInfoModal';
 import { useGenres } from '../../shared/contexts/GenresContext';
 import { Dropdown } from '../../shared/components/Dropdown';
 import { open } from '@tauri-apps/plugin-dialog';
+import { ChangePostersPanel } from './ChangePostersPanel';
+import { getImageUrl } from '../../shared/services/TMDBMetadata';
 
 function TabsButton({ name, onClick, isSelected = false, className = '' }) {
     return (
@@ -122,9 +124,9 @@ function EpisodeCard({ episode, tmdbId, seasonNumber, navigate, className = '' }
 
             <div className='relative z-20'>
                 {/* Thubmnail */}
-                <div 
-                    className={`relative h-35 rounded-2xl overflow-hidden shadow-lg shadow-background ${episode.isDownloaded ? 'cursor-pointer' : ''}`} 
-                    onClick={episode.isDownloaded ? (() => navigate(`/play/${tmdbId}?s=${seasonNumber}&e=${episode.number}`)) : (() => {})}
+                <div
+                    className={`relative h-35 rounded-2xl overflow-hidden shadow-lg shadow-background ${episode.isDownloaded ? 'cursor-pointer' : ''}`}
+                    onClick={episode.isDownloaded ? (() => navigate(`/play/${tmdbId}?s=${seasonNumber}&e=${episode.number}`)) : (() => { })}
                 >
                     <img src={episode.stillPath} className='h-full rounded-2xl' />
 
@@ -143,7 +145,7 @@ function EpisodeCard({ episode, tmdbId, seasonNumber, navigate, className = '' }
                             <div className="absolute z-20 rounded-full inset-0 ring-1 ring-inset ring-white/70 pointer-events-none mix-blend-soft-light" />
                         </div>
                     )}
-                    
+
                     <div className="absolute rounded-2xl inset-0 ring-1 ring-inset ring-white/70 pointer-events-none mix-blend-soft-light" />
                 </div>
             </div>
@@ -167,11 +169,11 @@ function EpisodeCard({ episode, tmdbId, seasonNumber, navigate, className = '' }
                     usePortal={true}
                     dropdownClassName="min-w-32"
                     Trigger={({ isOpen, toggle }) => (
-                        <div 
-                            className={`text-body aspect-square cursor-pointer transition-opacity flex items-center justify-center p-2 rounded-full ${isOpen ? 'opacity-100 bg-white/10' : 'opacity-0 group-hover:opacity-100 hover:bg-white/10'}`} 
+                        <div
+                            className={`text-body aspect-square cursor-pointer transition-opacity flex items-center justify-center p-2 rounded-full ${isOpen ? 'opacity-100 bg-white/10' : 'opacity-0 group-hover:opacity-100 hover:bg-white/10'}`}
                             onClick={toggle}
                         >
-                            <DotsThreeVerticalIcon size={24} weight='bold'/>
+                            <DotsThreeVerticalIcon size={24} weight='bold' />
                         </div>
                     )}
                 >
@@ -184,6 +186,7 @@ function EpisodeCard({ episode, tmdbId, seasonNumber, navigate, className = '' }
                                 <CheckIcon size={20} weight="bold" />
                                 <span>{episode.history?.completed ? 'Mark as unwatched' : 'Mark as watched'}</span>
                             </button>
+
                             <button
                                 onClick={() => { handleFixMatch(); close(); }}
                                 className='flex gap-2 items-center text-nowrap tracking-wide px-3 py-2 rounded-lg transition-all duration-300 hover:bg-white/10'
@@ -236,7 +239,7 @@ function saveTab(tmdbId, tab) {
     try {
         const stored = JSON.parse(localStorage.getItem(TAB_STORAGE_KEY) || '{}');
         stored[tmdbId] = { tab, ts: Date.now() };
-        
+
         const keys = Object.keys(stored);
         if (keys.length > MAX_STORED_TABS) {
             keys.sort((a, b) => stored[b].ts - stored[a].ts);
@@ -254,24 +257,34 @@ function saveTab(tmdbId, tab) {
 }
 
 export function DesktopMediaDetails({ media: rawMedia, tmdbId, navigate }) {
+    const containerRef = useRef(null);
     const history = useWatchHistoryStore(state => state.history[tmdbId]);
     const historyLoaded = useWatchHistoryStore(state => state.isLoaded);
     const setProgressAndSave = (progress) => useWatchHistoryStore.getState().setProgressAndSave(tmdbId, progress);
-    
+    const prevTmdbId = useRef(tmdbId);
+
     const { movieGenres, tvGenres } = useGenres();
+
+
+
+    // Esc to close, modals and tabs
     const [activeModal, setActiveModal] = useState(null);
     const [activeTab, setAcitveTab] = useState(() => getSavedTab(tmdbId, rawMedia?.type));
-    const prevTmdbId = useRef(tmdbId);
-    const [isOverviewExpanded, setIsOverviewExpanded] = useState(false);
-    const [isTruncated, setIsTruncated] = useState(false);
-    const overviewRef = useRef(null);
+
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape' && !activeModal) {
+                navigate(-1);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [navigate, activeModal]);
 
     if (tmdbId !== prevTmdbId.current) {
         prevTmdbId.current = tmdbId;
         setAcitveTab(getSavedTab(tmdbId, rawMedia?.type));
     }
-
-    const [trailerPlaying, setTrailerPlaying] = useState(false);
 
     useEffect(() => {
         if (activeTab === 'episodes' && rawMedia?.type !== 'show') {
@@ -281,6 +294,9 @@ export function DesktopMediaDetails({ media: rawMedia, tmdbId, navigate }) {
         }
     }, [activeTab, rawMedia?.type, tmdbId]);
 
+
+
+    // Join watch history data with media object
     const media = useMemo(() => {
         if (!rawMedia) return null;
 
@@ -315,18 +331,86 @@ export function DesktopMediaDetails({ media: rawMedia, tmdbId, navigate }) {
         return rawMedia;
     }, [rawMedia, history]);
 
+
+
+    // Overview truncation/show more
+    const [isOverviewExpanded, setIsOverviewExpanded] = useState(false);
+    const [isTruncated, setIsTruncated] = useState(false);
+    const overviewRef = useRef(null);
+
     useEffect(() => {
         if (overviewRef.current) {
             setIsTruncated(overviewRef.current.scrollHeight > overviewRef.current.clientHeight);
         }
     }, [media?.overview]);
 
+    console.log(media);
+
+    // Change posters
+    const [changingPosterType, setChangingPosterType] = useState(null);
+    const [newPosterUrls, setNewPosterUrls] = useState({
+        poster: media?.rawPosterUrl,
+        backdrop: media?.rawBackdropUrl,
+        logo: media?.rawLogoUrl
+    });
+
+    useEffect(() => {
+        setNewPosterUrls({
+            poster: media?.rawPosterUrl,
+            backdrop: media?.rawBackdropUrl,
+            logo: media?.rawLogoUrl
+        });
+    }, [media?.rawPosterUrl, media?.rawBackdropUrl, media?.rawLogoUrl]);
+
+    const displayPoster = newPosterUrls.poster !== media?.rawPosterUrl && changingPosterType
+        ? getImageUrl(newPosterUrls.poster, "w342")
+        : media?.posterPath;
+
+    const displayBackdrop = newPosterUrls.backdrop !== media?.rawBackdropUrl && changingPosterType
+        ? getImageUrl(newPosterUrls.backdrop)
+        : (media?.backdropPathFull || media?.backdropPath);
+
+    const displayLogo = newPosterUrls.logo !== media?.rawLogoUrl && changingPosterType
+        ? getImageUrl(newPosterUrls.logo)
+        : media?.logoPath;
+
+    useEffect(() => {
+        let timeout;
+        const scrollContainer = containerRef.current?.closest('.overflow-y-auto');
+
+        if (changingPosterType) {
+            if (scrollContainer) {
+                scrollContainer.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+                timeout = setTimeout(() => {
+                    scrollContainer.style.overflow = 'hidden';
+                }, 600);
+            }
+        } else {
+            if (scrollContainer) {
+                scrollContainer.style.overflow = '';
+            }
+        }
+
+        return () => {
+            clearTimeout(timeout);
+            if (scrollContainer) {
+                scrollContainer.style.overflow = '';
+            }
+        };
+    }, [changingPosterType]);
+
+
+    // Trailer
+    const [trailerPlaying, setTrailerPlaying] = useState(false);
     useEffect(() => {
         setTrailerPlaying(false);
     }, [media?.trailerKey]);
 
-    if (!media) return null;
 
+    // Various text stuffs
     let playButtonText = 'Play';
     if (historyLoaded) {
         if (media.type === 'show' && history?.lastPlayedSeason != null) {
@@ -342,8 +426,12 @@ export function DesktopMediaDetails({ media: rawMedia, tmdbId, navigate }) {
     const releaseYear = media?.releaseDate?.split('-')[0] || 'Unknown Year';
     const runtimeText = media?.type === 'movie' ? `${formatRuntime(media.runtime)}` : `${media.seasons.length} Seasons`;
 
+
+
+    if (!media) return null;
+
     return (
-        <div className="w-full pb-400">
+        <div ref={containerRef} className="w-full pb-400">
             {/* Backdrop */}
             <motion.div
                 initial={{ opacity: 0, y: -10 }}
@@ -353,8 +441,8 @@ export function DesktopMediaDetails({ media: rawMedia, tmdbId, navigate }) {
                 className='absolute left-0 top-0 w-full pointer-events-none noselect'
             >
                 <MovieImage
-                    relativePath={media.backdropPathFull || media.backdropPath}
-                    className='mask-[linear-gradient(to_top,transparent_1%,black_60%)] pointer-events-none'
+                    relativePath={displayBackdrop}
+                    className={`w-full mask-[linear-gradient(to_top,transparent_1%,black_60%)] pointer-events-none transition-transform duration-500 ${changingPosterType === 'backdrop' ? 'scale-101' : 'scale-100'}`}
                 />
             </motion.div>
 
@@ -398,6 +486,16 @@ export function DesktopMediaDetails({ media: rawMedia, tmdbId, navigate }) {
                                 <span>View Files Info</span>
                             </button>
 
+                            {media?.isDownloaded && (
+                                <button
+                                    onClick={() => { setChangingPosterType("backdrop"); setActiveModal('CHANGE_POSTERS'); close(); }}
+                                    className='flex gap-2 items-center text-nowrap tracking-wide px-3 py-2 rounded-lg transition-all duration-300 hover:bg-white/10'
+                                >
+                                    <ImageSquareIcon size={20} weight='bold' />
+                                    <span>Change posters</span>
+                                </button>
+                            )}
+
                             <button
                                 onClick={() => { setActiveModal('CONFIRM_RESET'); close(); }}
                                 className='flex gap-2 items-center text-nowrap tracking-wide px-3 py-2 text-red-400 hover:bg-red-400/10 rounded-lg transition-all duration-300'
@@ -406,17 +504,28 @@ export function DesktopMediaDetails({ media: rawMedia, tmdbId, navigate }) {
                                 <span>Reset Watch Time</span>
                             </button>
 
-                            <button
-                                onClick={() => { setActiveModal('CONFIRM_REMOVE'); close(); }}
-                                className='flex gap-2 items-center text-nowrap tracking-wide px-3 py-2 text-red-400 hover:bg-red-400/10 rounded-lg transition-all duration-300'
-                            >
-                                <TrashIcon size={20} weight="bold" />
-                                <span>Remove from Library</span>
-                            </button>
+                            {media?.isDownloaded && (
+                                <button
+                                    onClick={() => { setActiveModal('CONFIRM_REMOVE'); close(); }}
+                                    className='flex gap-2 items-center text-nowrap tracking-wide px-3 py-2 text-red-400 hover:bg-red-400/10 rounded-lg transition-all duration-300'
+                                >
+                                    <TrashIcon size={20} weight="bold" />
+                                    <span>Remove from Library</span>
+                                </button>
+                            )}
                         </>
                     )}
                 </Dropdown>
             </div>
+
+            {/* Edit posters panel */}
+            <ChangePostersPanel
+                media={media}
+                changingPosterType={changingPosterType}
+                setChangingPosterType={setChangingPosterType}
+                newPosterUrls={newPosterUrls}
+                setNewPosterUrls={setNewPosterUrls}
+            />
 
             {/* Main details */}
             <div className='w-full relative grid grid-cols-[min(33vw,20rem)_minmax(0,1fr)] gap-12'>
@@ -440,14 +549,14 @@ export function DesktopMediaDetails({ media: rawMedia, tmdbId, navigate }) {
                         className="w-full max-w-80 z-10 sticky top-22"
                     >
                         <MovieImage
-                            relativePath={media.posterPath}
+                            relativePath={displayPoster}
                             altText={media.title}
-                            className='absolute w-full blur-2xl opacity-50'
+                            className={`absolute w-full blur-2xl opacity-50 origin-bottom-left transition-transform duration-500 ${changingPosterType === 'poster' ? 'scale-105' : 'scale-100'}`}
                         />
 
-                        <div className="relative z-10 w-full aspect-2/3 rounded-lg overflow-hidden shadow-2xl shadow-black/50">
+                        <div className={`relative z-10 w-full aspect-2/3 rounded-lg overflow-hidden shadow-2xl shadow-black/50 origin-bottom-left transition-transform duration-500 ${changingPosterType === 'poster' ? 'scale-105' : 'scale-100'}`}>
                             <MovieImage
-                                relativePath={media.posterPath}
+                                relativePath={displayPoster}
                                 altText={media.title}
                                 className='w-full h-full object-cover block'
                             />
@@ -461,132 +570,144 @@ export function DesktopMediaDetails({ media: rawMedia, tmdbId, navigate }) {
 
                 {/* Right details column */}
                 <div className='w-full h-full min-w-0'>
-                    <div className='flex flex-col h-screen justify-end p-12 pl-0 text-body relative z-10'>
-                        <h1 className="text-4xl font-bold tracking-wide">
-                            {media.title}
-                        </h1>
+                    <div className='h-screen p-12 pl-0 text-body relative z-10'>
+                        <div className={`w-full h-full flex flex-col justify-end transition-opacity duration-300 ${changingPosterType ? 'opacity-0' : 'opacity-100'}`}>
+                            <h1 className="text-4xl font-bold tracking-wide">
+                                {media.title}
+                            </h1>
 
-                        <div className='text-muted font-semibold flex gap-4'>
-                            <span>{releaseYear}</span>
-                            <span>{runtimeText}</span>
+                            <div className='text-muted font-semibold flex gap-4'>
+                                <span>{releaseYear}</span>
+                                <span>{runtimeText}</span>
+                            </div>
+
+                            <div className='flex items-center gap-2 noselect mt-2 pb-6 text-body/80 w-full overflow-x-auto '>
+                                {(media.genreIds || media.genres || []).map(id => {
+                                    const dict = media.type === 'show' ? tvGenres : movieGenres;
+                                    const text = dict[id] || id;
+                                    return (
+                                        <div key={id} className='bg-white/6 rounded-full p-2 px-4 tracking-wide border border-white/8 backdrop-blur-sm shrink-0 whitespace-nowrap'>
+                                            {text}
+                                        </div>
+                                    )
+                                })}
+                            </div>
+
+
+
+                            <div className='flex gap-4 noselect'>
+                                <button
+                                    onClick={() => navigate(`/play/${tmdbId}`)}
+                                    className="bg-body text-black px-6 py-3 rounded-full w-fit font-bold flex flex-row items-center justify-center gap-2 cursor-pointer relative z-50 pointer-events-auto transition-colors hover:bg-body/90"
+                                >
+                                    <PlayIcon size={20} weight='fill' />
+                                    <span>
+                                        {playButtonText}
+                                    </span>
+                                </button>
+
+                                <button
+                                    onClick={() => navigate(`/play/${tmdbId}`)}
+                                    className="text-muted px-4 py-3 rounded-full w-fit font-semibold flex flex-row items-center justify-center gap-2 cursor-pointer relative z-50 pointer-events-auto transition-colors bg-transparent hover:bg-black/40 hover:text-body"
+                                >
+                                    <PlusIcon size={20} weight='bold' />
+                                    <span>Add to watch list</span>
+                                </button>
+                            </div>
                         </div>
 
-                        <div className='flex items-center gap-2 noselect mt-2 pb-6 text-body/80 w-full overflow-x-auto '>
-                            {(media.genreIds || media.genres || []).map(id => {
-                                const dict = media.type === 'show' ? tvGenres : movieGenres;
-                                const text = dict[id] || id;
-                                return (
-                                    <div key={id} className='bg-white/6 rounded-full p-2 px-4 tracking-wide border border-white/8 backdrop-blur-sm shrink-0 whitespace-nowrap'>
-                                        {text}
-                                    </div>
-                                )
-                            })}
-                        </div>
-
-
-
-                        <div className='flex gap-4 noselect'>
-                            <button
-                                onClick={() => navigate(`/play/${tmdbId}`)}
-                                className="bg-body text-black px-6 py-3 rounded-full w-fit font-bold flex flex-row items-center justify-center gap-2 cursor-pointer relative z-50 pointer-events-auto transition-colors hover:bg-body/90"
-                            >
-                                <PlayIcon size={20} weight='fill' />
-                                <span>
-                                    {playButtonText}
-                                </span>
-                            </button>
-
-                            <button
-                                onClick={() => navigate(`/play/${tmdbId}`)}
-                                className="text-muted px-4 py-3 rounded-full w-fit font-semibold flex flex-row items-center justify-center gap-2 cursor-pointer relative z-50 pointer-events-auto transition-colors bg-transparent hover:bg-black/40 hover:text-body"
-                            >
-                                <PlusIcon size={20} weight='bold' />
-                                <span>Add to watch list</span>
-                            </button>
+                        <div className={`absolute inset-0 bottom-12 flex flex-col justify-end transition-opacity duration-300 ${!changingPosterType ? 'opacity-0' : 'opacity-100'} origin-bottom-left transition-transform duration-500 ${changingPosterType === 'logo' ? 'scale-105' : 'scale-100'}`}>
+                            <MovieImage
+                                relativePath={displayLogo}
+                                altText={media.title}
+                                className='w-fit max-w-1/2 max-h-1/2'
+                            />
                         </div>
                     </div>
 
-                    <div className='relative w-full max-w-2/3 flex justify-stretch items-center mb-4 text-center rounded-full border border-transparent overflow-hidden bg-black mix-blend-screen'>
-                        <TabsButton name={'Details'} isSelected={activeTab === 'details'} onClick={() => setAcitveTab('details')} />
+                    <div className={`transition-all duration-300 ${changingPosterType ? 'opacity-0 pointer-events-none translate-y-10' : 'opacity-100 translate-y-0'}`}>
+                        <div className='relative w-full max-w-2/3 flex justify-stretch items-center mb-4 text-center rounded-full border border-transparent overflow-hidden bg-black mix-blend-screen'>
+                            <TabsButton name={'Details'} isSelected={activeTab === 'details'} onClick={() => setAcitveTab('details')} />
 
-                        {media.type === 'show' && (
-                            <TabsButton name={'Episodes'} isSelected={activeTab === 'episodes'} onClick={() => setAcitveTab('episodes')} />
+                            {media.type === 'show' && (
+                                <TabsButton name={'Episodes'} isSelected={activeTab === 'episodes'} onClick={() => setAcitveTab('episodes')} />
+                            )}
+
+                            <TabsButton name={'Cast'} isSelected={activeTab === 'cast'} onClick={() => setAcitveTab('cast')} />
+
+                            <div className="absolute inset-0 pointer-events-none mix-blend-overlay rounded-full border border-x-2 border-white" />
+                        </div>
+
+                        {activeTab === 'details' && (
+                            <>
+                                <div className="flex flex-col mb-4 text-muted">
+                                    <span className='text-body font-semibold'>
+                                        Overview
+                                    </span>
+                                    <p ref={overviewRef} className={`max-w-2/3 text-justify indent-4 ${!isOverviewExpanded ? 'line-clamp-2' : ''}`}>
+                                        {media.overview}
+                                    </p>
+                                    {isTruncated && (
+                                        <button
+                                            onClick={() => setIsOverviewExpanded(!isOverviewExpanded)}
+                                            className="italic font-semibold hover:underline self-start mt-1"
+                                        >
+                                            {isOverviewExpanded ? 'Show less' : 'Show more'}
+                                        </button>
+                                    )}
+                                </div>
+                            </>
                         )}
 
-                        <TabsButton name={'Cast'} isSelected={activeTab === 'cast'} onClick={() => setAcitveTab('cast')} />
+                        {activeTab === 'details' && media.trailerKey && (
+                            <div className="w-full max-w-2/3 aspect-video mt-8 relative z-50 pointer-events-auto group">
+                                {!trailerPlaying ? (
+                                    <div
+                                        className="w-full h-full relative cursor-pointer"
+                                        onClick={() => setTrailerPlaying(true)}
+                                    >
+                                        <img
+                                            src={`https://img.youtube.com/vi/${media.trailerKey}/maxresdefault.jpg`}
+                                            onError={(e) => { e.target.onerror = null; e.target.src = `https://img.youtube.com/vi/${media.trailerKey}/hqdefault.jpg`; }}
+                                            alt="Trailer Thumbnail"
+                                            className='absolute inset-0 blur-lg opacity-50 rounded-2xl -z-10'
+                                        />
 
-                        <div className="absolute inset-0 pointer-events-none mix-blend-overlay rounded-full border border-x-2 border-white" />
-                    </div>
+                                        <img
+                                            src={`https://img.youtube.com/vi/${media.trailerKey}/maxresdefault.jpg`}
+                                            onError={(e) => { e.target.onerror = null; e.target.src = `https://img.youtube.com/vi/${media.trailerKey}/hqdefault.jpg`; }}
+                                            alt="Trailer Thumbnail"
+                                            className="w-full h-full object-cover block rounded-2xl"
+                                        />
 
-                    {activeTab === 'details' && (
-                        <>
-                        <div className="flex flex-col mb-4 text-muted">
-                            <span className='text-body font-semibold'>
-                                Overview
-                            </span>
-                            <p ref={overviewRef} className={`max-w-2/3 text-justify indent-4 ${!isOverviewExpanded ? 'line-clamp-2' : ''}`}>
-                                {media.overview}
-                            </p>
-                            {isTruncated && (
-                                <button 
-                                    onClick={() => setIsOverviewExpanded(!isOverviewExpanded)}
-                                    className="italic font-semibold hover:underline self-start mt-1"
-                                >
-                                    {isOverviewExpanded ? 'Show less' : 'Show more'}
-                                </button>
-                            )}
-                        </div>
-                        </>
-                    )}
-
-                    {activeTab === 'details' && media.trailerKey && (
-                        <div className="w-full max-w-2/3 aspect-video mt-8 relative z-50 pointer-events-auto group">
-                            {!trailerPlaying ? (
-                                <div
-                                    className="w-full h-full relative cursor-pointer"
-                                    onClick={() => setTrailerPlaying(true)}
-                                >
-                                    <img
-                                        src={`https://img.youtube.com/vi/${media.trailerKey}/maxresdefault.jpg`}
-                                        onError={(e) => { e.target.onerror = null; e.target.src = `https://img.youtube.com/vi/${media.trailerKey}/hqdefault.jpg`; }}
-                                        alt="Trailer Thumbnail"
-                                        className='absolute inset-0 blur-lg opacity-50 rounded-2xl -z-10'
-                                    />
-
-                                    <img
-                                        src={`https://img.youtube.com/vi/${media.trailerKey}/maxresdefault.jpg`}
-                                        onError={(e) => { e.target.onerror = null; e.target.src = `https://img.youtube.com/vi/${media.trailerKey}/hqdefault.jpg`; }}
-                                        alt="Trailer Thumbnail"
-                                        className="w-full h-full object-cover block rounded-2xl"
-                                    />
-
-                                    <div className="absolute inset-0 rounded-2xl flex items-center justify-center bg-black/0 group-hover:bg-black/20 transition-colors">
-                                        <div className="bg-black/60 opacity-0 group-hover:opacity-100 backdrop-blur-sm rounded-full p-4 text-body transition-opacity duration-300">
-                                            <PlayIcon size={48} weight="fill" />
+                                        <div className="absolute inset-0 rounded-2xl flex items-center justify-center bg-black/0 group-hover:bg-black/20 transition-colors">
+                                            <div className="bg-black/60 opacity-0 group-hover:opacity-100 backdrop-blur-sm rounded-full p-4 text-body transition-opacity duration-300">
+                                                <PlayIcon size={48} weight="fill" />
+                                            </div>
                                         </div>
+
+                                        <div className="absolute rounded-[15px] ring-1 ring-inset ring-white/70 pointer-events-none mix-blend-soft-light" />
+                                        <div className="absolute rounded-2xl inset-0 ring-1 ring-inset ring-white/8 pointer-events-none" />
                                     </div>
+                                ) : (
+                                    <iframe
+                                        className="w-full h-full"
+                                        src={`https://www.youtube.com/embed/${media.trailerKey}?autoplay=1&modestbranding=1&rel=0&iv_load_policy=3&vq=hd1080`}
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                        allowFullScreen
+                                    ></iframe>
+                                )}
+                            </div>
+                        )}
 
-                                    <div className="absolute rounded-[15px] ring-1 ring-inset ring-white/70 pointer-events-none mix-blend-soft-light" />
-                                    <div className="absolute rounded-2xl inset-0 ring-1 ring-inset ring-white/8 pointer-events-none" />
-                                </div>
-                            ) : (
-                                <iframe
-                                    className="w-full h-full"
-                                    src={`https://www.youtube.com/embed/${media.trailerKey}?autoplay=1&modestbranding=1&rel=0&iv_load_policy=3&vq=hd1080`}
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                    allowFullScreen
-                                ></iframe>
-                            )}
-                        </div>
-                    )}
-
-                    {activeTab === 'episodes' && (
-                        <div className='flex flex-col gap-2 text-body pr-12 noselect'>
-                            {media.seasons && media.seasons.filter(season => season.episodes && season.episodes.length > 0).map((season) => (
-                                <SeasonSection key={`season_${season.number}`} season={season} navigate={navigate} tmdbId={tmdbId} />
-                            ))}
-                        </div>
-                    )}
+                        {activeTab === 'episodes' && (
+                            <div className='flex flex-col gap-2 text-body pr-12 noselect'>
+                                {media.seasons && media.seasons.filter(season => season.episodes && season.episodes.length > 0).map((season) => (
+                                    <SeasonSection key={`season_${season.number}`} season={season} navigate={navigate} tmdbId={tmdbId} />
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -606,7 +727,6 @@ export function DesktopMediaDetails({ media: rawMedia, tmdbId, navigate }) {
                     <button onClick={() => { setActiveModal(null); setProgressAndSave(0) }} className="px-4 py-2 bg-danger-600 text-white rounded-lg font-semibold hover:bg-danger-500 transition-colors cursor-pointer">Reset</button>
                 </div>
             </Modal>
-
 
             <RemoveMediaModal
                 isOpen={activeModal === 'CONFIRM_REMOVE'}

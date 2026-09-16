@@ -20,11 +20,40 @@ export function FixMatchModal({ isOpen, onClose, media, tmdbId, navigate }) {
     useEffect(() => {
         if (isOpen) {
             let initialQuery = media?.title || "";
+            let firstFilePath = null;
+
             if (media?.filePaths?.length > 0) {
-                const filename = media.filePaths[0].split(/[\\/]/).pop();
+                firstFilePath = media.filePaths[0];
+            } else if (media?.type === 'show') {
+                if (media.seasons) {
+                    for (const s of media.seasons) {
+                        if (s.episodes) {
+                            for (const e of s.episodes) {
+                                if (e.filePaths && e.filePaths.length > 0) {
+                                    firstFilePath = e.filePaths[0];
+                                    break;
+                                }
+                            }
+                        }
+                        if (firstFilePath) break;
+                    }
+                }
+                if (!firstFilePath && media.specials && media.specials.episodes) {
+                    for (const e of media.specials.episodes) {
+                        if (e.filePaths && e.filePaths.length > 0) {
+                            firstFilePath = e.filePaths[0];
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (firstFilePath) {
+                const filename = firstFilePath.split(/[\\/]/).pop();
                 const parsed = parseVideo(filename);
                 initialQuery = parsed.name || initialQuery;
             }
+
             setSearchQuery(initialQuery);
             setSearchResults([]);
             setSelectedResult(null);

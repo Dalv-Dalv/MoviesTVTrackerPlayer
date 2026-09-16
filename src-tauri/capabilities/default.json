@@ -36,7 +36,21 @@
         "fs:allow-mkdir",
         {
             "identifier": "fs:scope",
-            "allow": ["**"]
+            "allow": [
+                "**"
+            ]
+        },
+        "http:default",
+        {
+            "identifier": "http:default",
+            "allow": [
+                {
+                    "url": "http://**"
+                },
+                {
+                    "url": "https://**"
+                }
+            ]
         }
     ]
 }

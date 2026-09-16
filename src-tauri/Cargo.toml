@@ -30,6 +30,7 @@ tauri-plugin-store = "2"
 tauri-plugin-fs = "2"
 tauri-plugin-android-mediastore = "0.2.3"
 tauri-plugin-persisted-scope = "2"
+tauri-plugin-http = "2"
 
 [target.'cfg(any(target_os = "macos", target_os = "windows", target_os = "linux"))'.dependencies]
 tauri-plugin-libmpv = "0.3.2"

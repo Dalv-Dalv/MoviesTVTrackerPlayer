@@ -145,5 +145,16 @@ export const useLibraryStore = create((set, get) => ({
             console.error("Failed to remove episode file", error);
             throw error;
         }
+    },
+
+    updateMediaPosters: async (tmdbId, newPosterUrls) => {
+        try {
+            const { updateMediaPosters: umpScanner } = await import('../services/LibraryScanner');
+            const newLibItems = await umpScanner(tmdbId, newPosterUrls);
+            set({ library: newLibItems });
+        } catch (error) {
+            console.error("Failed to update media posters", error);
+            throw error;
+        }
     }
 }));

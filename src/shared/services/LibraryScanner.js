@@ -3,7 +3,7 @@ import { exists, readDir, readTextFile, remove, writeTextFile } from '@tauri-app
 import { BaseDirectory } from '@tauri-apps/api/path';
 import { deduplicateFolders } from '../utils/PathUtils';
 import { sleep, withRetry } from '../utils/GeneralUtils';
-import { fetchDetailedMetadata } from './TMDBMetadata';
+import { fetchDetailedMetadata, getImageUrl, downloadImage, getImageFilename, downloadMediaImages, IMAGE_SIZES } from './TMDBMetadata';
 import { useLibraryStore } from '../store/useLibraryStore';
 
 const VIDEO_EXTENSIONS = ['.mkv', '.mp4', '.avi', '.webm', '.mov'];
@@ -99,6 +99,29 @@ export const rescanLibrary = async (tmdb, rawFolders, onProgress) => {
                         }
                     }
                 }
+                
+                // Repair missing images
+                const item = newMediaItems[knownTmdbId];
+                if ((item.rawPosterUrl && (!item.posterPath || item.posterPath.startsWith('http'))) || 
+                    (item.rawBackdropUrl && (!item.backdropPath || item.backdropPath.startsWith('http')))) {
+                    
+                    try {
+                        const { localPosterPath, localPosterPathFull, localBackdropPath, localBackdropPathFull, localLogoPath, localLogoPathFull, rawLogoUrl } = await downloadMediaImages(tmdb, knownTmdbId, {
+                            poster_path: item.rawPosterUrl,
+                            backdrop_path: item.rawBackdropUrl
+                        }, item.type === 'show');
+                        
+                        item.posterPath = localPosterPath || item.posterPath;
+                        item.posterPathFull = localPosterPathFull || item.posterPathFull;
+                        item.backdropPath = localBackdropPath || item.backdropPath;
+                        item.backdropPathFull = localBackdropPathFull || item.backdropPathFull;
+                        item.logoPath = localLogoPath || item.logoPath;
+                        item.logoPathFull = localLogoPathFull || item.logoPathFull;
+                        if (rawLogoUrl) item.rawLogoUrl = rawLogoUrl;
+                    } catch (e) {
+                        console.error(`Failed to repair images for ${knownTmdbId}`, e);
+                    }
+                }
             }
 
             const media = newMediaItems[knownTmdbId];
@@ -180,7 +203,9 @@ export const rescanLibrary = async (tmdb, rawFolders, onProgress) => {
                     genreIds: [],
                     releaseDate: rawYear ? `${rawYear}-01-01` : '',
                     overview: "Local video file. No TMDB metadata found.",
-                    posterPath: null, backdropPath: null, logoPath: null,
+                    posterPath: null, rawPosterUrl: null,
+                    backdropPath: null, rawBackdropUrl: null,
+                    logoPath: null, rawLogoUrl: null,
                 };
 
                 if (newMediaItems[fallbackId].type === 'movie') {
@@ -357,8 +382,11 @@ export const updateMediaMatch = async (tmdb, oldTmdbId, match) => {
         }
         
         if (oldData.posterPath) try { await remove(oldData.posterPath, { baseDir: BaseDirectory.AppData }); } catch (e) { }
+        if (oldData.posterPathFull) try { await remove(oldData.posterPathFull, { baseDir: BaseDirectory.AppData }); } catch (e) { }
         if (oldData.backdropPath) try { await remove(oldData.backdropPath, { baseDir: BaseDirectory.AppData }); } catch (e) { }
+        if (oldData.backdropPathFull) try { await remove(oldData.backdropPathFull, { baseDir: BaseDirectory.AppData }); } catch (e) { }
         if (oldData.logoPath) try { await remove(oldData.logoPath, { baseDir: BaseDirectory.AppData }); } catch (e) { }
+        if (oldData.logoPathFull) try { await remove(oldData.logoPathFull, { baseDir: BaseDirectory.AppData }); } catch (e) { }
         
         delete libraryCache.mediaItems[oldTmdbId];
         libraryCache.mediaItems[tmdbId] = newEntry;
@@ -414,8 +442,11 @@ export const removeMedia = async (tmdbId, deleteFromDisk = false) => {
         }
         
         if (oldData.posterPath) try { await remove(oldData.posterPath, { baseDir: BaseDirectory.AppData }); } catch (e) { }
+        if (oldData.posterPathFull) try { await remove(oldData.posterPathFull, { baseDir: BaseDirectory.AppData }); } catch (e) { }
         if (oldData.backdropPath) try { await remove(oldData.backdropPath, { baseDir: BaseDirectory.AppData }); } catch (e) { }
+        if (oldData.backdropPathFull) try { await remove(oldData.backdropPathFull, { baseDir: BaseDirectory.AppData }); } catch (e) { }
         if (oldData.logoPath) try { await remove(oldData.logoPath, { baseDir: BaseDirectory.AppData }); } catch (e) { }
+        if (oldData.logoPathFull) try { await remove(oldData.logoPathFull, { baseDir: BaseDirectory.AppData }); } catch (e) { }
         
         delete libraryCache.mediaItems[tmdbId];
         for (const p of filePaths) {
@@ -607,6 +638,57 @@ export const removeEpisodeFile = async (tmdbId, seasonNum, episodeNum, deleteFro
         return libraryCache.mediaItems;
     } catch (e) {
         console.error("Failed to remove episode file", e);
+        throw e;
+    }
+};
+
+export const updateMediaPosters = async (tmdbId, newPosterUrls) => {
+    try {
+        const cacheData = await readTextFile(CACHE_FILE, { baseDir: BaseDirectory.AppData });
+        const libraryCache = { ...JSON.parse(cacheData) };
+        const item = libraryCache.mediaItems[tmdbId];
+        if (!item) return libraryCache.mediaItems;
+        
+        if (newPosterUrls.poster && newPosterUrls.poster !== item.rawPosterUrl) {
+            if (item.posterPath) {
+                try { await remove(item.posterPath, { baseDir: BaseDirectory.AppData }); } catch (e) { }
+            }
+            if (item.posterPathFull) {
+                try { await remove(item.posterPathFull, { baseDir: BaseDirectory.AppData }); } catch (e) { }
+            }
+            item.rawPosterUrl = newPosterUrls.poster;
+            item.posterPath = await downloadImage(getImageUrl(item.rawPosterUrl, IMAGE_SIZES.poster), getImageFilename(tmdbId, 'poster', false, item.rawPosterUrl));
+            item.posterPathFull = await downloadImage(getImageUrl(item.rawPosterUrl, "original"), getImageFilename(tmdbId, 'poster', true, item.rawPosterUrl));
+        }
+
+        if (newPosterUrls.backdrop && newPosterUrls.backdrop !== item.rawBackdropUrl) {
+            if (item.backdropPath) {
+                try { await remove(item.backdropPath, { baseDir: BaseDirectory.AppData }); } catch (e) { }
+            }
+            if (item.backdropPathFull) {
+                try { await remove(item.backdropPathFull, { baseDir: BaseDirectory.AppData }); } catch (e) { }
+            }
+            item.rawBackdropUrl = newPosterUrls.backdrop;
+            item.backdropPath = await downloadImage(getImageUrl(item.rawBackdropUrl, IMAGE_SIZES.backdrop), getImageFilename(tmdbId, 'backdrop', false, item.rawBackdropUrl));
+            item.backdropPathFull = await downloadImage(getImageUrl(item.rawBackdropUrl, "original"), getImageFilename(tmdbId, 'backdrop', true, item.rawBackdropUrl));
+        }
+
+        if (newPosterUrls.logo && newPosterUrls.logo !== item.rawLogoUrl) {
+            if (item.logoPath) {
+                try { await remove(item.logoPath, { baseDir: BaseDirectory.AppData }); } catch (e) { }
+            }
+            if (item.logoPathFull) {
+                try { await remove(item.logoPathFull, { baseDir: BaseDirectory.AppData }); } catch (e) { }
+            }
+            item.rawLogoUrl = newPosterUrls.logo;
+            item.logoPath = await downloadImage(getImageUrl(item.rawLogoUrl, IMAGE_SIZES.logo), getImageFilename(tmdbId, 'logo', false, item.rawLogoUrl));
+            item.logoPathFull = await downloadImage(getImageUrl(item.rawLogoUrl, "original"), getImageFilename(tmdbId, 'logo', true, item.rawLogoUrl));
+        }
+        
+        await writeTextFile(CACHE_FILE, JSON.stringify(libraryCache, null, 2), { baseDir: BaseDirectory.AppData });
+        return libraryCache.mediaItems;
+    } catch (e) {
+        console.error("Failed to update media posters", e);
         throw e;
     }
 };

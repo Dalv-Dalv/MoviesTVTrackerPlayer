@@ -1,7 +1,7 @@
 import { useLocalImage } from '../hooks/useLocalImage';
 import { useState, useEffect, useRef } from 'react';
 
-export function MovieImage({ relativePath, imagePath, altText, className = "" }) {
+export function MovieImage({ relativePath, imagePath, altText, className = "", lazy = true }) {
     const path = imagePath || relativePath;
     const src = useLocalImage(path);
     const [isLoaded, setIsLoaded] = useState(false);
@@ -31,9 +31,9 @@ export function MovieImage({ relativePath, imagePath, altText, className = "" })
         ref={imgRef}
         src={src} 
         alt={altText} 
-        className={`object-cover object-center ${transitionClass} ${className}`} 
+        className={`${className.includes('object-') ? '' : 'object-cover object-center'} ${transitionClass} ${className}`} 
         style={{ opacity: isLoaded ? undefined : 0 }}
-        loading="lazy"
+        loading={lazy ? "lazy" : undefined}
         onLoad={() => setIsLoaded(true)}
     />
 }

@@ -125,7 +125,7 @@ html {
     --surface-elevated: #334155;
 
     --text-primary: hsl(352, 2%, 94%);
-    --text-muted: hsl(352, 3%, 60%);
+    --text-muted: hsl(352, 1%, 60%);
     --text-inverted: #ffffff;
 
     --primary: hsl(13, 94%, 61%);

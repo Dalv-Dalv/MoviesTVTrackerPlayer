@@ -2,10 +2,56 @@ import { BaseDirectory, mkdir, exists, writeFile } from '@tauri-apps/plugin-fs';
 import { join } from '@tauri-apps/api/path';
 import { getFullImagePath, ImageSizes, TMDB_IMAGE_BASE_URL } from '@api-wrappers/tmdb-wrapper';
 import { withRetry, sleep } from '../utils/GeneralUtils';
+import { fetch as tauriFetch } from '@tauri-apps/plugin-http';
+
+export const IMAGE_SIZES = {
+    poster: "w342",
+    backdrop: "w1280",
+    logo: "w500",
+    full: "original"
+};
+
+export const getImageFilename = (tmdbId, type, isFull, imagePath = '') => {
+    const size = isFull ? "Original" : IMAGE_SIZES[type.toLowerCase()].toUpperCase();
+    let ext = type.toLowerCase() === 'logo' ? 'png' : 'jpg';
+    
+    if (imagePath) {
+        const parts = imagePath.split('.');
+        if (parts.length > 1) {
+            const parsedExt = parts.pop().toLowerCase();
+            if (['jpg', 'jpeg', 'png', 'svg', 'webp'].includes(parsedExt)) {
+                ext = parsedExt;
+            }
+        }
+    }
+    
+    return `${tmdbId}_${type.charAt(0).toUpperCase() + type.slice(1)}_${size}.${ext}`;
+};
 
 export const getImageUrl = (imagePath, size = "original") => {
     if (!imagePath) return null;
     return getFullImagePath(TMDB_IMAGE_BASE_URL, size, imagePath);
+};
+
+export const getAllImages = async (tmdb, tmdbId, isShow) => {
+    try {
+        const tmdbApi = isShow ? tmdb.tvShows : tmdb.movies;
+
+        const imagesData = await withRetry(() => tmdbApi.images(tmdbId, {
+            include_image_language: ["en", "null"]
+        }));
+
+        if (!imagesData) return null;
+
+        return {
+            backdrops: imagesData.backdrops.map((e) => ({full: getImageUrl(e.file_path), half: getImageUrl(e.file_path, "w500"), key: e.file_path})),
+            logos: imagesData.logos.map((e) => ({full: getImageUrl(e.file_path), half: getImageUrl(e.file_path, "w500"), key: e.file_path})),
+            posters: imagesData.posters.map((e) => ({full: getImageUrl(e.file_path), half: getImageUrl(e.file_path, "w500"), key: e.file_path})),
+        }
+    } catch (imageError) {
+        console.error(`Failed to fetch extra images for ${tmdbId}:`, imageError);
+    }
+    return null;
 };
 
 export const downloadImage = async (url, localFileName) => {
@@ -16,7 +62,7 @@ export const downloadImage = async (url, localFileName) => {
             await mkdir('images', { baseDir: BaseDirectory.AppData });
         }
 
-        const response = await fetch(url);
+        const response = await tauriFetch(url);
         if (!response.ok) throw new Error(`Failed to fetch image: ${response.statusText}`);
 
         const arrayBuffer = await response.arrayBuffer();
@@ -39,33 +85,42 @@ export const downloadLogo = async (tmdb, tmdbId, isShow) => {
             include_image_language: ["en", "null"]
         }));
 
-        if (!imagesData || !imagesData.logos || imagesData.logos.length <= 0) return null;
+        if (!imagesData || !imagesData.logos || imagesData.logos.length <= 0) return { localPath: null, localPathFull: null, rawPath: null };
 
         const logoPath = imagesData.logos[0].file_path;
-        const fullLogoUrl = getImageUrl(logoPath, "w500");
-        return await downloadImage(fullLogoUrl, `Logo_${tmdbId}.png`);
+        const localPath = await downloadImage(getImageUrl(logoPath, "w500"), getImageFilename(tmdbId, 'logo', false, logoPath));
+        const localPathFull = await downloadImage(getImageUrl(logoPath, "original"), getImageFilename(tmdbId, 'logo', true, logoPath));
+        return { localPath, localPathFull, rawPath: logoPath };
     } catch (imageError) {
         console.error(`Failed to fetch extra images for ${tmdbId}:`, imageError);
     }
-    return null;
-}
+    return { localPath: null, localPathFull: null, rawPath: null };
+};
 
 export const downloadMediaImages = async (tmdb, tmdbId, match, isShow) => {
     let localPosterPath = null;
+    let localPosterPathFull = null;
     if (match.poster_path) {
-        const fullUrl = getImageUrl(match.poster_path, "original");
-        localPosterPath = await downloadImage(fullUrl, `Poster_${tmdbId}.jpg`);
+        localPosterPath = await downloadImage(getImageUrl(match.poster_path, "w500"), getImageFilename(tmdbId, 'poster', false, match.poster_path));
+        localPosterPathFull = await downloadImage(getImageUrl(match.poster_path, "original"), getImageFilename(tmdbId, 'poster', true, match.poster_path));
     }
 
     let localBackdropPath = null;
+    let localBackdropPathFull = null;
     if (match.backdrop_path) {
-        const fullUrl = getImageUrl(match.backdrop_path, "original");
-        localBackdropPath = await downloadImage(fullUrl, `Backdrop_${tmdbId}.jpg`);
+        localBackdropPath = await downloadImage(getImageUrl(match.backdrop_path, "w1280"), getImageFilename(tmdbId, 'backdrop', false, match.backdrop_path));
+        localBackdropPathFull = await downloadImage(getImageUrl(match.backdrop_path, "original"), getImageFilename(tmdbId, 'backdrop', true, match.backdrop_path));
     }
 
-    let localLogoPath = await downloadLogo(tmdb, tmdbId, isShow);
+    let logoData = await downloadLogo(tmdb, tmdbId, isShow);
 
-    return { localPosterPath, localBackdropPath, localLogoPath };
+    return { 
+        localPosterPath, localPosterPathFull, 
+        localBackdropPath, localBackdropPathFull, 
+        localLogoPath: logoData.localPath, 
+        localLogoPathFull: logoData.localPathFull,
+        rawLogoUrl: logoData.rawPath 
+    };
 };
 
 const getTrailerKey = (videos) => {
@@ -98,9 +153,13 @@ export const fetchDetailedMetadata = async (tmdb, tmdbId, type, isLocalScan = fa
             status: details.status,
             posterPath: getImageUrl(details.poster_path, "w500"),
             posterPathFull: getImageUrl(details.poster_path, "original"),
+            rawPosterUrl: details.poster_path || null,
             backdropPath: getImageUrl(details.backdrop_path, "w780"),
             backdropPathFull: getImageUrl(details.backdrop_path, "original"),
+            rawBackdropUrl: details.backdrop_path || null,
             logoPath: null,
+            logoPathFull: null,
+            rawLogoUrl: null,
             trailerKey: getTrailerKey(details.videos),
             cast: details.credits?.cast?.slice(0, 10).map(c => ({
                 id: c.id,
@@ -174,12 +233,14 @@ export const fetchDetailedMetadata = async (tmdb, tmdbId, type, isLocalScan = fa
         if (isLocalScan) {
             //TODO: Check if its a show and check settings for wether or not to download episode thumbnails too
 
-            const { localPosterPath, localBackdropPath, localLogoPath } = await downloadMediaImages(tmdb, tmdbId, details, isShow);
+            const { localPosterPath, localPosterPathFull, localBackdropPath, localBackdropPathFull, localLogoPath, localLogoPathFull, rawLogoUrl } = await downloadMediaImages(tmdb, tmdbId, details, isShow);
             mediaItem.posterPath = localPosterPath || mediaItem.posterPath;
-            mediaItem.posterPathFull = localPosterPath || mediaItem.posterPathFull;
+            mediaItem.posterPathFull = localPosterPathFull || mediaItem.posterPathFull;
             mediaItem.backdropPath = localBackdropPath || mediaItem.backdropPath;
-            mediaItem.backdropPathFull = localBackdropPath || mediaItem.backdropPathFull;
+            mediaItem.backdropPathFull = localBackdropPathFull || mediaItem.backdropPathFull;
             mediaItem.logoPath = localLogoPath;
+            mediaItem.logoPathFull = localLogoPathFull;
+            mediaItem.rawLogoUrl = rawLogoUrl;
         }
 
         return mediaItem;
@@ -189,7 +250,6 @@ export const fetchDetailedMetadata = async (tmdb, tmdbId, type, isLocalScan = fa
         throw error;
     }
 };
-
 
 export const extractBasicMetadata = (match, type = null) => {
     if (!match) return null;
@@ -206,8 +266,12 @@ export const extractBasicMetadata = (match, type = null) => {
         releaseDate: match.release_date || match.first_air_date,
         overview: match.overview,
         posterPath: getImageUrl(match.poster_path, "w500"),
+        rawPosterUrl: match.poster_path || null,
         backdropPath: getImageUrl(match.backdrop_path, "w780"),
+        rawBackdropUrl: match.backdrop_path || null,
         logoPath: null,
+        logoPathFull: null,
+        rawLogoUrl: null,
         voteAverage: match.vote_average,
         voteCount: match.vote_count
     };
