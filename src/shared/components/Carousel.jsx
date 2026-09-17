@@ -1,7 +1,7 @@
 import { CaretLeftIcon, CaretRightIcon } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
 
-export function Carousel({ children, className = "", id = "default-carousel" }) {
+export function Carousel({ children, className = "", id = "default-carousel", paddingClass = "px-12 scroll-px-12" }) {
     const rowRef = useRef(null);
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMaxScrolled, setIsMaxScrolled] = useState(false);
@@ -101,7 +101,7 @@ export function Carousel({ children, className = "", id = "default-carousel" }) 
             <div
                 ref={rowRef}
                 onScroll={handleScroll}
-                className="flex flex-row gap-4 px-6 py-10 w-full overflow-x-auto noScrollbar scroll-px-6"
+                className={`flex flex-row gap-4 py-10 w-full overflow-x-auto noScrollbar ${paddingClass}`}
                 style={maskStyle}
             >
                 {children}

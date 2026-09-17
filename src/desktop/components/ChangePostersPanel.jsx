@@ -49,21 +49,21 @@ export function ChangePostersPanel({ media, changingPosterType, setChangingPoste
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
                     transition={{ duration: 0.3 }}
-                    className='absolute z-50 right-10 w-100 top-10 h-[calc(100vh-5rem)] flex flex-col items-end justify-end gap-4 noselect bg-surface/90 backdrop-brightness-50 backdrop-blur-lg border border-white/10 shadow-xl shadow-background/50 rounded-xl p-4'
+                    className='absolute z-50 right-10 w-100 top-10 h-[calc(100vh-5rem)] flex flex-col items-center justify-end gap-4 noselect bg-surface/90 backdrop-brightness-50 backdrop-blur-lg border border-white/10 shadow-xl shadow-background/50 rounded-xl py-4'
                 >
-                    <div className='w-full flex text-body bg-white/5 rounded-xl overflow-hidden border border-white/8 cursor-pointer'>
-                        <div onClick={() => setChangingPosterType('poster')} className={`flex-1 text-center py-2 rounded-sm transition-colors ${changingPosterType === 'poster' ? 'bg-white/10' : 'text-muted hover:bg-white/5'}`}>
+                    <div className='flex self-stretch text-body bg-white/5 rounded-xl overflow-hidden border border-white/8 cursor-pointer mx-4'>
+                        <div onClick={() => setChangingPosterType('poster')} className={`flex-1 text-center py-2 transition-colors ${changingPosterType === 'poster' ? 'bg-white/10' : 'text-muted hover:bg-white/5'}`}>
                             Poster
                         </div>
-                        <div onClick={() => setChangingPosterType('backdrop')} className={`flex-1 text-center py-2 rounded-sm transition-colors ${changingPosterType === 'backdrop' ? 'bg-white/10' : 'text-muted hover:bg-white/5'}`}>
+                        <div onClick={() => setChangingPosterType('backdrop')} className={`flex-1 text-center py-2 transition-colors ${changingPosterType === 'backdrop' ? 'bg-white/10' : 'text-muted hover:bg-white/5'}`}>
                             Backdrop
                         </div>
-                        <div onClick={() => setChangingPosterType('logo')} className={`flex-1 text-center py-2 rounded-sm transition-colors ${changingPosterType === 'logo' ? 'bg-white/10' : 'text-muted hover:bg-white/5'}`}>
+                        <div onClick={() => setChangingPosterType('logo')} className={`flex-1 text-center py-2 transition-colors ${changingPosterType === 'logo' ? 'bg-white/10' : 'text-muted hover:bg-white/5'}`}>
                             Logo
                         </div>
                     </div>
 
-                    <div ref={scrollRef} className="flex-1 w-full overflow-y-auto flex flex-wrap gap-4 rounded-lg p-2">
+                    <div ref={scrollRef} className="flex-1 w-full overflow-y-auto flex flex-wrap gap-4 rounded-lg px-4">
                         {availableImages && availableImages[`${changingPosterType}s`]?.map((elem, i) => {
                             const isSelected = newPosterUrls[changingPosterType] === elem.key;
                             const itemWidth = changingPosterType === 'poster' ? 'w-[calc(50%-0.5rem)]' : 'w-full';
@@ -72,20 +72,29 @@ export function ChangePostersPanel({ media, changingPosterType, setChangingPoste
                             return (
                                 <div 
                                     key={`${elem.key}-${i}`} 
-                                    className={`relative ${itemWidth} rounded-lg overflow-hidden cursor-pointer transition-all duration-300 ${isSelected ? 'scale-[1.02] hover:scale-[1.03]' : 'scale-100 hover:scale-[1.01]'}`}
+                                    className={`relative ${itemWidth} rounded-lg overflow-hidden cursor-pointer group`}
                                     style={{ aspectRatio: itemAspect }}
                                     onClick={() => setNewPosterUrls(prev => ({ ...prev, [changingPosterType]: elem.key }))}
                                 >
                                     <MovieImage imagePath={elem.half} className={`absolute inset-0 w-full h-full ${changingPosterType === 'logo' ? 'object-contain p-4' : 'object-cover'}`}/>
 
-                                    <div className={`absolute rounded-lg inset-0 ring-4 ring-inset ring-primary/70 pointer-events-none transition-opacity ${!isSelected && 'opacity-0'}`}/>
-                                    <div className='absolute rounded-lg inset-0 ring-1 ring-inset ring-white/70 pointer-events-none mix-blend-soft-light' />
+                                    {changingPosterType !== 'logo' ? (
+                                        <>
+                                            <div className={`absolute rounded-lg inset-0 ring-0 ${isSelected && 'ring-4'} ring-inset ring-primary/70 pointer-events-none transition-shadow`}/>
+                                            <div className='absolute rounded-lg inset-0 ring-1 ring-inset ring-white/70 pointer-events-none mix-blend-soft-light transition-shadow group-hover:ring-4' />
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div className={`absolute rounded-lg inset-0 ring-inset ${isSelected ? 'ring-4 ring-primary/70' : 'ring-1 ring-transparent'} pointer-events-none transition-shadow`}/>
+                                            <div className='absolute rounded-lg inset-0 ring-1 ring-inset ring-white/10 pointer-events-none transition-shadow group-hover:ring-4' />
+                                        </>
+                                    )}
                                 </div>
                             );
                         })}
                     </div>
 
-                    <div className="flex gap-4 justify-end w-full mt-2">
+                    <div className="flex gap-4 justify-end w-full mt-2 px-4">
                         <button disabled={isSaving} onClick={() => setChangingPosterType(null)} className="px-4 py-2 rounded-lg hover:bg-divider transition-colors cursor-pointer text-muted">
                             Cancel
                         </button>

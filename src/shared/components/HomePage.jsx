@@ -50,7 +50,7 @@ export default function HomePage({ className = '' }) {
                 )}
 
 
-                <div className='px-6 mt-10 text-body -mb-6 flex flex-row gap-4 items-center justify-between noselect relative z-10'>
+                <div className='px-12 mt-10 text-body -mb-6 flex flex-row gap-4 items-center justify-between noselect relative z-10'>
                     <span className='font-bold text-2xl'>
                         Library
                     </span>
@@ -74,7 +74,7 @@ export default function HomePage({ className = '' }) {
                 </div>
 
                 <div className='w-full noselect mb-100'>
-                    <Carousel id="home-library" className="relative z-0">
+                    <Carousel id="home-library" className="relative z-0" paddingClass="px-6 d:px-12 scroll-px-6 d:scroll-px-12">
                         {mediaItems.map((elem) => (
                             <div
                                 onClick={() => navigate(`/details/${elem.tmdbId}`)}
@@ -90,7 +90,7 @@ export default function HomePage({ className = '' }) {
                                         />
                                     )}
 
-                                    <div className="relative z-10 w-full h-full rounded-lg overflow-hidden shadow-md shadow-black/50 bg-neutral-900">
+                                    <div className="relative z-10 w-full h-full rounded-lg overflow-hidden bg-background">
                                         <MovieImage
                                             relativePath={elem.posterPath}
                                             altText={elem.title}
@@ -108,10 +108,7 @@ export default function HomePage({ className = '' }) {
                                 key={`skeleton-${video.filePath}-${idx}`}
                                 className='group relative w-[35vw] d:w-[25vw] max-w-70 shrink-0 aspect-2/3 snap-start'
                             >
-                                <div className="relative z-10 w-full h-full rounded-lg overflow-hidden shadow-md shadow-black/50 bg-neutral-800/80 animate-pulse flex flex-col items-center justify-center p-4">
-                                    <span className="text-neutral-500 text-xs text-center font-medium break-all line-clamp-3">
-                                        {video.name || video.filename}
-                                    </span>
+                                <div className="relative z-10 w-full h-full rounded-lg overflow-hidden bg-surface animate-pulse flex flex-col items-center justify-center p-4">
                                     <div className="absolute rounded-lg inset-0 ring-1 ring-inset ring-white/10 pointer-events-none" />
                                 </div>
                             </div>

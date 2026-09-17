@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { MovieImage } from '../../shared/components/MovieImage';
 import { Modal } from '../../shared/components/Modal';
-import { DotsThreeVerticalIcon, PlayIcon, PlusIcon, XIcon, MagnifyingGlassIcon, ClockCounterClockwiseIcon, TrashIcon, CheckIcon, ArrowLeftIcon, CaretDownIcon, CaretRightIcon, ClockCountdownIcon, ClockIcon, ImageSquareIcon, EyeIcon } from '@phosphor-icons/react';
+import { DotsThreeVerticalIcon, PlayIcon, PlusIcon, XIcon, MagnifyingGlassIcon, ClockCounterClockwiseIcon, TrashIcon, CheckIcon, ArrowLeftIcon, CaretDownIcon, CaretRightIcon, ClockCountdownIcon, ClockIcon, ImageSquareIcon, EyeIcon, UserIcon } from '@phosphor-icons/react';
 import { useWatchHistoryStore, getResumeEpisode } from '../../shared/store/useWatchHistoryStore';
 import { useLibraryStore } from '../../shared/store/useLibraryStore';
 import { InfoIcon } from '@phosphor-icons/react';
@@ -38,28 +38,57 @@ function TabsButton({ name, onClick, isSelected = false, className = '' }) {
 function SeasonSection({ season, navigate, tmdbId, className = '' }) {
     const [isExpanded, setIsExpanded] = useState(season.isLastWatched);
     const [isAnimating, setIsAnimating] = useState(false);
+    const headerRef = useRef(null);
+
+    const toggleExpanded = () => {
+        if (isExpanded && headerRef.current) {
+            const header = headerRef.current;
+            const parent = header.parentElement;
+            const scrollContainer = header.closest('.overflow-y-auto');
+
+            if (scrollContainer) {
+                const parentRect = parent.getBoundingClientRect();
+                const containerRect = scrollContainer.getBoundingClientRect();
+                const relativeTop = parentRect.top - containerRect.top;
+
+                if (relativeTop < 40) {
+                    const absoluteTop = scrollContainer.scrollTop + relativeTop;
+                    const targetScrollTop = absoluteTop - 40;
+
+                    setTimeout(() => {
+                        scrollContainer.scrollTo({ top: targetScrollTop, behavior: 'auto' });
+                    }, 0);
+                }
+            } else {
+                const parentRect = parent.getBoundingClientRect();
+                if (parentRect.top < 40) {
+                    const absoluteTop = window.scrollY + parentRect.top;
+                    const targetScrollTop = absoluteTop - 40;
+
+                    setTimeout(() => {
+                        window.scrollTo({ top: targetScrollTop, behavior: 'auto' });
+                    }, 0);
+                }
+            }
+        }
+        setIsExpanded(!isExpanded);
+    };
 
     return (
         <div className={`rounded-2xl text-lg ${className}`}>
             <div
-                className='relative px-4 py-2 flex items-center gap-4 rounded-lg cursor-pointer group bg-background'
-                onClick={() => setIsExpanded(!isExpanded)}
+                ref={headerRef}
+                className='sticky top-10 z-50 px-4 py-2 flex items-center gap-2 cursor-pointer group bg-background'
+                onClick={toggleExpanded}
             >
-                <div className='absolute inset-px overflow-hidden rounded-full'>
-                    <div
-                        className={`absolute left-[-45%] h-[200%] w-full bg-[radial-gradient(circle_1040px_at_50%_630px,white_50%,transparent_60%)] opacity-15 group-hover:opacity-20 group-active:opacity-30 transition-[opacity,translate] group-hover:-translate-y-2 duration-300 pointer-events-none
-                        ${isExpanded ? 'opacity-35 group-hover:opacity-40 -translate-y-2 group-hover:-translate-y-2.5' : 'translate-y-6'}`}
-                    />
-
-                    <div className="absolute z-10 inset-0 pointer-events-none mix-blend-overlay rounded-full border border-white" />
-                </div>
-
                 <CaretRightIcon
                     size={20}
                     weight='bold'
                     className={`text-muted transition-transform duration-300 ${isExpanded ? 'rotate-90' : 'rotate-0'}`}
                 />
-                <span>{season.name}</span>
+                <span className='text-muted text-lg tracking-wide transition-colors group-hover:text-body'>
+                    {season.name}
+                </span>
             </div>
 
             <AnimatePresence initial={false}>
@@ -128,7 +157,7 @@ function EpisodeCard({ episode, tmdbId, seasonNumber, navigate, className = '' }
                     className={`relative h-35 rounded-2xl overflow-hidden shadow-lg shadow-background ${episode.isDownloaded ? 'cursor-pointer' : ''}`}
                     onClick={episode.isDownloaded ? (() => navigate(`/play/${tmdbId}?s=${seasonNumber}&e=${episode.number}`)) : (() => { })}
                 >
-                    <img src={episode.stillPath} className='h-full rounded-2xl' />
+                    <img src={episode.stillPathFull} className='h-full rounded-2xl' />
 
                     {episode.isDownloaded && (
                         <div className='absolute inset-0 bg-black/20 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300'>
@@ -152,9 +181,9 @@ function EpisodeCard({ episode, tmdbId, seasonNumber, navigate, className = '' }
 
             <div className='relative z-20 flex flex-col flex-1 justify-center gap-1'>
                 <span>
+                    {episode.name && `${episode.number}. `}
                     {episode.name || `Episode ${episode.number}`}
                 </span>
-
                 <p className='text-muted text-sm'>
                     {episode.overview}
                 </p>
@@ -434,17 +463,21 @@ export function DesktopMediaDetails({ media: rawMedia, tmdbId, navigate }) {
         <div ref={containerRef} className="w-full pb-400">
             {/* Backdrop */}
             <motion.div
-                initial={{ opacity: 0, y: -10 }}
+                initial={{ opacity: 0, y: -30 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 0 }}
                 transition={{ duration: 0.5 }}
-                className='absolute left-0 top-0 w-full pointer-events-none noselect'
+                className='absolute left-0 top-0 right-0 max-h-screen overflow-hidden pointer-events-none noselect'
             >
                 <MovieImage
                     relativePath={displayBackdrop}
-                    className={`w-full mask-[linear-gradient(to_top,transparent_1%,black_60%)] pointer-events-none transition-transform duration-500 ${changingPosterType === 'backdrop' ? 'scale-101' : 'scale-100'}`}
+                    className={`w-full pointer-events-none transition-transform duration-500 ${changingPosterType === 'backdrop' ? 'scale-101' : 'scale-100'}`}
                 />
+
+                <div className="absolute inset-0 bg-linear-to-t from-black from-1% to-transparent to-60% pointer-events-none" />
             </motion.div>
+
+            <div className='absolute inset-0 top-[100vh] bg-background' />
 
             {/* Top buttons */}
             <div className='fixed top-6 inset-x-6 z-50 flex items-center justify-between gap-2 pointer-events-none'>
@@ -534,12 +567,11 @@ export function DesktopMediaDetails({ media: rawMedia, tmdbId, navigate }) {
                     className='w-full h-full relative pl-12 pt-[calc(100vh+1.5rem-min(33vw,20rem)*1.5)] noselect'
                 >
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
+                        initial={{ opacity: 0, y: 50 }}
+                        animate={{ opacity: 1, y: 0 }}
                         exit={{
-                            opacity: 0,
-                            scale: 1,
-                            transition: { duration: 0.15, ease: "easeIn" }
+                            opacity: 0, y: 0,
+                            transition: { duration: 0.4, ease: "easeIn" }
                         }}
                         transition={{
                             type: "tween",
@@ -561,8 +593,7 @@ export function DesktopMediaDetails({ media: rawMedia, tmdbId, navigate }) {
                                 className='w-full h-full object-cover block'
                             />
 
-                            <div className="absolute rounded-lg inset-0 ring-1 ring-inset ring-white/70 pointer-events-none mix-blend-soft-light" />
-                            <div className="absolute rounded-lg inset-0 ring-1 ring-inset ring-white/8 pointer-events-none" />
+                            <div className="absolute rounded-lg inset-0 ring-1 ring-inset ring-white/90 pointer-events-none mix-blend-soft-light" />
                         </div>
                     </motion.div>
                 </div>
@@ -570,23 +601,39 @@ export function DesktopMediaDetails({ media: rawMedia, tmdbId, navigate }) {
 
                 {/* Right details column */}
                 <div className='w-full h-full min-w-0'>
-                    <div className='h-screen p-12 pl-0 text-body relative z-10'>
-                        <div className={`w-full h-full flex flex-col justify-end transition-opacity duration-300 ${changingPosterType ? 'opacity-0' : 'opacity-100'}`}>
-                            <h1 className="text-4xl font-bold tracking-wide">
-                                {media.title}
-                            </h1>
+                    <motion.div
+                        initial={{ opacity: 0, x: 50 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{
+                            opacity: 0, x: 0,
+                            transition: { duration: 0.4, ease: "easeIn" }
+                        }}
+                        transition={{
+                            type: "tween",
+                            ease: [0.5, 0, 0, 1],
+                            duration: 0.7
+                        }}
+                        className='h-screen p-12 pl-0 text-body relative z-10'
+                    >
+                        <div className={`w-full h-full flex flex-col gap-4 justify-end transition-opacity duration-300 ${changingPosterType ? 'opacity-0' : 'opacity-100'}`}>
+                            <div className='-mb-1.5'>
+                                <h1 className='text-4xl font-bold tracking-wide'>
+                                    {media.title}
+                                </h1>
 
-                            <div className='text-muted font-semibold flex gap-4'>
-                                <span>{releaseYear}</span>
-                                <span>{runtimeText}</span>
+                                <div className='text-muted font-semibold flex gap-4'>
+                                    <span>{releaseYear}</span>
+                                    <span>{runtimeText}</span>
+                                </div>
                             </div>
 
-                            <div className='flex items-center gap-2 noselect mt-2 pb-6 text-body/80 w-full overflow-x-auto '>
+
+                            <div className='flex items-center gap-2 noselect text-body/80 w-full overflow-x-auto '>
                                 {(media.genreIds || media.genres || []).map(id => {
                                     const dict = media.type === 'show' ? tvGenres : movieGenres;
                                     const text = dict[id] || id;
                                     return (
-                                        <div key={id} className='bg-white/6 rounded-full p-2 px-4 tracking-wide border border-white/8 backdrop-blur-sm shrink-0 whitespace-nowrap'>
+                                        <div key={id} className='bg-white/6 rounded-lg p-2 px-4 tracking-wide border border-white/8 backdrop-blur-sm shrink-0 whitespace-nowrap'>
                                             {text}
                                         </div>
                                     )
@@ -598,7 +645,7 @@ export function DesktopMediaDetails({ media: rawMedia, tmdbId, navigate }) {
                             <div className='flex gap-4 noselect'>
                                 <button
                                     onClick={() => navigate(`/play/${tmdbId}`)}
-                                    className="bg-body text-black px-6 py-3 rounded-full w-fit font-bold flex flex-row items-center justify-center gap-2 cursor-pointer relative z-50 pointer-events-auto transition-colors hover:bg-body/90"
+                                    className="bg-body text-black px-4 py-3 rounded-lg w-fit font-bold flex flex-row items-center justify-center gap-2 cursor-pointer relative z-50 pointer-events-auto transition-colors hover:bg-body/90"
                                 >
                                     <PlayIcon size={20} weight='fill' />
                                     <span>
@@ -608,7 +655,7 @@ export function DesktopMediaDetails({ media: rawMedia, tmdbId, navigate }) {
 
                                 <button
                                     onClick={() => navigate(`/play/${tmdbId}`)}
-                                    className="text-muted px-4 py-3 rounded-full w-fit font-semibold flex flex-row items-center justify-center gap-2 cursor-pointer relative z-50 pointer-events-auto transition-colors bg-transparent hover:bg-black/40 hover:text-body"
+                                    className="text-muted px-4 py-3 rounded-lg w-fit font-semibold flex flex-row items-center justify-center gap-2 cursor-pointer relative z-50 pointer-events-auto transition-colors hover:text-body"
                                 >
                                     <PlusIcon size={20} weight='bold' />
                                     <span>Add to watch list</span>
@@ -623,7 +670,7 @@ export function DesktopMediaDetails({ media: rawMedia, tmdbId, navigate }) {
                                 className='w-fit max-w-1/2 max-h-1/2'
                             />
                         </div>
-                    </div>
+                    </motion.div>
 
                     <div className={`transition-all duration-300 ${changingPosterType ? 'opacity-0 pointer-events-none translate-y-10' : 'opacity-100 translate-y-0'}`}>
                         <div className='relative w-full max-w-2/3 flex justify-stretch items-center mb-4 text-center rounded-full border border-transparent overflow-hidden bg-black mix-blend-screen'>
@@ -637,6 +684,11 @@ export function DesktopMediaDetails({ media: rawMedia, tmdbId, navigate }) {
 
                             <div className="absolute inset-0 pointer-events-none mix-blend-overlay rounded-full border border-x-2 border-white" />
                         </div>
+
+                        {/* Gap cover mask for sticky seasons */}
+                        {activeTab === 'episodes' && (
+                            <div className="sticky top-0 h-10 w-full z-40 bg-background pointer-events-none" style={{ marginBottom: '-40px' }} />
+                        )}
 
                         {activeTab === 'details' && (
                             <>
@@ -704,6 +756,36 @@ export function DesktopMediaDetails({ media: rawMedia, tmdbId, navigate }) {
                             <div className='flex flex-col gap-2 text-body pr-12 noselect'>
                                 {media.seasons && media.seasons.filter(season => season.episodes && season.episodes.length > 0).map((season) => (
                                     <SeasonSection key={`season_${season.number}`} season={season} navigate={navigate} tmdbId={tmdbId} />
+                                ))}
+                            </div>
+                        )}
+
+                        {activeTab === 'cast' && (
+                            <div className='flex flex-wrap gap-4 text-body noselect max-w-3/4'>
+                                {media?.cast?.map((actor) => (
+                                    <div key={actor.id} className="w-32 md:w-40 flex flex-col shrink-0 group">
+
+                                        <div className="w-full aspect-2/3 relative rounded-lg overflow-hidden bg-background">
+                                            {actor.profilePath ? (
+                                                <MovieImage imagePath={actor.profilePath} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center bg-white/5">
+                                                    <UserIcon size={100} weight="fill" className="text-white/20" />
+                                                </div>
+                                            )}
+
+                                            <div className="absolute rounded-lg inset-0 ring-1 ring-inset ring-white/70 pointer-events-none mix-blend-soft-light" />
+                                        </div>
+
+                                        <div className="flex flex-col mt-1.5 px-1">
+                                            <span className="font-medium text-white truncate" title={actor.name}>
+                                                {actor.name}
+                                            </span>
+                                            <span className="text-sm text-gray-400 truncate" title={actor.character}>
+                                                {actor.character}
+                                            </span>
+                                        </div>
+                                    </div>
                                 ))}
                             </div>
                         )}

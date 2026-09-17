@@ -45,15 +45,13 @@ export function PageWrapper({ children, transparent = false, edgeToEdge = false,
     const containerClassName = `absolute inset-0 w-full h-full overflow-hidden overflow-y-auto ${transparent ? 'bg-transparent' : 'bg-background'} ${!edgeToEdge ? 'pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]' : ''}`;
 
     if (useDefaultTransition) {
-        const animationProps = isMobile
-            ? { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } }
-            : { initial: { opacity: 0, scale: 1.02 }, animate: { opacity: 1, scale: 1 }, exit: { opacity: 0, scale: 1.02 } };
+        const animationProps = { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } };
 
         return (
             <motion.div
                 ref={scrollRef}
                 {...animationProps}
-                transition={{ duration: isMobile ? 0.3 : 0.5, ease: "easeInOut" }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
                 onScroll={handleScroll}
                 className={containerClassName}
                 style={{ zIndex: depth * 100 }}

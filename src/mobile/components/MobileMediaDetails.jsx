@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { MovieImage } from '../../shared/components/MovieImage';
-import { ArrowLeftIcon, ArrowCircleDownIcon, CaretRightIcon, CheckIcon, ClockCounterClockwiseIcon, DotsThreeVerticalIcon, InfoIcon, MagnifyingGlassIcon, PlayIcon, PlusIcon, TrashIcon } from '@phosphor-icons/react';
+import { ArrowLeftIcon, ArrowCircleDownIcon, CaretRightIcon, CheckIcon, ClockCounterClockwiseIcon, DotsThreeVerticalIcon, InfoIcon, MagnifyingGlassIcon, PlayIcon, PlusIcon, TrashIcon, UserIcon } from '@phosphor-icons/react';
 import { Dropdown } from '../../shared/components/Dropdown';
 import { useGenres } from '../../shared/contexts/GenresContext';
 import { getResumeEpisode, useWatchHistoryStore } from '../../shared/store/useWatchHistoryStore';
@@ -530,6 +530,38 @@ export function MobileMediaDetails({ media: rawMedia, tmdbId, navigate }) {
                             {media.seasons && media.seasons.filter(season => season.episodes && season.episodes.length > 0).map((season) => (
                                 <SeasonSection key={`season_${season.number}`} season={season} navigate={navigate} tmdbId={tmdbId} />
                             ))}
+                        </div>
+                    )}
+                    
+                    {activeTab === 'cast' && (
+                        <div className='flex  flex-col gap-4 text-body noselect overflow-hidden w-full'>
+                            <div className='flex overflow-x-auto gap-4 pb-4 -mb-4 -mx-4 px-4'>
+                                {media?.cast?.map((actor) => (
+                                    <div key={actor.id} className="w-28 flex flex-col shrink-0 group snap-start">
+                                        
+                                        <div className="w-full aspect-2/3 relative rounded-lg overflow-hidden bg-background">
+                                            {actor.profilePath ? (
+                                                <MovieImage imagePath={actor.profilePath} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center bg-white/5">
+                                                    <UserIcon size={48} weight="fill" className="text-white/20" />
+                                                </div>
+                                            )}
+                                            
+                                            <div className="absolute rounded-lg inset-0 ring-1 ring-inset ring-white/70 pointer-events-none mix-blend-soft-light" />
+                                        </div>
+
+                                        <div className="flex flex-col mt-1.5 px-1">
+                                            <span className="font-medium text-white truncate text-sm" title={actor.name}>
+                                                {actor.name}
+                                            </span>
+                                            <span className="text-xs text-gray-400 truncate" title={actor.character}>
+                                                {actor.character}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     )}
                 </div>

@@ -161,11 +161,12 @@ export const fetchDetailedMetadata = async (tmdb, tmdbId, type, isLocalScan = fa
             logoPathFull: null,
             rawLogoUrl: null,
             trailerKey: getTrailerKey(details.videos),
-            cast: details.credits?.cast?.slice(0, 10).map(c => ({
+            cast: details.credits?.cast?.map(c => ({
                 id: c.id,
                 name: c.name,
                 character: c.character,
-                profilePath: getImageUrl(c.profile_path, "w185")
+                profilePath: getImageUrl(c.profile_path, "h632"),
+                profilePathFull: getImageUrl(c.profile_path, "original")
             })) || [],
             directors: details.credits?.crew?.filter(c => c.job === "Director" || c.job === "Creator").map(c => ({
                 name: c.name,
