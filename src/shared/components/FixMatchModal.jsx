@@ -1,6 +1,6 @@
-import { Modal } from '../../shared/components/Modal';
-import { useTMDB } from '../../shared/hooks/useTMDB';
-import { useLibraryStore } from '../../shared/store/useLibraryStore';
+import { Modal } from './Modal';
+import { useTMDB } from '../hooks/useTMDB';
+import { useLibraryStore } from '../store/useLibraryStore';
 import { useState, useEffect, useRef } from 'react';
 import parseVideo from 'video-name-parser';
 

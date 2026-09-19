@@ -4,20 +4,11 @@ import { ArrowLeftIcon } from '@phosphor-icons/react';
 import { formatTime } from '../../shared/utils/PlayerUtils';
 import { useKeyboardShortcuts } from '../hooks';
 import { useWakeUI, useFullscreen, usePlaybackSession, useScrubber, useLanguagePreferences } from '../../shared/hooks';
-import { LanguagePanel } from './LanguagePanel';
+import { LanguagePanel } from '../../shared/components/LanguagePanel';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Maximize2Icon, Minimize2Icon, PauseIcon, PlayIcon, Volume1Icon, Volume2Icon, VolumeIcon, VolumeOffIcon, VolumeXIcon, Loader2 } from 'lucide-react';
 
-export const PlayerButton = ({ children, onClick, className = '', ...props }) => {
-    return (
-        <button tabIndex={-1} className={`bg-black/10 hover:bg-black/40 p-1.5 rounded-sm transition-colors duration-200 ${className}`}
-            onClick={onClick}
-            {...props}>
-
-            {children}
-        </button>
-    );
-}
+import { PlayerButton } from '../../shared/components/PlayerButton';
 
 export const Player = () => {
     const { tmdbId } = useParams();

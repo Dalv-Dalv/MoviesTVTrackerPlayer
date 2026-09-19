@@ -50,7 +50,7 @@ export default function HomePage({ className = '' }) {
                 )}
 
 
-                <div className='px-12 mt-10 text-body -mb-6 flex flex-row gap-4 items-center justify-between noselect relative z-10'>
+                <div className='px-12 mp:px-4 mt-10 text-body -mb-6 flex flex-row gap-4 items-center justify-between noselect relative z-10'>
                     <span className='font-bold text-2xl'>
                         Library
                     </span>
@@ -74,7 +74,7 @@ export default function HomePage({ className = '' }) {
                 </div>
 
                 <div className='w-full noselect mb-100'>
-                    <Carousel id="home-library" className="relative z-0" paddingClass="px-6 d:px-12 scroll-px-6 d:scroll-px-12">
+                    <Carousel id="home-library" className="relative z-0" paddingClass="px-4 d:px-12 scroll-px-4 d:scroll-px-12">
                         {mediaItems.map((elem) => (
                             <div
                                 onClick={() => navigate(`/details/${elem.tmdbId}`)}

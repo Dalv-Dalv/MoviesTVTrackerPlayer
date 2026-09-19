@@ -4,22 +4,13 @@ import { VideoEvents } from '../../shared/services/VideoEvents';
 import { ArrowLeftIcon, FrameCornersIcon } from '@phosphor-icons/react';
 import { formatTime } from '../../shared/utils/PlayerUtils';
 import { useWakeUI, useFullscreen, useDoubleTap, usePlaybackSession, useScrubber, useLanguagePreferences } from '../../shared/hooks';
-import { LanguagePanel } from '../../desktop/components/LanguagePanel';
+import { LanguagePanel } from '../../shared/components/LanguagePanel';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Maximize2Icon, Minimize2Icon, PauseIcon, PlayIcon, Volume1Icon, Volume2Icon, VolumeIcon, VolumeOffIcon, VolumeXIcon, RewindIcon, FastForwardIcon, Loader2, Sun } from 'lucide-react';
 import { Animated } from './Animated';
 import { useDrag } from '@use-gesture/react';
 
-export const PlayerButton = ({ children, onClick, className = '', ...props }) => {
-    return (
-        <button tabIndex={-1} className={`bg-black/10 hover:bg-black/40 p-1.5 rounded-sm transition-colors duration-200 ${className}`}
-            onClick={onClick}
-            {...props}>
-
-            {children}
-        </button>
-    );
-}
+import { PlayerButton } from '../../shared/components/PlayerButton';
 
 export const Player = () => {
     const { tmdbId } = useParams();

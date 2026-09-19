@@ -1,35 +1,21 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { MovieImage } from '../../shared/components/MovieImage';
-import { ArrowLeftIcon, ArrowCircleDownIcon, CaretRightIcon, CheckIcon, ClockCounterClockwiseIcon, DotsThreeVerticalIcon, InfoIcon, MagnifyingGlassIcon, PlayIcon, PlusIcon, TrashIcon, UserIcon } from '@phosphor-icons/react';
+import { ArrowLeftIcon, ArrowCircleDownIcon, CaretRightIcon, CheckIcon, ClockCounterClockwiseIcon, DotsThreeVerticalIcon, InfoIcon, MagnifyingGlassIcon, PlayIcon, PlusIcon, TrashIcon, UserIcon, ImageSquareIcon, CheckCircleIcon } from '@phosphor-icons/react';
 import { Dropdown } from '../../shared/components/Dropdown';
 import { useGenres } from '../../shared/contexts/GenresContext';
 import { getResumeEpisode, useWatchHistoryStore } from '../../shared/store/useWatchHistoryStore';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useState, useEffect, useRef, useMemo, useContext } from 'react';
+import { MediaDetailsContext } from '../../shared/components/MediaDetails';
 import { formatRuntime } from '../../shared/utils/PlayerUtils';
-import { FixMatchModal } from '../../desktop/components/FixMatchModal';
+import { FixMatchModal } from '../../shared/components/FixMatchModal';
 import { Modal } from '../../shared/components/Modal';
-import { RemoveMediaModal } from '../../desktop/components/RemoveMediaModal';
-import { FileInfoModal } from '../../desktop/components/FileInfoModal';
+import { RemoveMediaModal } from '../../shared/components/RemoveMediaModal';
+import { FileInfoModal } from '../../shared/components/FileInfoModal';
+import { ChangePostersPanel } from '../../shared/components/ChangePostersPanel';
 import { useLibraryStore } from '../../shared/store/useLibraryStore';
 import { useLongPress } from '../../shared/hooks/useLongPress';
 
-function TabsButton({ name, onClick, isSelected = false, className = '' }) {
-    return (
-        <div
-            className={`relative first:rounded-l-full last:rounded-r-full p-2 noselect cursor-pointer text-body flex-1 ${className} transition-colors font-semibold ${isSelected ? '' : 'text-muted'} group`}
-            onClick={onClick}
-        >
-            <div
-                className={`absolute -inset-x-40 h-[200%] bg-[radial-gradient(circle_520px_at_50%_325px,white_50%,transparent_60%)] opacity-15 group-hover:opacity-20 group-active:opacity-30 transition-[opacity,translate] group-hover:-translate-y-2 duration-300 pointer-events-none
-                ${isSelected ? 'opacity-35 group-hover:opacity-40 -translate-y-2 group-hover:-translate-y-2.5' : 'translate-y-4'}`}
-            />
-
-            <span className='relative z-10'>
-                {name}
-            </span>
-        </div>
-    )
-}
+import { TabsButton } from '../../shared/components/TabsButton';
 
 function SeasonSection({ season, navigate, tmdbId, className = '' }) {
     const [isExpanded, setIsExpanded] = useState(season.isLastWatched);
@@ -173,7 +159,7 @@ function EpisodeCard({ episode, tmdbId, seasonNumber, navigate, className = '' }
 
                         {episode.isDownloaded && (
                             <div className='absolute top-4 right-4 z-30 pointer-events-none flex items-center justify-center p-2 text-muted'>
-                                <ArrowCircleDownIcon size={24} weight='fill' />
+                                <CheckCircleIcon size={24} weight='fill' />
                             </div>
                         )}
                     </div>
@@ -220,119 +206,38 @@ function EpisodeCard({ episode, tmdbId, seasonNumber, navigate, className = '' }
     )
 }
 
-const TAB_STORAGE_KEY = 'desktopMediaDetailsTabs';
-const MAX_STORED_TABS = 50;
-
-function getSavedTab(tmdbId, mediaType) {
-    try {
-        const stored = JSON.parse(localStorage.getItem(TAB_STORAGE_KEY) || '{}');
-        const saved = stored[tmdbId]?.tab;
-        if (saved === 'episodes' && mediaType !== 'show') return 'details';
-        return saved || 'details';
-    } catch {
-        return 'details';
-    }
-}
-
-function saveTab(tmdbId, tab) {
-    try {
-        const stored = JSON.parse(localStorage.getItem(TAB_STORAGE_KEY) || '{}');
-        stored[tmdbId] = { tab, ts: Date.now() };
-
-        const keys = Object.keys(stored);
-        if (keys.length > MAX_STORED_TABS) {
-            keys.sort((a, b) => stored[b].ts - stored[a].ts);
-            const pruned = {};
-            for (let i = 0; i < MAX_STORED_TABS; i++) {
-                pruned[keys[i]] = stored[keys[i]];
-            }
-            localStorage.setItem(TAB_STORAGE_KEY, JSON.stringify(pruned));
-        } else {
-            localStorage.setItem(TAB_STORAGE_KEY, JSON.stringify(stored));
-        }
-    } catch (e) {
-        console.error("Failed to save tab", e);
-    }
-}
-
-export function MobileMediaDetails({ media: rawMedia, tmdbId, navigate }) {
-    const history = useWatchHistoryStore(state => state.history[tmdbId]);
-    const historyLoaded = useWatchHistoryStore(state => state.isLoaded);
-    const setProgressAndSave = (progress) => useWatchHistoryStore.getState().setProgressAndSave(tmdbId, progress);
-
-    const { movieGenres, tvGenres } = useGenres();
-    const [activeModal, setActiveModal] = useState(null);
-    const [activeTab, setAcitveTab] = useState(() => getSavedTab(tmdbId, rawMedia?.type));
-    const prevTmdbId = useRef(tmdbId);
-    const [isOverviewExpanded, setIsOverviewExpanded] = useState(false);
-    const [isTruncated, setIsTruncated] = useState(false);
-    const overviewRef = useRef(null);
-
-    if (tmdbId !== prevTmdbId.current) {
-        prevTmdbId.current = tmdbId;
-        setAcitveTab(getSavedTab(tmdbId, rawMedia?.type));
-    }
-
-    const [trailerPlaying, setTrailerPlaying] = useState(false);
-
-    useEffect(() => {
-        if (activeTab === 'episodes' && rawMedia?.type !== 'show') {
-            setAcitveTab('details');
-        } else {
-            saveTab(tmdbId, activeTab);
-        }
-    }, [activeTab, rawMedia?.type, tmdbId]);
-
-    const media = useMemo(() => {
-        if (!rawMedia) return null;
-
-        if (rawMedia.type === 'movie') {
-            return {
-                ...rawMedia,
-                history: history || null,
-            };
-        }
-
-        if (rawMedia.type === 'show') {
-            return {
-                ...rawMedia,
-                history: history || null,
-                seasons: rawMedia.seasons?.map(season => ({
-                    ...season,
-                    isLastWatched: history?.lastPlayedSeason ? history.lastPlayedSeason === season.number : season.number === 1,
-                    episodes: season.episodes?.map(episode => {
-                        const epHistory = season.number === 0
-                            ? history?.specials?.episodes?.[episode.number - 1]
-                            : history?.seasons?.[season.number - 1]?.episodes?.[episode.number - 1];
-
-                        return {
-                            ...episode,
-                            history: epHistory || null
-                        };
-                    })
-                }))
-            };
-        }
-
-        return rawMedia;
-    }, [rawMedia, history]);
-
-    useEffect(() => {
-        if (overviewRef.current) {
-            setIsTruncated(overviewRef.current.scrollHeight > overviewRef.current.clientHeight);
-        }
-    }, [media?.overview]);
-
-    useEffect(() => {
-        setTrailerPlaying(false);
-    }, [media?.trailerKey]);
-
-    if (!media) return null;
-
+export function MobileMediaDetails() {
+    const {
+        media,
+        tmdbId,
+        navigate,
+        history,
+        historyLoaded,
+        setProgressAndSave,
+        movieGenres,
+        tvGenres,
+        activeModal,
+        setActiveModal,
+        activeTab,
+        setActiveTab,
+        isOverviewExpanded,
+        setIsOverviewExpanded,
+        isTruncated,
+        overviewRef,
+        changingPosterType,
+        setChangingPosterType,
+        newPosterUrls,
+        setNewPosterUrls,
+        displayPoster,
+        displayBackdrop,
+        displayLogo,
+        trailerPlaying,
+        setTrailerPlaying
+    } = useContext(MediaDetailsContext);
     let playButtonText = 'Play';
     if (historyLoaded) {
         if (media.type === 'show' && history?.lastPlayedSeason != null) {
-            const resumeData = getResumeEpisode(history, rawMedia);
+            const resumeData = getResumeEpisode(history, media);
             if (resumeData) {
                 playButtonText = `Resume S${resumeData.season} E${resumeData.episode}`;
             }
@@ -347,10 +252,11 @@ export function MobileMediaDetails({ media: rawMedia, tmdbId, navigate }) {
 
     return (
         <div className="w-full flex flex-col gap-6 pb-12 relative z-10 bg-background overflow-hidden">
+            {/* Backdrop */}
             <div className='relative w-full shrink-0 top-0 ml:max-h-[90dvh] overflow-hidden pointer-events-none noselect flex justify-center'>
                 <MovieImage
-                    relativePath={media.backdropPath}
-                    className='w-[120%] max-w-none shrink-0 pointer-events-none'
+                    relativePath={displayBackdrop}
+                    className={`w-[120%] max-w-none shrink-0 pointer-events-none transition-transform duration-500 ${changingPosterType === 'backdrop' ? 'scale-101' : 'scale-100'}`}
                 />
 
                 <div className='absolute inset-0 bg-[linear-gradient(to_bottom,transparent_50%,black_100%)]'/>
@@ -365,8 +271,8 @@ export function MobileMediaDetails({ media: rawMedia, tmdbId, navigate }) {
                 <ArrowLeftIcon size={25} weight='bold' />
             </button>
 
-            <div className='relative z-20 text-body px-4 ml:px-6 -mt-6 ml:-mt-4 flex flex-col gap-4'>
-                <div className="flex w-full items-start justify-between gap-4">
+            <div className='z-20 text-body px-4 ml:px-6 -mt-6 ml:-mt-4 flex flex-col gap-4'>
+                <div className={`flex w-full items-start justify-between gap-4 transition-opacity duration-300 ${changingPosterType && 'opacity-0 pointer-events-none'}`}>
                     <div className="flex flex-col gap-2 flex-1">
                         <h1 className="text-2xl font-bold tracking-wide">
                             {media.title}
@@ -415,6 +321,14 @@ export function MobileMediaDetails({ media: rawMedia, tmdbId, navigate }) {
                                 </button>
 
                                 <button
+                                    onClick={() => { setChangingPosterType("backdrop"); close(); }}
+                                    className='flex gap-2 items-center text-nowrap tracking-wide px-3 py-2 rounded-lg transition-all duration-300 hover:bg-white/10'
+                                >
+                                    <ImageSquareIcon size={20} weight="bold" />
+                                    <span>Change posters</span>
+                                </button>
+
+                                <button
                                     onClick={() => { setActiveModal('FILE_INFO'); close(); }}
                                     className='flex gap-2 items-center text-nowrap tracking-wide px-3 py-2 rounded-lg transition-all duration-300 hover:bg-white/10'
                                 >
@@ -442,7 +356,7 @@ export function MobileMediaDetails({ media: rawMedia, tmdbId, navigate }) {
                     </Dropdown>
                 </div>
 
-                <div className='flex w-full gap-4 items-center'>
+                <div className={`flex w-full gap-4 items-center transition-opacity duration-300 ${changingPosterType && 'opacity-0 pointer-events-none'}`}>
                     <button
                         onClick={() => navigate(`/play/${tmdbId}`)}
                         className="bg-body text-black px-4 py-2 rounded-full w-fit font-bold flex flex-row items-center justify-center gap-2 cursor-pointer relative z-50 pointer-events-auto transition-colors hover:bg-body/90"
@@ -459,7 +373,7 @@ export function MobileMediaDetails({ media: rawMedia, tmdbId, navigate }) {
                     </button>
                 </div>
                 
-                <div className="flex flex-col mb-2 text-muted ">
+                <div className={`flex flex-col mb-2 text-muted transition-opacity duration-300 ${changingPosterType && 'opacity-0 pointer-events-none'}`}>
                     <p ref={overviewRef} className={`text-justify indent-4 ${!isOverviewExpanded ? 'line-clamp-4' : ''}`}>
                         {media.overview}
                     </p>
@@ -473,14 +387,49 @@ export function MobileMediaDetails({ media: rawMedia, tmdbId, navigate }) {
                     )}
                 </div>
 
+                {/* Poster and logo for editing */}
+                <AnimatePresence>
+                    {changingPosterType && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 5 }}
+                            transition={{ duration: 0.5, ease: "easeInOut" }}
+                            className='flex items-end gap-4 absolute top-0 mp:inset-x-0 mp:h-[calc(45dvh-1rem)] ml:h-dvh ml:left-0 ml:right-[calc(40dvw+1rem)] p-4'
+                        >
+                            <div className={`relative z-10 mp:w-[35vw] ml:h-[55dvh] shrink-0 rounded-lg overflow-hidden shadow-2xl shadow-black/50 origin-bottom-left transition-transform duration-500 ${changingPosterType === 'poster' ? 'scale-105' : 'scale-100'}`}>
+                                <MovieImage
+                                    relativePath={displayPoster}
+                                    altText={media.title}
+                                    className='w-full h-full object-cover block'
+                                />
+
+                                <div className={`absolute rounded-lg inset-0 ring-1 ring-inset ring-white/90 pointer-events-none mix-blend-soft-light transition-opacity duration-500 opacity-100 ${changingPosterType && 'opacity-100'}`} />
+                            </div>
+
+                            {displayLogo ? (
+                                <MovieImage
+                                    relativePath={displayLogo}
+                                    altText={media.title}
+                                    className={`w-fit max-w-1/2 max-h-1/2 origin-bottom-left transition-transform duration-500 ${changingPosterType === 'logo' ? 'scale-105' : 'scale-100'}`}
+                                />
+                            ) : (
+                                <h1 className="text-2xl font-bold tracking-wide">
+                                    {media.title}
+                                </h1>
+                            )}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
                 {/* Tabs and Content below */}
-                <div className="w-full flex flex-col pb-8">
+                <div className={`w-full flex flex-col pb-8 transition-opacity duration-300 ${changingPosterType && 'opacity-0 pointer-events-none'}`}>
                     <div className='relative mb-4 w-full flex justify-stretch items-center text-center rounded-full border border-transparent overflow-hidden bg-black mix-blend-screen'>
-                        <TabsButton name={'Details'} isSelected={activeTab === 'details'} onClick={() => setAcitveTab('details')} />
+                        <TabsButton name={'Details'} isSelected={activeTab === 'details'} onClick={() => setActiveTab('details')} />
                         {media.type === 'show' && (
-                            <TabsButton name={'Episodes'} isSelected={activeTab === 'episodes'} onClick={() => setAcitveTab('episodes')} />
+                            <TabsButton name={'Episodes'} isSelected={activeTab === 'episodes'} onClick={() => setActiveTab('episodes')} />
                         )}
-                        <TabsButton name={'Cast'} isSelected={activeTab === 'cast'} onClick={() => setAcitveTab('cast')} />
+                        <TabsButton name={'Cast'} isSelected={activeTab === 'cast'} onClick={() => setActiveTab('cast')} />
                         <div className="absolute inset-0 pointer-events-none mix-blend-overlay rounded-full border border-x-2 border-white" />
                     </div>
 
@@ -596,6 +545,14 @@ export function MobileMediaDetails({ media: rawMedia, tmdbId, navigate }) {
                 isOpen={activeModal === 'FILE_INFO'}
                 onClose={() => setActiveModal(null)}
                 media={media}
+            />
+
+            <ChangePostersPanel
+                media={media}
+                changingPosterType={changingPosterType}
+                setChangingPosterType={setChangingPosterType}
+                newPosterUrls={newPosterUrls}
+                setNewPosterUrls={setNewPosterUrls}
             />
         </div>
 
@@ -717,11 +674,11 @@ export function MobileMediaDetails({ media: rawMedia, tmdbId, navigate }) {
         //         {/* Tabs and Content below */}
         //         <div className="w-full flex flex-col px-4 gap-6 pb-8">
         //             <div className='relative w-full flex justify-stretch items-center text-center rounded-full border border-transparent overflow-hidden bg-black mix-blend-screen'>
-        //                 <TabsButton name={'Details'} isSelected={activeTab === 'details'} onClick={() => setAcitveTab('details')} />
+        //                 <TabsButton name={'Details'} isSelected={activeTab === 'details'} onClick={() => setActiveTab('details')} />
         //                 {media.type === 'show' && (
-        //                     <TabsButton name={'Episodes'} isSelected={activeTab === 'episodes'} onClick={() => setAcitveTab('episodes')} />
+        //                     <TabsButton name={'Episodes'} isSelected={activeTab === 'episodes'} onClick={() => setActiveTab('episodes')} />
         //                 )}
-        //                 <TabsButton name={'Cast'} isSelected={activeTab === 'cast'} onClick={() => setAcitveTab('cast')} />
+        //                 <TabsButton name={'Cast'} isSelected={activeTab === 'cast'} onClick={() => setActiveTab('cast')} />
         //                 <div className="absolute inset-0 pointer-events-none mix-blend-overlay rounded-full border border-x-2 border-white" />
         //             </div>
 
@@ -844,11 +801,11 @@ export function MobileMediaDetails({ media: rawMedia, tmdbId, navigate }) {
 
         //             <div className="w-full flex flex-col gap-6">
         //                 <div className='relative w-full max-w-[80%] flex justify-stretch items-center text-center rounded-full border border-transparent overflow-hidden bg-black mix-blend-screen'>
-        //                     <TabsButton name={'Details'} isSelected={activeTab === 'details'} onClick={() => setAcitveTab('details')} />
+        //                     <TabsButton name={'Details'} isSelected={activeTab === 'details'} onClick={() => setActiveTab('details')} />
         //                     {media.type === 'show' && (
-        //                         <TabsButton name={'Episodes'} isSelected={activeTab === 'episodes'} onClick={() => setAcitveTab('episodes')} />
+        //                         <TabsButton name={'Episodes'} isSelected={activeTab === 'episodes'} onClick={() => setActiveTab('episodes')} />
         //                     )}
-        //                     <TabsButton name={'Cast'} isSelected={activeTab === 'cast'} onClick={() => setAcitveTab('cast')} />
+        //                     <TabsButton name={'Cast'} isSelected={activeTab === 'cast'} onClick={() => setActiveTab('cast')} />
         //                     <div className="absolute inset-0 pointer-events-none mix-blend-overlay rounded-full border border-x-2 border-white" />
         //                 </div>
 

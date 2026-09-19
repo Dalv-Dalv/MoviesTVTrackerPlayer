@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChatDotsIcon, ClosedCaptioningIcon, SubtitlesIcon } from '@phosphor-icons/react';
-import { formatLanguage } from '../../shared/utils/PlayerUtils';
-import { useVideoState } from '../../shared/hooks';
-import { PlayerButton } from './Player';
-import { VideoPlayer } from '../../shared/services/VideoEngine';
+import { formatLanguage } from '../utils/PlayerUtils';
+import { useVideoState } from '../hooks';
+import { PlayerButton } from './PlayerButton';
+import { VideoPlayer } from '../services/VideoEngine';
 
 const AnimatedHeight = ({ isOpen, children, className = '' }) => {
     const contentRef = useRef(null);

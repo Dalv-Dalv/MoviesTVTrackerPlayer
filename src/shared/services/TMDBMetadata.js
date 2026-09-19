@@ -44,9 +44,9 @@ export const getAllImages = async (tmdb, tmdbId, isShow) => {
         if (!imagesData) return null;
 
         return {
-            backdrops: imagesData.backdrops.map((e) => ({full: getImageUrl(e.file_path), half: getImageUrl(e.file_path, "w500"), key: e.file_path})),
+            backdrops: imagesData.backdrops.map((e) => ({full: getImageUrl(e.file_path), half: getImageUrl(e.file_path, "w780"), key: e.file_path})),
             logos: imagesData.logos.map((e) => ({full: getImageUrl(e.file_path), half: getImageUrl(e.file_path, "w500"), key: e.file_path})),
-            posters: imagesData.posters.map((e) => ({full: getImageUrl(e.file_path), half: getImageUrl(e.file_path, "w500"), key: e.file_path})),
+            posters: imagesData.posters.map((e) => ({full: getImageUrl(e.file_path), half: getImageUrl(e.file_path, "w342"), key: e.file_path})),
         }
     } catch (imageError) {
         console.error(`Failed to fetch extra images for ${tmdbId}:`, imageError);

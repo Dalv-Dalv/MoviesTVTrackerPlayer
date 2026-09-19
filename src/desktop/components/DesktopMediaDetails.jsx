@@ -1,39 +1,23 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { MovieImage } from '../../shared/components/MovieImage';
 import { Modal } from '../../shared/components/Modal';
-import { DotsThreeVerticalIcon, PlayIcon, PlusIcon, XIcon, MagnifyingGlassIcon, ClockCounterClockwiseIcon, TrashIcon, CheckIcon, ArrowLeftIcon, CaretDownIcon, CaretRightIcon, ClockCountdownIcon, ClockIcon, ImageSquareIcon, EyeIcon, UserIcon } from '@phosphor-icons/react';
+import { DotsThreeVerticalIcon, PlayIcon, PlusIcon, XIcon, MagnifyingGlassIcon, ClockCounterClockwiseIcon, TrashIcon, CheckIcon, ArrowLeftIcon, CaretDownIcon, CaretRightIcon, ClockCountdownIcon, ClockIcon, ImageSquareIcon, EyeIcon, UserIcon, CheckCircleIcon } from '@phosphor-icons/react';
 import { useWatchHistoryStore, getResumeEpisode } from '../../shared/store/useWatchHistoryStore';
 import { useLibraryStore } from '../../shared/store/useLibraryStore';
 import { InfoIcon } from '@phosphor-icons/react';
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useContext } from 'react';
+import { MediaDetailsContext } from '../../shared/components/MediaDetails';
 import { formatRuntime } from '../../shared/utils/PlayerUtils';
-import { FixMatchModal } from './FixMatchModal';
-import { RemoveMediaModal } from './RemoveMediaModal';
-import { FileInfoModal } from './FileInfoModal';
+import { FixMatchModal } from '../../shared/components/FixMatchModal';
+import { RemoveMediaModal } from '../../shared/components/RemoveMediaModal';
+import { FileInfoModal } from '../../shared/components/FileInfoModal';
 import { useGenres } from '../../shared/contexts/GenresContext';
 import { Dropdown } from '../../shared/components/Dropdown';
 import { open } from '@tauri-apps/plugin-dialog';
-import { ChangePostersPanel } from './ChangePostersPanel';
+import { ChangePostersPanel } from '../../shared/components/ChangePostersPanel';
 import { getImageUrl } from '../../shared/services/TMDBMetadata';
 
-function TabsButton({ name, onClick, isSelected = false, className = '' }) {
-    return (
-        <div
-            className={`relative first:rounded-l-full last:rounded-r-full p-2 noselect cursor-pointer text-body flex-1 ${className} transition-colors font-semibold ${isSelected ? '' : 'text-muted'} group`}
-            onClick={onClick}
-        >
-            <div
-                className={`absolute -inset-x-40 h-[200%] bg-[radial-gradient(circle_520px_at_50%_325px,white_50%,transparent_60%)] opacity-15 group-hover:opacity-20 group-active:opacity-30 transition-[opacity,translate] group-hover:-translate-y-2 duration-300 pointer-events-none
-                ${isSelected ? 'opacity-35 group-hover:opacity-40 -translate-y-2 group-hover:-translate-y-2.5' : 'translate-y-4'}`}
-            />
-
-            <span className='relative z-10'>
-                {name}
-            </span>
-        </div>
-    )
-}
-
+import { TabsButton } from '../../shared/components/TabsButton';
 
 function SeasonSection({ season, navigate, tmdbId, className = '' }) {
     const [isExpanded, setIsExpanded] = useState(season.isLastWatched);
@@ -146,7 +130,7 @@ function EpisodeCard({ episode, tmdbId, seasonNumber, navigate, className = '' }
 
     return (
         <div className={`relative flex items-center gap-4 bg-background rounded-2xl group ${className}`}>
-            <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none">
+            <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none bg-background">
                 <img src={episode.stillPath} className='absolute w-full h-35 blur-xl rounded-2xl mask-[linear-gradient(to_right,black_0%,transparent_100%)] opacity-0 group-hover:opacity-80 transition-opacity duration-300' />
                 <div className="absolute rounded-2xl inset-0 ring-1 ring-inset ring-white/70 mix-blend-soft-light" />
             </div>
@@ -180,10 +164,18 @@ function EpisodeCard({ episode, tmdbId, seasonNumber, navigate, className = '' }
             </div>
 
             <div className='relative z-20 flex flex-col flex-1 justify-center gap-1'>
-                <span>
-                    {episode.name && `${episode.number}. `}
-                    {episode.name || `Episode ${episode.number}`}
-                </span>
+                <div className='flex items-center justify-start gap-2'>
+                    <span>
+                        {episode.name && `${episode.number}. `}
+                        {episode.name || `Episode ${episode.number}`}
+                    </span>
+
+                    {episode.isDownloaded && (
+                        <div className='pointer-events-none text-muted'>
+                            <CheckCircleIcon size={20} weight='fill' />
+                        </div>
+                    )}
+                </div>
                 <p className='text-muted text-sm'>
                     {episode.overview}
                 </p>
@@ -250,200 +242,41 @@ function EpisodeCard({ episode, tmdbId, seasonNumber, navigate, className = '' }
 }
 
 
-const TAB_STORAGE_KEY = 'desktopMediaDetailsTabs';
-const MAX_STORED_TABS = 50;
-
-function getSavedTab(tmdbId, mediaType) {
-    try {
-        const stored = JSON.parse(localStorage.getItem(TAB_STORAGE_KEY) || '{}');
-        const saved = stored[tmdbId]?.tab;
-        if (saved === 'episodes' && mediaType !== 'show') return 'details';
-        return saved || 'details';
-    } catch {
-        return 'details';
-    }
-}
-
-function saveTab(tmdbId, tab) {
-    try {
-        const stored = JSON.parse(localStorage.getItem(TAB_STORAGE_KEY) || '{}');
-        stored[tmdbId] = { tab, ts: Date.now() };
-
-        const keys = Object.keys(stored);
-        if (keys.length > MAX_STORED_TABS) {
-            keys.sort((a, b) => stored[b].ts - stored[a].ts);
-            const pruned = {};
-            for (let i = 0; i < MAX_STORED_TABS; i++) {
-                pruned[keys[i]] = stored[keys[i]];
-            }
-            localStorage.setItem(TAB_STORAGE_KEY, JSON.stringify(pruned));
-        } else {
-            localStorage.setItem(TAB_STORAGE_KEY, JSON.stringify(stored));
-        }
-    } catch (e) {
-        console.error("Failed to save tab", e);
-    }
-}
-
-export function DesktopMediaDetails({ media: rawMedia, tmdbId, navigate }) {
-    const containerRef = useRef(null);
-    const history = useWatchHistoryStore(state => state.history[tmdbId]);
-    const historyLoaded = useWatchHistoryStore(state => state.isLoaded);
-    const setProgressAndSave = (progress) => useWatchHistoryStore.getState().setProgressAndSave(tmdbId, progress);
-    const prevTmdbId = useRef(tmdbId);
-
-    const { movieGenres, tvGenres } = useGenres();
-
-
-
-    // Esc to close, modals and tabs
-    const [activeModal, setActiveModal] = useState(null);
-    const [activeTab, setAcitveTab] = useState(() => getSavedTab(tmdbId, rawMedia?.type));
-
-    useEffect(() => {
-        const handleKeyDown = (e) => {
-            if (e.key === 'Escape' && !activeModal) {
-                navigate(-1);
-            }
-        };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [navigate, activeModal]);
-
-    if (tmdbId !== prevTmdbId.current) {
-        prevTmdbId.current = tmdbId;
-        setAcitveTab(getSavedTab(tmdbId, rawMedia?.type));
-    }
-
-    useEffect(() => {
-        if (activeTab === 'episodes' && rawMedia?.type !== 'show') {
-            setAcitveTab('details');
-        } else {
-            saveTab(tmdbId, activeTab);
-        }
-    }, [activeTab, rawMedia?.type, tmdbId]);
-
-
-
-    // Join watch history data with media object
-    const media = useMemo(() => {
-        if (!rawMedia) return null;
-
-        if (rawMedia.type === 'movie') {
-            return {
-                ...rawMedia,
-                history: history || null,
-            };
-        }
-
-        if (rawMedia.type === 'show') {
-            return {
-                ...rawMedia,
-                history: history || null,
-                seasons: rawMedia.seasons?.map(season => ({
-                    ...season,
-                    isLastWatched: history?.lastPlayedSeason ? history.lastPlayedSeason === season.number : season.number === 1,
-                    episodes: season.episodes?.map(episode => {
-                        const epHistory = season.number === 0
-                            ? history?.specials?.episodes?.[episode.number - 1]
-                            : history?.seasons?.[season.number - 1]?.episodes?.[episode.number - 1];
-
-                        return {
-                            ...episode,
-                            history: epHistory || null
-                        };
-                    })
-                }))
-            };
-        }
-
-        return rawMedia;
-    }, [rawMedia, history]);
-
-
-
-    // Overview truncation/show more
-    const [isOverviewExpanded, setIsOverviewExpanded] = useState(false);
-    const [isTruncated, setIsTruncated] = useState(false);
-    const overviewRef = useRef(null);
-
-    useEffect(() => {
-        if (overviewRef.current) {
-            setIsTruncated(overviewRef.current.scrollHeight > overviewRef.current.clientHeight);
-        }
-    }, [media?.overview]);
-
-    console.log(media);
-
-    // Change posters
-    const [changingPosterType, setChangingPosterType] = useState(null);
-    const [newPosterUrls, setNewPosterUrls] = useState({
-        poster: media?.rawPosterUrl,
-        backdrop: media?.rawBackdropUrl,
-        logo: media?.rawLogoUrl
-    });
-
-    useEffect(() => {
-        setNewPosterUrls({
-            poster: media?.rawPosterUrl,
-            backdrop: media?.rawBackdropUrl,
-            logo: media?.rawLogoUrl
-        });
-    }, [media?.rawPosterUrl, media?.rawBackdropUrl, media?.rawLogoUrl]);
-
-    const displayPoster = newPosterUrls.poster !== media?.rawPosterUrl && changingPosterType
-        ? getImageUrl(newPosterUrls.poster, "w342")
-        : media?.posterPath;
-
-    const displayBackdrop = newPosterUrls.backdrop !== media?.rawBackdropUrl && changingPosterType
-        ? getImageUrl(newPosterUrls.backdrop)
-        : (media?.backdropPathFull || media?.backdropPath);
-
-    const displayLogo = newPosterUrls.logo !== media?.rawLogoUrl && changingPosterType
-        ? getImageUrl(newPosterUrls.logo)
-        : media?.logoPath;
-
-    useEffect(() => {
-        let timeout;
-        const scrollContainer = containerRef.current?.closest('.overflow-y-auto');
-
-        if (changingPosterType) {
-            if (scrollContainer) {
-                scrollContainer.scrollTo({
-                    top: 0,
-                    behavior: 'smooth'
-                });
-                timeout = setTimeout(() => {
-                    scrollContainer.style.overflow = 'hidden';
-                }, 600);
-            }
-        } else {
-            if (scrollContainer) {
-                scrollContainer.style.overflow = '';
-            }
-        }
-
-        return () => {
-            clearTimeout(timeout);
-            if (scrollContainer) {
-                scrollContainer.style.overflow = '';
-            }
-        };
-    }, [changingPosterType]);
-
-
-    // Trailer
-    const [trailerPlaying, setTrailerPlaying] = useState(false);
-    useEffect(() => {
-        setTrailerPlaying(false);
-    }, [media?.trailerKey]);
+export function DesktopMediaDetails() {
+    const {
+        media,
+        tmdbId,
+        navigate,
+        history,
+        historyLoaded,
+        setProgressAndSave,
+        movieGenres,
+        tvGenres,
+        activeModal,
+        setActiveModal,
+        activeTab,
+        setActiveTab,
+        isOverviewExpanded,
+        setIsOverviewExpanded,
+        isTruncated,
+        overviewRef,
+        changingPosterType,
+        setChangingPosterType,
+        newPosterUrls,
+        setNewPosterUrls,
+        displayPoster,
+        displayBackdrop,
+        displayLogo,
+        trailerPlaying,
+        setTrailerPlaying
+    } = useContext(MediaDetailsContext);
 
 
     // Various text stuffs
     let playButtonText = 'Play';
     if (historyLoaded) {
         if (media.type === 'show' && history?.lastPlayedSeason != null) {
-            const resumeData = getResumeEpisode(history, rawMedia);
+            const resumeData = getResumeEpisode(history, media);
             if (resumeData) {
                 playButtonText = `Resume S${resumeData.season} E${resumeData.episode}`;
             }
@@ -460,7 +293,7 @@ export function DesktopMediaDetails({ media: rawMedia, tmdbId, navigate }) {
     if (!media) return null;
 
     return (
-        <div ref={containerRef} className="w-full pb-400">
+        <div className="w-full pb-400">
             {/* Backdrop */}
             <motion.div
                 initial={{ opacity: 0, y: -30 }}
@@ -495,7 +328,8 @@ export function DesktopMediaDetails({ media: rawMedia, tmdbId, navigate }) {
                         <button
                             onClick={toggle}
                             className={`text-white/80 aspect-square flex items-center justify-center gap-1 hover:text-body bg-black/10 hover:bg-black/50 active:bg-black/70 rounded-4xl px-3 py-2 noselect pointer-events-auto
-                                    transition-all duration-300 ${isOpen ? '-rotate-90 bg-black/50 rounded-l-2xl hover:bg-black/60' : 'rotate-0'}`}
+                                    transition-all duration-300 ${isOpen ? '-rotate-90 bg-black/50 rounded-l-2xl hover:bg-black/60' : 'rotate-0'}
+                                    ${changingPosterType && 'opacity-0 pointer-events-none'}`}
                         >
                             <DotsThreeVerticalIcon size={26} weight="bold" />
                         </button>
@@ -664,23 +498,30 @@ export function DesktopMediaDetails({ media: rawMedia, tmdbId, navigate }) {
                         </div>
 
                         <div className={`absolute inset-0 bottom-12 flex flex-col justify-end transition-opacity duration-300 ${!changingPosterType ? 'opacity-0' : 'opacity-100'} origin-bottom-left transition-transform duration-500 ${changingPosterType === 'logo' ? 'scale-105' : 'scale-100'}`}>
-                            <MovieImage
-                                relativePath={displayLogo}
-                                altText={media.title}
-                                className='w-fit max-w-1/2 max-h-1/2'
-                            />
+
+                            {displayLogo ? (
+                                <MovieImage
+                                    relativePath={displayLogo}
+                                    altText={media.title}
+                                    className='w-fit max-w-1/2 max-h-1/2'
+                                />
+                            ) : (
+                                <h1 className='text-4xl font-bold tracking-wide'>
+                                    {media.title}
+                                </h1>
+                            )}
                         </div>
                     </motion.div>
 
                     <div className={`transition-all duration-300 ${changingPosterType ? 'opacity-0 pointer-events-none translate-y-10' : 'opacity-100 translate-y-0'}`}>
                         <div className='relative w-full max-w-2/3 flex justify-stretch items-center mb-4 text-center rounded-full border border-transparent overflow-hidden bg-black mix-blend-screen'>
-                            <TabsButton name={'Details'} isSelected={activeTab === 'details'} onClick={() => setAcitveTab('details')} />
+                            <TabsButton name={'Details'} isSelected={activeTab === 'details'} onClick={() => setActiveTab('details')} />
 
                             {media.type === 'show' && (
-                                <TabsButton name={'Episodes'} isSelected={activeTab === 'episodes'} onClick={() => setAcitveTab('episodes')} />
+                                <TabsButton name={'Episodes'} isSelected={activeTab === 'episodes'} onClick={() => setActiveTab('episodes')} />
                             )}
 
-                            <TabsButton name={'Cast'} isSelected={activeTab === 'cast'} onClick={() => setAcitveTab('cast')} />
+                            <TabsButton name={'Cast'} isSelected={activeTab === 'cast'} onClick={() => setActiveTab('cast')} />
 
                             <div className="absolute inset-0 pointer-events-none mix-blend-overlay rounded-full border border-x-2 border-white" />
                         </div>

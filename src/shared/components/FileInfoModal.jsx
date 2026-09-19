@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Modal } from '../../shared/components/Modal';
+import { Modal } from './Modal';
 import { CaretDownIcon, InfoIcon } from '@phosphor-icons/react';
-import { extractVideoMetadata } from '../../shared/services/MetadataExtractor';
+import { extractVideoMetadata } from '../services/MetadataExtractor';
 import { AnimatePresence, motion } from 'framer-motion';
 
 const getShortPath = (fullPath) => {

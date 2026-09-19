@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Modal } from '../../shared/components/Modal';
+import { Modal } from './Modal';
 import { CheckIcon } from '@phosphor-icons/react';
-import { useLibraryStore } from '../../shared/store/useLibraryStore';
+import { useLibraryStore } from '../store/useLibraryStore';
 
 export function RemoveMediaModal({ isOpen, onClose, tmdbId, navigate }) {
     const removeMedia = useLibraryStore(state => state.removeMedia);
