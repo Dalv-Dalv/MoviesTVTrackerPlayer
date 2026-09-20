@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { isMobile } from '../utils/PlatformUtils';
 
-export function Dropdown({ Trigger, children, dropdownClassName = '', usePortal = false }) {
+export function Dropdown({ Trigger, triggerProps = {}, children, dropdownClassName = '', usePortal = false, align = 'right' }) {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
     const triggerRef = useRef(null);
@@ -79,7 +79,7 @@ export function Dropdown({ Trigger, children, dropdownClassName = '', usePortal 
                     style={usePortal ? {
                         position: 'fixed',
                         top: coords.bottom + 8,
-                        right: window.innerWidth - coords.right,
+                        ...(align === 'right' ? { right: window.innerWidth - coords.right } : { left: coords.left }),
                     } : undefined}
                     className={`${usePortal ? 'z-[100]' : 'absolute z-40'} bg-black/50 text-body text-base flex flex-col items-stretch p-2 rounded-2xl backdrop-blur-md pointer-events-auto shadow-2xl shadow-black/80 ring-1 ring-white/10 ${dropdownClassName}`}
                 >
@@ -91,7 +91,7 @@ export function Dropdown({ Trigger, children, dropdownClassName = '', usePortal 
 
     return (
         <div ref={triggerRef} className="relative flex">
-            <Trigger isOpen={isOpen} toggle={() => setIsOpen(!isOpen)} />
+            <Trigger isOpen={isOpen} toggle={() => setIsOpen(!isOpen)} {...triggerProps} />
 
             {usePortal ? createPortal(portalContent, document.body) : portalContent}
         </div>

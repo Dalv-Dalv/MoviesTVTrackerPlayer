@@ -101,7 +101,7 @@ export function Carousel({ children, className = "", id = "default-carousel", pa
             <div
                 ref={rowRef}
                 onScroll={handleScroll}
-                className={`flex flex-row gap-4 py-10 w-full overflow-x-auto noScrollbar ${paddingClass}`}
+                className={`flex flex-row gap-4 w-full overflow-x-auto noScrollbar ${paddingClass}`}
                 style={maskStyle}
             >
                 {children}
