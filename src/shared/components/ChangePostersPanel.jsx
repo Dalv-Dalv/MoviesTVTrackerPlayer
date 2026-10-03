@@ -4,7 +4,8 @@ import { getAllImages } from '../services/TMDBMetadata';
 import { useTMDB } from '../hooks/useTMDB';
 import { useLibraryStore } from '../store/useLibraryStore';
 import { isMobile } from '../utils/PlatformUtils';
-import { MovieImage } from './MovieImage';
+import { MediaImage } from './MediaImage';
+import RingGlow from './RingGlow';
 
 export function ChangePostersPanel({ media, changingPosterType, setChangingPosterType, newPosterUrls, setNewPosterUrls }) {
     const tmdb = useTMDB();
@@ -35,7 +36,8 @@ export function ChangePostersPanel({ media, changingPosterType, setChangingPoste
     const handleSave = async () => {
         setIsSaving(true);
         try {
-            await updateMediaPosters(media.tmdbId, newPosterUrls);
+            const compId = `${media.type}_${media.tmdbId}`;
+            await updateMediaPosters(compId, newPosterUrls);
             setChangingPosterType(null);
         } finally {
             setIsSaving(false);
@@ -114,12 +116,12 @@ export function ChangePostersPanel({ media, changingPosterType, setChangingPoste
                                         style={{ aspectRatio: itemAspect }}
                                         onClick={() => setNewPosterUrls(prev => ({ ...prev, [changingPosterType]: elem.key }))}
                                     >
-                                        <MovieImage imagePath={elem.half} className={`absolute inset-0 w-full h-full transition-[padding] ${changingPosterType === 'logo' ? 'object-contain p-4' : 'object-cover'}`} />
+                                        <MediaImage imagePath={elem.half} className={`absolute inset-0 w-full h-full transition-[padding] ${changingPosterType === 'logo' ? 'object-contain p-4' : 'object-cover'}`} />
 
                                         {changingPosterType !== 'logo' ? (
                                             <>
                                                 <div className={`absolute rounded-lg inset-0 ring-0 ${isSelected && 'ring-4'} ring-inset ring-primary/70 pointer-events-none transition-shadow`} />
-                                                <div className={`absolute rounded-lg inset-0 ring-1 ring-inset ring-white/70 pointer-events-none mix-blend-soft-light transition-shadow ${!isMobile && 'group-hover:ring-4'}`} />
+                                                <RingGlow rounded="rounded-lg" hover={!isMobile} />
                                             </>
                                         ) : (
                                             <>
@@ -147,3 +149,4 @@ export function ChangePostersPanel({ media, changingPosterType, setChangingPoste
         </AnimatePresence>
     );
 }
+

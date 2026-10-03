@@ -3,7 +3,7 @@ import { Modal } from './Modal';
 import { CheckIcon } from '@phosphor-icons/react';
 import { useLibraryStore } from '../store/useLibraryStore';
 
-export function RemoveMediaModal({ isOpen, onClose, tmdbId, navigate }) {
+export function RemoveMediaModal({ isOpen, onClose, compId, navigate }) {
     const removeMedia = useLibraryStore(state => state.removeMedia);
     const [deleteFromDisk, setDeleteFromDisk] = useState(false);
 
@@ -26,7 +26,7 @@ export function RemoveMediaModal({ isOpen, onClose, tmdbId, navigate }) {
                 <button 
                     onClick={async () => {
                         onClose(); 
-                        await removeMedia(tmdbId, deleteFromDisk);
+                        await removeMedia(compId, deleteFromDisk);
                         navigate('/', { replace: true });
                     }} 
                     className="px-4 py-2 bg-danger-600 text-white rounded-lg font-semibold hover:bg-danger-500 transition-colors cursor-pointer"

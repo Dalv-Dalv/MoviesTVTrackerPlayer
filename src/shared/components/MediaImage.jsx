@@ -1,7 +1,7 @@
 import { useLocalImage } from '../hooks/useLocalImage';
 import { useState, useEffect, useRef } from 'react';
 
-export function MovieImage({ relativePath, imagePath, altText, className = "", lazy = true }) {
+export function MediaImage({ relativePath, imagePath, altText, className = "", lazy = true }) {
     const path = imagePath || relativePath;
     const src = useLocalImage(path);
     const [isLoaded, setIsLoaded] = useState(false);

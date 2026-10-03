@@ -47,7 +47,7 @@ export const useLibraryStore = create((set, get) => ({
                     const newQueue = state.scanQueue.filter(v => v.filePath !== event.file.filePath);
                     const newLibrary = { ...state.library };
                     if (event.mediaItem) {
-                        newLibrary[event.mediaItem.tmdbId] = event.mediaItem;
+                        newLibrary[event.mediaItem.compId] = event.mediaItem;
                     }
                     set({ scanQueue: newQueue, library: newLibrary });
                 }
@@ -84,13 +84,13 @@ export const useLibraryStore = create((set, get) => ({
         await get().rescan();
     },
     
-    removeMedia: async (tmdbId, deleteFromDisk = false) => {
+    removeMedia: async (compId, deleteFromDisk = false) => {
         try {
             const { removeMedia: rmScanner } = await import('../services/LibraryScanner');
-            await rmScanner(tmdbId, deleteFromDisk);
+            await rmScanner(compId, deleteFromDisk);
             set(state => {
                 const newLib = { ...state.library };
-                delete newLib[tmdbId];
+                delete newLib[compId];
                 return { library: newLib };
             });
         } catch (error) {
@@ -98,19 +98,21 @@ export const useLibraryStore = create((set, get) => ({
         }
     },
 
-    updateMediaMatch: async (tmdb, oldTmdbId, match) => {
+    updateMediaMatch: async (tmdb, oldCompId, match) => {
         try {
             const { updateMediaMatch: ummScanner } = await import('../services/LibraryScanner');
-            const newEntry = await ummScanner(tmdb, oldTmdbId, match);
-            const tmdbId = match.id.toString();
+            const newEntry = await ummScanner(tmdb, oldCompId, match);
+            const rawTmdbId = match.id.toString();
+            const isShow = match.media_type === "tv";
+            const compId = (isShow ? 'show_' : 'movie_') + rawTmdbId;
             
             set(state => {
                 const newLib = { ...state.library };
-                delete newLib[oldTmdbId];
-                newLib[tmdbId] = newEntry;
+                delete newLib[oldCompId];
+                newLib[compId] = newEntry;
                 return { library: newLib };
             });
-            return tmdbId;
+            return compId;
         } catch (error) {
             console.error("Failed to update media match", error);
             throw error;
@@ -128,10 +130,10 @@ export const useLibraryStore = create((set, get) => ({
         }
     },
 
-    updateEpisodeFile: async (tmdbId, seasonNum, episodeNum, newFilePath) => {
+    updateEpisodeFile: async (compId, seasonNum, episodeNum, newFilePath) => {
         try {
             const { updateEpisodeFile: uefScanner } = await import('../services/LibraryScanner');
-            const newLibItems = await uefScanner(tmdbId, seasonNum, episodeNum, newFilePath);
+            const newLibItems = await uefScanner(compId, seasonNum, episodeNum, newFilePath);
             set({ library: newLibItems });
         } catch (error) {
             console.error("Failed to update episode file", error);
@@ -139,10 +141,10 @@ export const useLibraryStore = create((set, get) => ({
         }
     },
 
-    removeEpisodeFile: async (tmdbId, seasonNum, episodeNum, deleteFromDisk = false) => {
+    removeEpisodeFile: async (compId, seasonNum, episodeNum, deleteFromDisk = false) => {
         try {
             const { removeEpisodeFile: refScanner } = await import('../services/LibraryScanner');
-            const newLibItems = await refScanner(tmdbId, seasonNum, episodeNum, deleteFromDisk);
+            const newLibItems = await refScanner(compId, seasonNum, episodeNum, deleteFromDisk);
             set({ library: newLibItems });
         } catch (error) {
             console.error("Failed to remove episode file", error);
@@ -150,10 +152,10 @@ export const useLibraryStore = create((set, get) => ({
         }
     },
 
-    updateMediaPosters: async (tmdbId, newPosterUrls) => {
+    updateMediaPosters: async (compId, newPosterUrls) => {
         try {
             const { updateMediaPosters: umpScanner } = await import('../services/LibraryScanner');
-            const newLibItems = await umpScanner(tmdbId, newPosterUrls);
+            const newLibItems = await umpScanner(compId, newPosterUrls);
             set({ library: newLibItems });
         } catch (error) {
             console.error("Failed to update media posters", error);

@@ -21,7 +21,7 @@ export function ExpandableText({
         <p
             ref={textRef}
             onClick={() => { if (!isExpanded && isTruncated) setIsExpanded(true) }}
-            className={`${className} ${!isExpanded ? lineClampClass : ''} ${!isExpanded && isTruncated ? 'cursor-pointer' : ''}`}
+            className={`whitespace-pre-wrap ${className} ${!isExpanded ? lineClampClass : ''} ${!isExpanded && isTruncated ? 'cursor-pointer' : ''}`}
         >
             {text}
             {isExpanded && isTruncated && (

@@ -33,11 +33,11 @@ export const useWatchHistoryStore = create((set, get) => ({
         }
     },
 
-    updateProgressAndSave: async (tmdbId, currentTime, duration, sessionId, seasonNum = null, episodeNum = null) => {
+    updateProgressAndSave: async (compId, currentTime, duration, sessionId, seasonNum = null, episodeNum = null) => {
         set((state) => {
             const newState = { ...state.history };
 
-            const existingMedia = newState[tmdbId] ? structuredClone(newState[tmdbId]) : { progress: 0, completed: false, watchLog: [], loggedSessions: [], seasons: [], specials: { episodes: [] } };
+            const existingMedia = newState[compId] ? structuredClone(newState[compId]) : { progress: 0, completed: false, watchLog: [], loggedSessions: [], seasons: [], specials: { episodes: [] } };
             const isCompleted = duration > 0 ? (currentTime / duration) > 0.9 : false;
             const now = Date.now();
 
@@ -83,17 +83,17 @@ export const useWatchHistoryStore = create((set, get) => ({
                 existingMedia.lastPlayed = now;
             }
 
-            newState[tmdbId] = existingMedia;
-            store.set(tmdbId, existingMedia).then(() => debouncedSave());
+            newState[compId] = existingMedia;
+            store.set(compId, existingMedia).then(() => debouncedSave());
 
             return { history: newState };
         });
     },
 
-    toggleManualCompletion: async (tmdbId, seasonNum = null, episodeNum = null) => {
+    toggleManualCompletion: async (compId, seasonNum = null, episodeNum = null) => {
         set(state => {
             const newState = { ...state.history };
-            const existingMedia = newState[tmdbId] ? structuredClone(newState[tmdbId]) : { progress: 0, completed: false, watchLog: [], loggedSessions: [], seasons: [], specials: { episodes: [] } };
+            const existingMedia = newState[compId] ? structuredClone(newState[compId]) : { progress: 0, completed: false, watchLog: [], loggedSessions: [], seasons: [], specials: { episodes: [] } };
             const now = Date.now();
 
             if (seasonNum !== null && episodeNum !== null) {
@@ -134,17 +134,17 @@ export const useWatchHistoryStore = create((set, get) => ({
                 existingMedia.lastPlayed = now;
             }
 
-            newState[tmdbId] = existingMedia;
-            store.set(tmdbId, existingMedia).then(() => debouncedSave());
+            newState[compId] = existingMedia;
+            store.set(compId, existingMedia).then(() => debouncedSave());
 
             return { history: newState };
         });
     },
 
-    setProgressAndSave: async (tmdbId, newProgress, seasonNum = null, episodeNum = null) => {
+    setProgressAndSave: async (compId, newProgress, seasonNum = null, episodeNum = null) => {
         set(state => {
             const newState = { ...state.history };
-            const existingMedia = newState[tmdbId] ? structuredClone(newState[tmdbId]) : { progress: 0, completed: false, watchLog: [], loggedSessions: [], seasons: [], specials: { episodes: [] } };
+            const existingMedia = newState[compId] ? structuredClone(newState[compId]) : { progress: 0, completed: false, watchLog: [], loggedSessions: [], seasons: [], specials: { episodes: [] } };
             const now = Date.now();
 
             if (seasonNum !== null && episodeNum !== null) {
@@ -174,8 +174,8 @@ export const useWatchHistoryStore = create((set, get) => ({
                 existingMedia.lastPlayed = now;
             }
 
-            newState[tmdbId] = existingMedia;
-            store.set(tmdbId, existingMedia).then(() => debouncedSave());
+            newState[compId] = existingMedia;
+            store.set(compId, existingMedia).then(() => debouncedSave());
 
             return { history: newState };
         });

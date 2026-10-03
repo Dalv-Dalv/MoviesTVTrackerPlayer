@@ -11,7 +11,7 @@ import { Maximize2Icon, Minimize2Icon, PauseIcon, PlayIcon, Volume1Icon, Volume2
 import { PlayerButton } from '../../shared/components/PlayerButton';
 
 export const Player = () => {
-    const { tmdbId } = useParams();
+    const { compId } = useParams();
     const navigate = useNavigate();
 
     const [showRemainingTime, setShowRemainingTime] = useState(true);
@@ -28,7 +28,7 @@ export const Player = () => {
         isPlayerReady, isVideoLoaded, isPlaying, currentTime, duration,
         volume, isMute, subText, maxVolume, audio, subs,
         isBuffering, showBufferingSpinner, isFirstFrameRendered, isInitialLoadComplete
-    } = usePlaybackSession(tmdbId, scrubTime !== null);
+    } = usePlaybackSession(compId, scrubTime !== null);
 
     const { isFullscreen, toggleFullscreen } = useFullscreen();
     const { showControls, wakeUI, handleInteractiveEnter, handleInteractiveLeave } = useWakeUI({ holdOpen: languagePanelOpen });

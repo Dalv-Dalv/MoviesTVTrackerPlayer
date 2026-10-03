@@ -52,7 +52,7 @@ export default function MobileNavbar({ className = '' }) {
             initial={{ "--nav-exit": 0 }}
             animate={{ "--nav-exit": 1 }}
             exit={{ "--nav-exit": 0, transition: { duration: 0.5 } }}
-            className={`fixed bottom-1 left-1 right-1 h-14 m-1 rounded-full border border-white/10 overflow-hidden flex items-center z-50 ${className}`}
+            className={`fixed bottom-[calc(0.25rem+var(--safe-bottom))] left-1 right-1 h-14 m-1 rounded-full border border-white/10 overflow-hidden flex items-center z-50 ${className}`}
         >
             {navButtons.map((elem, index) => (
                 <NavbarButton

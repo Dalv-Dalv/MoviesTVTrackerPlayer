@@ -7,7 +7,7 @@ import parseVideo from 'video-name-parser';
 import { MagnifyingGlassIcon } from '@phosphor-icons/react';
 
 
-export function FixMatchModal({ isOpen, onClose, media, tmdbId, navigate }) {
+export function FixMatchModal({ isOpen, onClose, media, compId, navigate }) {
     const tmdb = useTMDB();
     const updateMediaMatch = useLibraryStore(state => state.updateMediaMatch);
 
@@ -93,9 +93,9 @@ export function FixMatchModal({ isOpen, onClose, media, tmdbId, navigate }) {
 
         setIsSavingMatch(true);
         try {
-            const newTmdbId = await updateMediaMatch(tmdb, tmdbId, selectedResult);
+            const newCompId = await updateMediaMatch(tmdb, compId, selectedResult);
             onClose();
-            navigate(`/details/${newTmdbId}`, { replace: true });
+            navigate(`/details/${newCompId}`, { replace: true });
         } catch (e) {
             console.error(e);
         } finally {

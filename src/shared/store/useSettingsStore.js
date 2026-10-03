@@ -90,7 +90,7 @@ export const useSettingsStore = create((set, get) => ({
         let updatedOverrides = { ...mediaOverrides };
         let hasChanges = false;
 
-        for (const [tmdbId, override] of Object.entries(updatedOverrides)) {
+        for (const [compId, override] of Object.entries(updatedOverrides)) {
             if (!(key in override)) continue;
 
             let overrideChanged = false;
@@ -119,24 +119,24 @@ export const useSettingsStore = create((set, get) => ({
 
             if (overrideChanged) {
                 hasChanges = true;
-                updatedOverrides[tmdbId] = newOverrideObj;
+                updatedOverrides[compId] = newOverrideObj;
             }
         }
 
         if (hasChanges) {
             set({ mediaOverrides: updatedOverrides });
             if (_mediaStore) {
-                for (const [tmdbId, override] of Object.entries(updatedOverrides)) {
+                for (const [compId, override] of Object.entries(updatedOverrides)) {
                     if (Object.keys(override).length === 0) {
-                        await _mediaStore.delete(tmdbId);
+                        await _mediaStore.delete(compId);
                     } else {
-                        await _mediaStore.set(tmdbId, override);
+                        await _mediaStore.set(compId, override);
                     }
                 }
 
-                for (const tmdbId of Object.keys(updatedOverrides)) {
-                    if (Object.keys(updatedOverrides[tmdbId]).length === 0) {
-                        delete updatedOverrides[tmdbId];
+                for (const compId of Object.keys(updatedOverrides)) {
+                    if (Object.keys(updatedOverrides[compId]).length === 0) {
+                        delete updatedOverrides[compId];
                     }
                 }
                 set({ mediaOverrides: updatedOverrides });
@@ -149,11 +149,11 @@ export const useSettingsStore = create((set, get) => ({
     },
 
 
-    updateMediaSetting: async (tmdbId, key, value) => {
-        if (!tmdbId) return await get().updateSetting(key, value);
+    updateMediaSetting: async (compId, key, value) => {
+        if (!compId) return await get().updateSetting(key, value);
 
         const { _mediaStore, mediaOverrides } = get();
-        const strId = tmdbId.toString();
+        const strId = compId.toString();
 
         const currentOverride = mediaOverrides[strId] || {};
         const newOverride = { ...currentOverride, [key]: value };
@@ -169,11 +169,11 @@ export const useSettingsStore = create((set, get) => ({
         return value;
     },
 
-    clearMediaSetting: async (tmdbId, key) => {
-        if (!tmdbId) return;
+    clearMediaSetting: async (compId, key) => {
+        if (!compId) return;
 
         const { _mediaStore, mediaOverrides } = get();
-        const strId = tmdbId.toString();
+        const strId = compId.toString();
 
         if (!mediaOverrides[strId] || !(key in mediaOverrides[strId])) return;
 
@@ -209,10 +209,10 @@ export const useSettingsStore = create((set, get) => ({
     }
 }));
 
-export function useSetting(key, defaultValue, tmdbId = null) {
+export function useSetting(key, defaultValue, compId = null) {
     const globalSetting = useSettingsStore(state => state.settings[key]);
     const mediaOverride = useSettingsStore(state =>
-        tmdbId ? state.mediaOverrides[tmdbId.toString()]?.[key] : undefined
+        compId ? state.mediaOverrides[compId.toString()]?.[key] : undefined
     );
     const updateSetting = useSettingsStore(state => state.updateSetting);
     const updateMediaSetting = useSettingsStore(state => state.updateMediaSetting);
@@ -239,8 +239,8 @@ export function useSetting(key, defaultValue, tmdbId = null) {
             ? newValueOrUpdater(mergedValue)
             : newValueOrUpdater;
 
-        if (tmdbId) {
-            return updateMediaSetting(tmdbId, key, nextValue);
+        if (compId) {
+            return updateMediaSetting(compId, key, nextValue);
         } else {
             return updateSetting(key, nextValue);
         }

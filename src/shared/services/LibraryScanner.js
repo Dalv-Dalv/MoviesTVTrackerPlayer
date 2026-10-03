@@ -244,12 +244,14 @@ export const rescanLibrary = async (tmdb, rawFolders, onProgress) => {
 
             const tmdbId = match.id.toString();
             const isShow = match.media_type === "tv";
+            const compId = (isShow ? 'show_' : 'movie_') + tmdbId;
 
-            if (!newMediaItems[tmdbId]) {
-                newMediaItems[tmdbId] = await fetchDetailedMetadata(tmdb, tmdbId, isShow ? 'show' : 'movie', true);
+            if (!newMediaItems[compId]) {
+                newMediaItems[compId] = await fetchDetailedMetadata(tmdb, tmdbId, isShow ? 'show' : 'movie', true);
+                newMediaItems[compId].tmdbId = tmdbId;
             }
 
-            const media = newMediaItems[tmdbId];
+            const media = newMediaItems[compId];
             if (media.type === 'movie') {
                 if (!media.filePaths.includes(video.filePath)) media.filePaths.push(video.filePath);
             } else if (media.type === 'show') {
@@ -284,9 +286,9 @@ export const rescanLibrary = async (tmdb, rawFolders, onProgress) => {
                     targetSeason.episodes[e - 1].isDownloaded = true;
                 }
             }
-            newFileMap[video.filePath] = tmdbId;
+            newFileMap[video.filePath] = compId;
             if (onProgress) {
-                onProgress({ type: 'completed', file: video, mediaItem: newMediaItems[tmdbId] });
+                onProgress({ type: 'completed', file: video, mediaItem: newMediaItems[compId] });
             }
 
         } catch (error) {
@@ -295,9 +297,9 @@ export const rescanLibrary = async (tmdb, rawFolders, onProgress) => {
     }
 
     // Cleanup old images for removed media
-    for (const oldTmdbId of Object.keys(libraryCache.mediaItems)) {
-        if (newMediaItems[oldTmdbId]) continue; // Kept
-        const oldData = libraryCache.mediaItems[oldTmdbId];
+    for (const oldCompId of Object.keys(libraryCache.mediaItems)) {
+        if (newMediaItems[oldCompId]) continue; // Kept
+        const oldData = libraryCache.mediaItems[oldCompId];
 
         if (oldData?.posterPath) try { await remove(oldData.posterPath, { baseDir: BaseDirectory.AppData }); } catch (e) { }
         if (oldData?.backdropPath) try { await remove(oldData.backdropPath, { baseDir: BaseDirectory.AppData }); } catch (e) { }
@@ -315,12 +317,12 @@ export const rescanLibrary = async (tmdb, rawFolders, onProgress) => {
     return finalCache;
 };
 
-export const updateMediaMatch = async (tmdb, oldTmdbId, match) => {
+export const updateMediaMatch = async (tmdb, oldCompId, match) => {
     try {
         const cacheData = await readTextFile(CACHE_FILE, { baseDir: BaseDirectory.AppData });
         const libraryCache = JSON.parse(cacheData);
         
-        const oldData = libraryCache.mediaItems[oldTmdbId];
+        const oldData = libraryCache.mediaItems[oldCompId];
         if (!oldData) throw new Error("Old media item not found in cache");
         
         const filePaths = [];
@@ -345,8 +347,10 @@ export const updateMediaMatch = async (tmdb, oldTmdbId, match) => {
 
         const tmdbId = match.id.toString();
         const isShow = match.media_type === "tv";
+        const compId = (isShow ? 'show_' : 'movie_') + tmdbId;
         
         const newEntry = await fetchDetailedMetadata(tmdb, tmdbId, isShow ? 'show' : 'movie', true);
+        newEntry.tmdbId = tmdbId;
         if (!isShow) {
             newEntry.filePaths = filePaths;
         }
@@ -393,11 +397,11 @@ export const updateMediaMatch = async (tmdb, oldTmdbId, match) => {
         if (oldData.logoPath) try { await remove(oldData.logoPath, { baseDir: BaseDirectory.AppData }); } catch (e) { }
         if (oldData.logoPathFull) try { await remove(oldData.logoPathFull, { baseDir: BaseDirectory.AppData }); } catch (e) { }
         
-        delete libraryCache.mediaItems[oldTmdbId];
-        libraryCache.mediaItems[tmdbId] = newEntry;
+        delete libraryCache.mediaItems[oldCompId];
+        libraryCache.mediaItems[compId] = newEntry;
         
         for (const p of filePaths) {
-            libraryCache.fileMap[p] = tmdbId;
+            libraryCache.fileMap[p] = compId;
         }
         
         await writeTextFile(CACHE_FILE, JSON.stringify(libraryCache, null, 2), { baseDir: BaseDirectory.AppData });
@@ -409,12 +413,12 @@ export const updateMediaMatch = async (tmdb, oldTmdbId, match) => {
     }
 };
 
-export const removeMedia = async (tmdbId, deleteFromDisk = false) => {
+export const removeMedia = async (compId, deleteFromDisk = false) => {
     try {
         const cacheData = await readTextFile(CACHE_FILE, { baseDir: BaseDirectory.AppData });
         const libraryCache = { blacklist: [], ...JSON.parse(cacheData) };
         
-        const oldData = libraryCache.mediaItems[tmdbId];
+        const oldData = libraryCache.mediaItems[compId];
         if (!oldData) return;
         
         let filePaths = [];
@@ -453,7 +457,7 @@ export const removeMedia = async (tmdbId, deleteFromDisk = false) => {
         if (oldData.logoPath) try { await remove(oldData.logoPath, { baseDir: BaseDirectory.AppData }); } catch (e) { }
         if (oldData.logoPathFull) try { await remove(oldData.logoPathFull, { baseDir: BaseDirectory.AppData }); } catch (e) { }
         
-        delete libraryCache.mediaItems[tmdbId];
+        delete libraryCache.mediaItems[compId];
         for (const p of filePaths) {
             delete libraryCache.fileMap[p];
         }
@@ -474,11 +478,12 @@ export const applyBulkRematch = async (tmdb, stagedChanges) => {
             const { match, filePaths } = change;
             const tmdbId = match.id.toString();
             const isShow = match.media_type === "tv";
+            const compId = (isShow ? 'show_' : 'movie_') + tmdbId;
             
             for (const path of filePaths) {
-                const oldTmdbId = libraryCache.fileMap[path];
-                if (oldTmdbId && libraryCache.mediaItems[oldTmdbId]) {
-                    const oldItem = libraryCache.mediaItems[oldTmdbId];
+                const oldCompId = libraryCache.fileMap[path];
+                if (oldCompId && libraryCache.mediaItems[oldCompId]) {
+                    const oldItem = libraryCache.mediaItems[oldCompId];
                     let hasFilesLeft = false;
 
                     if (oldItem.type === 'movie') {
@@ -507,17 +512,19 @@ export const applyBulkRematch = async (tmdb, stagedChanges) => {
                         if (oldItem.posterPath) try { await remove(oldItem.posterPath, { baseDir: BaseDirectory.AppData }); } catch (e) { }
                         if (oldItem.backdropPath) try { await remove(oldItem.backdropPath, { baseDir: BaseDirectory.AppData }); } catch (e) { }
                         if (oldItem.logoPath) try { await remove(oldItem.logoPath, { baseDir: BaseDirectory.AppData }); } catch (e) { }
-                        delete libraryCache.mediaItems[oldTmdbId];
+                        delete libraryCache.mediaItems[oldCompId];
                     }
                 }
-                libraryCache.fileMap[path] = tmdbId;
+                libraryCache.fileMap[path] = compId;
             }
             
-            if (!libraryCache.mediaItems[tmdbId]) {
-                libraryCache.mediaItems[tmdbId] = await fetchDetailedMetadata(tmdb, tmdbId, isShow ? 'show' : 'movie', true);
+            if (!libraryCache.mediaItems[compId]) {
+                libraryCache.mediaItems[compId] = await fetchDetailedMetadata(tmdb, tmdbId, isShow ? 'show' : 'movie', true);
+                libraryCache.mediaItems[compId].tmdbId = tmdbId;
             }
+            const newEntry = libraryCache.mediaItems[compId];
+            const item = newEntry;
 
-            const item = libraryCache.mediaItems[tmdbId];
             if (isShow) {
                 for (const path of filePaths) {
                     const filename = path.split(/[\\/]/).pop();
@@ -566,11 +573,11 @@ export const applyBulkRematch = async (tmdb, stagedChanges) => {
     }
 };
 
-export const updateEpisodeFile = async (tmdbId, seasonNum, episodeNum, newFilePath) => {
+export const updateEpisodeFile = async (compId, seasonNum, episodeNum, newFilePath) => {
     try {
         const cacheData = await readTextFile(CACHE_FILE, { baseDir: BaseDirectory.AppData });
         const libraryCache = { blacklist: [], ...JSON.parse(cacheData) };
-        const item = libraryCache.mediaItems[tmdbId];
+        const item = libraryCache.mediaItems[compId];
         if (!item || item.type !== 'show') throw new Error("Show not found in cache");
         
         let targetSeason;
@@ -606,11 +613,11 @@ export const updateEpisodeFile = async (tmdbId, seasonNum, episodeNum, newFilePa
     }
 };
 
-export const removeEpisodeFile = async (tmdbId, seasonNum, episodeNum, deleteFromDisk = false) => {
+export const removeEpisodeFile = async (compId, seasonNum, episodeNum, deleteFromDisk = false) => {
     try {
         const cacheData = await readTextFile(CACHE_FILE, { baseDir: BaseDirectory.AppData });
         const libraryCache = { blacklist: [], ...JSON.parse(cacheData) };
-        const item = libraryCache.mediaItems[tmdbId];
+        const item = libraryCache.mediaItems[compId];
         if (!item || item.type !== 'show') return libraryCache.mediaItems;
         
         let ep;
@@ -647,11 +654,11 @@ export const removeEpisodeFile = async (tmdbId, seasonNum, episodeNum, deleteFro
     }
 };
 
-export const updateMediaPosters = async (tmdbId, newPosterUrls) => {
+export const updateMediaPosters = async (compId, newPosterUrls) => {
     try {
         const cacheData = await readTextFile(CACHE_FILE, { baseDir: BaseDirectory.AppData });
         const libraryCache = { ...JSON.parse(cacheData) };
-        const item = libraryCache.mediaItems[tmdbId];
+        const item = libraryCache.mediaItems[compId];
         if (!item) return libraryCache.mediaItems;
         
         if (newPosterUrls.poster && newPosterUrls.poster !== item.rawPosterUrl) {
@@ -662,8 +669,8 @@ export const updateMediaPosters = async (tmdbId, newPosterUrls) => {
                 try { await remove(item.posterPathFull, { baseDir: BaseDirectory.AppData }); } catch (e) { }
             }
             item.rawPosterUrl = newPosterUrls.poster;
-            item.posterPath = await downloadImage(getImageUrl(item.rawPosterUrl, IMAGE_SIZES.poster), getImageFilename(tmdbId, 'poster', false, item.rawPosterUrl));
-            item.posterPathFull = await downloadImage(getImageUrl(item.rawPosterUrl, "original"), getImageFilename(tmdbId, 'poster', true, item.rawPosterUrl));
+            item.posterPath = await downloadImage(getImageUrl(item.rawPosterUrl, IMAGE_SIZES.poster), getImageFilename(compId, 'poster', false, item.rawPosterUrl));
+            item.posterPathFull = await downloadImage(getImageUrl(item.rawPosterUrl, "original"), getImageFilename(compId, 'poster', true, item.rawPosterUrl));
         }
 
         if (newPosterUrls.backdrop && newPosterUrls.backdrop !== item.rawBackdropUrl) {
@@ -674,8 +681,8 @@ export const updateMediaPosters = async (tmdbId, newPosterUrls) => {
                 try { await remove(item.backdropPathFull, { baseDir: BaseDirectory.AppData }); } catch (e) { }
             }
             item.rawBackdropUrl = newPosterUrls.backdrop;
-            item.backdropPath = await downloadImage(getImageUrl(item.rawBackdropUrl, IMAGE_SIZES.backdrop), getImageFilename(tmdbId, 'backdrop', false, item.rawBackdropUrl));
-            item.backdropPathFull = await downloadImage(getImageUrl(item.rawBackdropUrl, "original"), getImageFilename(tmdbId, 'backdrop', true, item.rawBackdropUrl));
+            item.backdropPath = await downloadImage(getImageUrl(item.rawBackdropUrl, IMAGE_SIZES.backdrop), getImageFilename(compId, 'backdrop', false, item.rawBackdropUrl));
+            item.backdropPathFull = await downloadImage(getImageUrl(item.rawBackdropUrl, "original"), getImageFilename(compId, 'backdrop', true, item.rawBackdropUrl));
         }
 
         if (newPosterUrls.logo && newPosterUrls.logo !== item.rawLogoUrl) {
@@ -686,8 +693,8 @@ export const updateMediaPosters = async (tmdbId, newPosterUrls) => {
                 try { await remove(item.logoPathFull, { baseDir: BaseDirectory.AppData }); } catch (e) { }
             }
             item.rawLogoUrl = newPosterUrls.logo;
-            item.logoPath = await downloadImage(getImageUrl(item.rawLogoUrl, IMAGE_SIZES.logo), getImageFilename(tmdbId, 'logo', false, item.rawLogoUrl));
-            item.logoPathFull = await downloadImage(getImageUrl(item.rawLogoUrl, "original"), getImageFilename(tmdbId, 'logo', true, item.rawLogoUrl));
+            item.logoPath = await downloadImage(getImageUrl(item.rawLogoUrl, IMAGE_SIZES.logo), getImageFilename(compId, 'logo', false, item.rawLogoUrl));
+            item.logoPathFull = await downloadImage(getImageUrl(item.rawLogoUrl, "original"), getImageFilename(compId, 'logo', true, item.rawLogoUrl));
         }
         
         await writeTextFile(CACHE_FILE, JSON.stringify(libraryCache, null, 2), { baseDir: BaseDirectory.AppData });

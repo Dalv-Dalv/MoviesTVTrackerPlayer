@@ -5,10 +5,10 @@ import { useWatchHistoryStore, getResumeEpisode } from '../store/useWatchHistory
 import { VideoPlayer } from '../services/VideoEngine';
 import { useVideoState } from './useVideoState';
 
-export function usePlaybackSession(tmdbId, isScrubbing) {
+export function usePlaybackSession(compId, isScrubbing) {
     const [searchParams] = useSearchParams();
     const library = useLibraryStore(state => state.library);
-    const media = library[tmdbId];
+    const media = library[compId];
 
     const [activePath, setActivePath] = useState(null);
     const [currentSeason, setCurrentSeason] = useState(null);
@@ -17,7 +17,7 @@ export function usePlaybackSession(tmdbId, isScrubbing) {
     const videoState = useVideoState(activePath);
     const { isPlayerReady, isVideoLoaded, currentTime, duration, isInitialLoadComplete } = videoState;
 
-    const history = useWatchHistoryStore(state => state.history[tmdbId]);
+    const history = useWatchHistoryStore(state => state.history[compId]);
     const historyLoaded = useWatchHistoryStore(state => state.isLoaded);
 
     const sessionId = useRef(Date.now()).current;
@@ -94,7 +94,7 @@ export function usePlaybackSession(tmdbId, isScrubbing) {
             VideoPlayer.load(activePath, startPosition);
             hasLoaded.current = true;
         }
-    }, [isPlayerReady, activePath, historyLoaded, history, tmdbId, currentSeason, currentEpisode, media]);
+    }, [isPlayerReady, activePath, historyLoaded, history, compId, currentSeason, currentEpisode, media]);
 
     useEffect(() => {
         if (isVideoLoaded) {
@@ -115,19 +115,19 @@ export function usePlaybackSession(tmdbId, isScrubbing) {
         const timeNow = Date.now();
 
         if (timeNow - lastSaveTime.current >= 10000) {
-            useWatchHistoryStore.getState().updateProgressAndSave(tmdbId, currentTime, duration, sessionId, currentSeason, currentEpisode);
+            useWatchHistoryStore.getState().updateProgressAndSave(compId, currentTime, duration, sessionId, currentSeason, currentEpisode);
             lastSaveTime.current = timeNow;
         }
-    }, [currentTime, duration, isScrubbing, tmdbId, sessionId, currentSeason, currentEpisode]);
+    }, [currentTime, duration, isScrubbing, compId, sessionId, currentSeason, currentEpisode]);
 
     useEffect(() => {
         return () => {
             if (latestTime.current > 0) {
                 const { currentSeason: s, currentEpisode: e, duration: d } = stateRef.current;
-                useWatchHistoryStore.getState().updateProgressAndSave(tmdbId, latestTime.current, d, sessionId, s, e);
+                useWatchHistoryStore.getState().updateProgressAndSave(compId, latestTime.current, d, sessionId, s, e);
             }
         };
-    }, [tmdbId, sessionId]);
+    }, [compId, sessionId]);
 
     return {
         media,

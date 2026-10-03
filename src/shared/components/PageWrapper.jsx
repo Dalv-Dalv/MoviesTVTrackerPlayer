@@ -42,7 +42,20 @@ export function PageWrapper({ children, transparent = false, edgeToEdge = false,
         }
     };
 
-    const containerClassName = `absolute inset-0 w-full h-full overflow-hidden overflow-y-auto ${transparent ? 'bg-transparent' : 'bg-background'} ${!edgeToEdge ? 'pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]' : ''}`;
+    const isEdge = (dir) => {
+        if (edgeToEdge === true) return true;
+        if (Array.isArray(edgeToEdge)) return edgeToEdge.includes(dir);
+        return false;
+    };
+
+    const safeClasses = [
+        !isEdge('top') && 'pt-[var(--safe-top)]',
+        !isEdge('bottom') && 'pb-[var(--safe-bottom)]',
+        !isEdge('left') && 'pl-[var(--safe-left)]',
+        !isEdge('right') && 'pr-[var(--safe-right)]'
+    ].filter(Boolean).join(' ');
+
+    const containerClassName = `absolute inset-0 w-full h-full overflow-hidden overflow-y-auto ${transparent ? 'bg-transparent' : 'bg-background'} ${safeClasses}`.trim();
 
     if (useDefaultTransition) {
         const animationProps = { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } };

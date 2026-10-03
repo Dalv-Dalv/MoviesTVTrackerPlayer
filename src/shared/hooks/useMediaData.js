@@ -1,35 +1,61 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLibraryStore } from '../store/useLibraryStore';
 import { useWatchHistoryStore } from '../store/useWatchHistoryStore';
 import { useGenres } from '../contexts/GenresContext';
+import { useTMDB } from './useTMDB';
+import { fetchDetailedMetadata } from '../services/TMDBMetadata';
 
-export function useMediaData(tmdbId) {
+export function useMediaData(compId) {
     const navigate = useNavigate();
     const library = useLibraryStore(state => state.library);
-    const rawMedia = library[tmdbId];
+    const rawMedia = library[compId];
+    
+    const [mediaType, tmdbId] = typeof compId === 'string' && compId.includes('_') 
+        ? compId.split('_') 
+        : [null, compId];
 
-    const history = useWatchHistoryStore(state => state.history[tmdbId]);
+    const history = useWatchHistoryStore(state => state.history[compId]);
     const historyLoaded = useWatchHistoryStore(state => state.isLoaded);
-    const setProgressAndSave = (progress) => useWatchHistoryStore.getState().setProgressAndSave(tmdbId, progress);
+    const setProgressAndSave = (progress) => useWatchHistoryStore.getState().setProgressAndSave(compId, progress);
 
     const { movieGenres, tvGenres } = useGenres();
 
-    const media = useMemo(() => {
-        if (!rawMedia) return null;
+    const tmdb = useTMDB();
+    const [onlineMedia, setOnlineMedia] = useState(null);
+    const [isLoadingOnline, setIsLoadingOnline] = useState(false);
 
-        if (rawMedia.type === 'movie') {
+    useEffect(() => {
+        if (!rawMedia && mediaType && tmdbId && tmdb) {
+            setIsLoadingOnline(true);
+            fetchDetailedMetadata(tmdb, tmdbId, mediaType, false)
+                .then(data => {
+                    setOnlineMedia(data);
+                    setIsLoadingOnline(false);
+                })
+                .catch(err => {
+                    console.error("Failed to fetch online media:", err);
+                    setIsLoadingOnline(false);
+                });
+        }
+    }, [rawMedia, mediaType, tmdbId, tmdb]);
+
+    const media = useMemo(() => {
+        const sourceMedia = rawMedia || onlineMedia;
+        if (!sourceMedia) return null;
+
+        if (sourceMedia.type === 'movie') {
             return {
-                ...rawMedia,
+                ...sourceMedia,
                 history: history || null,
             };
         }
 
-        if (rawMedia.type === 'show') {
+        if (sourceMedia.type === 'show') {
             return {
-                ...rawMedia,
+                ...sourceMedia,
                 history: history || null,
-                seasons: rawMedia.seasons?.map(season => ({
+                seasons: sourceMedia.seasons?.map(season => ({
                     ...season,
                     isLastWatched: history?.lastPlayedSeason ? history.lastPlayedSeason === season.number : season.number === 1,
                     episodes: season.episodes?.map(episode => {
@@ -46,11 +72,14 @@ export function useMediaData(tmdbId) {
             };
         }
 
-        return rawMedia;
-    }, [rawMedia, history]);
+        return sourceMedia;
+    }, [rawMedia, onlineMedia, history]);
 
     return {
         media,
+        isLoadingOnline,
+        mediaType,
+        tmdbId,
         tmdbId,
         navigate,
         history,

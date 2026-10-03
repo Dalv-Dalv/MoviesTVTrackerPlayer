@@ -5,7 +5,7 @@ import MobileApp from './mobile/MobileApp';
 import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { PageWrapper } from './shared/components/PageWrapper';
-import { MediaDetails } from './shared/components/MediaDetails';
+import { DetailsPage } from './shared/components/DetailsPage';
 import { Player as DesktopPlayer } from './desktop/components/Player';
 import { Player as MobilePlayer } from './mobile/components/Player';
 import { WindowTitlebar } from './desktop/components/WindowTitlebar';
@@ -29,7 +29,7 @@ import { useTMDB } from './shared/hooks/useTMDB';
 function App() {
     const osType = type();
     const { toggleFullscreen } = useFullscreen();
-    
+
     const [folders] = useSetting('videoLibraryFolders', []);
     const tmdb = useTMDB();
     const loadCacheOnBoot = useLibraryStore(state => state.loadCacheOnBoot);
@@ -115,14 +115,14 @@ function AnimatedRoutes() {
             <AnimatePresence>
                 <Routes location={location} key={location.pathname}>
                     <Route path='/' element={
-                        <PageWrapper depth={0} edgeToEdge={true}>
+                        <PageWrapper depth={0} edgeToEdge={['top']}>
                             <HomePage />
                         </PageWrapper>
                     } />
 
-                    <Route path='/details/:tmdbId' element={
-                        <PageWrapper depth={1} edgeToEdge={true}>
-                            <MediaDetails />
+                    <Route path='/details/:compId' element={
+                        <PageWrapper depth={1} edgeToEdge={['top']}>
+                            <DetailsPage />
                         </PageWrapper>
                     } />
 
@@ -162,7 +162,7 @@ function AnimatedRoutes() {
                         </PageWrapper>
                     } />
 
-                    <Route path='/play/:tmdbId' element={
+                    <Route path='/play/:compId' element={
                         <PageWrapper depth={3} transparent edgeToEdge={true} saveScroll={false}>
                             {isMobile ? <MobilePlayer /> : <DesktopPlayer />}
                         </PageWrapper>

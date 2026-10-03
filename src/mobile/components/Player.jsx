@@ -13,7 +13,7 @@ import { useDrag } from '@use-gesture/react';
 import { PlayerButton } from '../../shared/components/PlayerButton';
 
 export const Player = () => {
-    const { tmdbId } = useParams();
+    const { compId } = useParams();
     const navigate = useNavigate();
 
     const [centerIcon, setCenterIcon] = useState(() => PlayIcon);
@@ -45,7 +45,7 @@ export const Player = () => {
         isPlayerReady, isVideoLoaded, isPlaying, currentTime, duration,
         volume, isMute, subText, maxVolume, audio, subs,
         isBuffering, showBufferingSpinner, isFirstFrameRendered, isInitialLoadComplete
-    } = usePlaybackSession(tmdbId, scrubTime !== null);
+    } = usePlaybackSession(compId, scrubTime !== null);
 
     const { isFullscreen, toggleFullscreen } = useFullscreen();
     const { showControls, wakeUI, hideUI, toggleUI, resetUITimerIfVisible, handleInteractiveEnter, handleInteractiveLeave } = useWakeUI({ holdOpen: languagePanelOpen });
@@ -324,7 +324,7 @@ export const Player = () => {
                         </div>
                     </div>
 
-                    <div className='px-6 pb-4 pt-1 flex justify-between items-center'>
+                    <div className='px-6 pb-[calc(1rem+var(--safe-bottom))] pt-1 flex justify-between items-center'>
                         <div className='flex justify-between items-center gap-2'>
                             <PlayerButton onClick={togglePlay}>
                                 {isPlaying ? (

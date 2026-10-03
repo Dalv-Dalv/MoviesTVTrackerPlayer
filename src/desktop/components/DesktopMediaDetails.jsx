@@ -1,5 +1,5 @@
-import { AnimatePresence, motion } from 'framer-motion';
-import { MovieImage } from '../../shared/components/MovieImage';
+import { AnimatePresence, motion, useMotionValue, useTransform } from 'framer-motion';
+import { MediaImage } from '../../shared/components/MediaImage';
 import { Modal } from '../../shared/components/Modal';
 import { DotsThreeVerticalIcon, PlayIcon, PlusIcon, XIcon, MagnifyingGlassIcon, ClockCounterClockwiseIcon, TrashIcon, CheckIcon, ArrowLeftIcon, CaretDownIcon, CaretRightIcon, ClockCountdownIcon, ClockIcon, ImageSquareIcon, EyeIcon, UserIcon, CheckCircleIcon } from '@phosphor-icons/react';
 import { useWatchHistoryStore, getResumeEpisode } from '../../shared/store/useWatchHistoryStore';
@@ -19,6 +19,7 @@ import { ChangePostersPanel } from '../../shared/components/ChangePostersPanel';
 import { getImageUrl } from '../../shared/services/TMDBMetadata';
 import { Carousel } from '../../shared/components/Carousel';
 import { useLongPress } from '../../shared/hooks/useLongPress';
+import RingGlow from '../../shared/components/RingGlow';
 
 
 function SeasonTrigger({ isOpen, toggle, currentSeason }) {
@@ -35,7 +36,7 @@ function SeasonTrigger({ isOpen, toggle, currentSeason }) {
     );
 }
 
-function EpisodeTrigger({ isOpen, toggle, episode, tmdbId, seasonNumber, navigate, watchProgressRatio, imgLoaded, setImgLoaded }) {
+function EpisodeTrigger({ isOpen, toggle, episode, compId, seasonNumber, navigate, watchProgressRatio, imgLoaded, setImgLoaded }) {
     const bindLongPress = useLongPress(() => {
         if (!isOpen) {
             window.dispatchEvent(new CustomEvent('closeAllDropdowns'));
@@ -57,7 +58,7 @@ function EpisodeTrigger({ isOpen, toggle, episode, tmdbId, seasonNumber, navigat
                     e.stopPropagation();
                     toggle();
                 } else if (episode.isDownloaded) {
-                    navigate(`/play/${tmdbId}?s=${seasonNumber}&e=${episode.number}`);
+                    navigate(`/play/${compId}?s=${seasonNumber}&e=${episode.number}`);
                 }
             }}
             {...bindLongPress()}
@@ -67,7 +68,7 @@ function EpisodeTrigger({ isOpen, toggle, episode, tmdbId, seasonNumber, navigat
                 <div className={`relative shrink-0 w-64 aspect-video bg-background rounded-xl overflow-hidden cursor-pointer`}>
                     <div className="absolute inset-0 bg-neutral-800/50 animate-pulse" />
                     <img
-                        src={episode.stillPath}
+                        src={episode.stillPathFull}
                         className={`relative w-full h-full object-cover rounded-xl pointer-events-none transition-opacity duration-500 ${imgLoaded ? 'opacity-100' : 'opacity-0'}`}
                         onLoad={() => setImgLoaded(true)}
                     />
@@ -81,8 +82,10 @@ function EpisodeTrigger({ isOpen, toggle, episode, tmdbId, seasonNumber, navigat
                             <div className='relative z-10 h-full rounded-full bg-primary' style={{ width: `${watchProgressRatio * 100}%` }} />
                             <motion.div
                                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0 } }} transition={{ delay: 0.2, duration: 0.2 }}
-                                className="absolute z-20 rounded-full inset-0 ring-1 ring-inset ring-white/70 pointer-events-none mix-blend-soft-light"
-                            />
+                                className="absolute z-20 inset-0 pointer-events-none"
+                            >
+                                <RingGlow rounded="rounded-full" />
+                            </motion.div>
                         </div>
                     )}
 
@@ -95,8 +98,10 @@ function EpisodeTrigger({ isOpen, toggle, episode, tmdbId, seasonNumber, navigat
 
                     <motion.div
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0 } }} transition={{ delay: 0.2, duration: 0.2 }}
-                        className="absolute rounded-xl inset-0 ring-1 ring-inset ring-white/70 pointer-events-none mix-blend-soft-light"
-                    />
+                        className="absolute inset-0 pointer-events-none"
+                    >
+                        <RingGlow rounded="rounded-xl" />
+                    </motion.div>
                 </div>
             </div>
 
@@ -122,7 +127,7 @@ function EpisodeTrigger({ isOpen, toggle, episode, tmdbId, seasonNumber, navigat
     );
 }
 
-function EpisodeCard({ episode, tmdbId, seasonNumber, navigate }) {
+function EpisodeCard({ episode, compId, seasonNumber, navigate }) {
     const toggleManualCompletion = useWatchHistoryStore(state => state.toggleManualCompletion);
     const updateEpisodeFile = useLibraryStore(state => state.updateEpisodeFile);
     const removeEpisodeFile = useLibraryStore(state => state.removeEpisodeFile);
@@ -138,7 +143,7 @@ function EpisodeCard({ episode, tmdbId, seasonNumber, navigate }) {
                 filters: [{ name: 'Video', extensions: ['mkv', 'mp4', 'avi', 'webm', 'mov'] }]
             });
             if (selected && selected.length > 0) {
-                await updateEpisodeFile(tmdbId, seasonNumber, episode.number, selected);
+                await updateEpisodeFile(compId, seasonNumber, episode.number, selected);
             }
         } catch (e) {
             console.error("Failed to select file", e);
@@ -150,12 +155,12 @@ function EpisodeCard({ episode, tmdbId, seasonNumber, navigate }) {
             usePortal={true}
             dropdownClassName="min-w-32"
             Trigger={EpisodeTrigger}
-            triggerProps={{ episode, tmdbId, seasonNumber, navigate, watchProgressRatio, imgLoaded, setImgLoaded }}
+            triggerProps={{ episode, compId, seasonNumber, navigate, watchProgressRatio, imgLoaded, setImgLoaded }}
         >
             {({ close }) => (
                 <>
                     <button
-                        onClick={() => { toggleManualCompletion(tmdbId, seasonNumber, episode.number); close(); }}
+                        onClick={() => { toggleManualCompletion(compId, seasonNumber, episode.number); close(); }}
                         className='flex gap-2 items-center text-nowrap tracking-wide px-3 py-2 rounded-lg transition-all duration-300 hover:bg-white/10'
                     >
                         <CheckIcon size={20} weight="bold" />
@@ -171,7 +176,7 @@ function EpisodeCard({ episode, tmdbId, seasonNumber, navigate }) {
                     </button>
 
                     <button
-                        onClick={() => { useWatchHistoryStore.getState().setProgressAndSave(tmdbId, 0, seasonNumber, episode.number); close(); }}
+                        onClick={() => { useWatchHistoryStore.getState().setProgressAndSave(compId, 0, seasonNumber, episode.number); close(); }}
                         className='flex gap-2 items-center text-nowrap tracking-wide px-3 py-2 text-red-400 hover:bg-red-400/10 rounded-lg transition-all duration-300'
                     >
                         <ClockCounterClockwiseIcon size={20} weight="bold" />
@@ -180,7 +185,7 @@ function EpisodeCard({ episode, tmdbId, seasonNumber, navigate }) {
 
                     {episode.isDownloaded && (
                         <button
-                            onClick={() => { removeEpisodeFile(tmdbId, seasonNumber, episode.number, false); close(); }}
+                            onClick={() => { removeEpisodeFile(compId, seasonNumber, episode.number, false); close(); }}
                             className='flex gap-2 items-center text-nowrap tracking-wide px-3 py-2 text-red-400 hover:bg-red-400/10 rounded-lg transition-all duration-300'
                         >
                             <TrashIcon size={20} weight="bold" />
@@ -194,16 +199,17 @@ function EpisodeCard({ episode, tmdbId, seasonNumber, navigate }) {
 }
 
 
-export function DesktopMediaDetails({ tmdbId }) {
+export function DesktopMediaDetails({ compId }) {
     const {
         media,
+        isLoadingOnline,
         navigate,
         history,
         historyLoaded,
         setProgressAndSave,
         movieGenres,
         tvGenres
-    } = useMediaData(tmdbId);
+    } = useMediaData(compId);
 
     const [activeModal, setActiveModal] = useState(null);
     const [changingPosterType, setChangingPosterType] = useState(null);
@@ -212,9 +218,9 @@ export function DesktopMediaDetails({ tmdbId }) {
     const [trailerPlaying, setTrailerPlaying] = useState(false);
     const [selectedSeasonNumber, setSelectedSeasonNumber] = useState(null);
 
-    const [prevId, setPrevId] = useState(tmdbId);
-    if (tmdbId !== prevId) {
-        setPrevId(tmdbId);
+    const [prevId, setPrevId] = useState(compId);
+    if (compId !== prevId) {
+        setPrevId(compId);
         setPosterOverrides(null);
         setTrailerPlaying(false);
         setSelectedSeasonNumber(null);
@@ -238,6 +244,24 @@ export function DesktopMediaDetails({ tmdbId }) {
     };
 
     const containerRef = useRef(null);
+    const scrollY = useMotionValue(0);
+
+    useEffect(() => {
+        const scrollContainer = containerRef.current?.closest('.overflow-y-auto');
+        if (!scrollContainer) return;
+
+        const handleScroll = () => {
+            scrollY.set(scrollContainer.scrollTop);
+        };
+
+        scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
+        handleScroll();
+
+        return () => scrollContainer.removeEventListener('scroll', handleScroll);
+    }, [scrollY, compId, isLoadingOnline]);
+
+    const backdropY = useTransform(scrollY, value => value * 0.3);
+
     useEffect(() => {
         const scrollContainer = containerRef.current?.closest('.overflow-y-auto');
 
@@ -261,6 +285,20 @@ export function DesktopMediaDetails({ tmdbId }) {
             }
         };
     }, [changingPosterType]);
+
+    if (isLoadingOnline) return (
+        <div className="flex flex-col items-center justify-center h-screen w-full text-white">
+            <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin mb-4" />
+            <h2 className="text-xl font-medium">Loading details...</h2>
+        </div>
+    );
+
+    if (!media) return (
+        <div className="flex flex-col items-center justify-center h-screen w-full text-white">
+            <h2 className="text-2xl font-bold mb-4">Media not found!</h2>
+            <button onClick={() => navigate(-1)} className="px-4 py-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors font-semibold">Go Back</button>
+        </div>
+    );
 
     const displayPoster = posterOverrides && posterOverrides.poster !== media?.rawPosterUrl && changingPosterType
         ? getImageUrl(posterOverrides.poster, "w342")
@@ -292,30 +330,27 @@ export function DesktopMediaDetails({ tmdbId }) {
 
     console.log(media);
 
-    if (!media) return (
-        <div className="flex flex-col items-center justify-center h-screen w-full text-white">
-            <h2 className="text-2xl font-bold mb-4">Movie not found!</h2>
-            <button onClick={() => navigate(-1)} className="px-4 py-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors font-semibold">Go Back</button>
-        </div>
-    );
-
     return (
         <div ref={containerRef} className="w-full pb-400">
             {/* Backdrop */}
-            <motion.div
-                initial={{ opacity: 0, y: -30 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className='absolute left-0 top-0 right-0 max-h-screen overflow-hidden pointer-events-none noselect'
-            >
-                <MovieImage
-                    relativePath={displayBackdrop}
-                    className={`w-full pointer-events-none transition-transform duration-500 ${changingPosterType === 'backdrop' ? 'scale-101' : 'scale-100'}`}
-                />
+            <div className='absolute top-0 inset-x-0 max-h-screen overflow-hidden pointer-events-none noselect'>
+                <motion.div
+                    initial={{ opacity: 0, y: -30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                    className='relative w-full h-full'
+                >
+                    <motion.div style={{ y: backdropY }} className="w-full h-full">
+                        <MediaImage
+                            relativePath={displayBackdrop}
+                            className={`w-full pointer-events-none transition-transform duration-500 ${changingPosterType === 'backdrop' ? 'scale-101' : 'scale-100'}`}
+                        />
+                    </motion.div>
 
-                <div className="absolute inset-0 bg-linear-to-t from-black from-1% to-transparent to-60% pointer-events-none" />
-            </motion.div>
+                    <div className="absolute inset-0 bg-linear-to-t from-black from-1% to-transparent to-60% pointer-events-none" />
+                </motion.div>
+            </div>
 
             <div className='absolute inset-0 top-[100vh] bg-background' />
 
@@ -344,30 +379,32 @@ export function DesktopMediaDetails({ tmdbId }) {
                 >
                     {({ close }) => (
                         <>
-                            <button
-                                onClick={() => { setActiveModal('FIX_MATCH'); close(); }}
-                                className='flex gap-2 items-center text-nowrap tracking-wide px-3 py-2 rounded-lg transition-all duration-300 hover:bg-white/10'
-                            >
-                                <MagnifyingGlassIcon size={20} weight="bold" />
-                                <span>Fix Match</span>
-                            </button>
-
-                            <button
-                                onClick={() => { setActiveModal('FILE_INFO'); close(); }}
-                                className='flex gap-2 items-center text-nowrap tracking-wide px-3 py-2 rounded-lg transition-all duration-300 hover:bg-white/10'
-                            >
-                                <InfoIcon size={20} weight="bold" />
-                                <span>View Files Info</span>
-                            </button>
-
                             {media?.isDownloaded && (
-                                <button
-                                    onClick={() => { setChangingPosterType("backdrop"); setActiveModal('CHANGE_POSTERS'); close(); }}
-                                    className='flex gap-2 items-center text-nowrap tracking-wide px-3 py-2 rounded-lg transition-all duration-300 hover:bg-white/10'
-                                >
-                                    <ImageSquareIcon size={20} weight='bold' />
-                                    <span>Change posters</span>
-                                </button>
+                                <>
+                                    <button
+                                        onClick={() => { setActiveModal('FIX_MATCH'); close(); }}
+                                        className='flex gap-2 items-center text-nowrap tracking-wide px-3 py-2 rounded-lg transition-all duration-300 hover:bg-white/10'
+                                    >
+                                        <MagnifyingGlassIcon size={20} weight="bold" />
+                                        <span>Fix Match</span>
+                                    </button>
+
+                                    <button
+                                        onClick={() => { setActiveModal('FILE_INFO'); close(); }}
+                                        className='flex gap-2 items-center text-nowrap tracking-wide px-3 py-2 rounded-lg transition-all duration-300 hover:bg-white/10'
+                                    >
+                                        <InfoIcon size={20} weight="bold" />
+                                        <span>View Files Info</span>
+                                    </button>
+
+                                    <button
+                                        onClick={() => { setChangingPosterType("backdrop"); setActiveModal('CHANGE_POSTERS'); close(); }}
+                                        className='flex gap-2 items-center text-nowrap tracking-wide px-3 py-2 rounded-lg transition-all duration-300 hover:bg-white/10'
+                                    >
+                                        <ImageSquareIcon size={20} weight='bold' />
+                                        <span>Change posters</span>
+                                    </button>
+                                </>
                             )}
 
                             <button
@@ -421,20 +458,20 @@ export function DesktopMediaDetails({ tmdbId }) {
                         }}
                         className="w-full max-w-80 z-10 sticky top-22"
                     >
-                        <MovieImage
+                        <MediaImage
                             relativePath={displayPoster}
                             altText={media.title}
                             className={`absolute w-full blur-2xl opacity-50 origin-bottom-left transition-transform duration-500 ${changingPosterType === 'poster' ? 'scale-105' : 'scale-100'}`}
                         />
 
                         <div className={`relative z-10 w-full aspect-2/3 rounded-lg overflow-hidden shadow-2xl shadow-black/50 origin-bottom-left transition-transform duration-500 ${changingPosterType === 'poster' ? 'scale-105' : 'scale-100'}`}>
-                            <MovieImage
+                            <MediaImage
                                 relativePath={displayPoster}
                                 altText={media.title}
                                 className='w-full h-full object-cover block'
                             />
 
-                            <div className="absolute rounded-lg inset-0 ring-1 ring-inset ring-white/90 pointer-events-none mix-blend-soft-light" />
+                            <RingGlow rounded="rounded-lg" intensity="90" />
                         </div>
                     </motion.div>
                 </div>
@@ -493,18 +530,27 @@ export function DesktopMediaDetails({ tmdbId }) {
                             </div>
 
                             <div className='flex gap-2 noselect'>
-                                <button
-                                    onClick={() => navigate(`/play/${tmdbId}`)}
-                                    className="bg-body text-black px-3 py-2 rounded-lg w-fit font-bold flex flex-row items-center justify-center gap-2 cursor-pointer relative z-50 pointer-events-auto transition-colors hover:bg-body/90"
-                                >
-                                    <PlayIcon size={20} weight='fill' />
-                                    <span>
-                                        {playButtonText}
-                                    </span>
-                                </button>
+                                {media?.isDownloaded ? (
+                                    <button
+                                        onClick={() => navigate(`/play/${compId}`)}
+                                        className="bg-body text-black px-3 py-2 rounded-lg w-fit font-bold flex flex-row items-center justify-center gap-2 cursor-pointer relative z-50 pointer-events-auto transition-colors hover:bg-body/90"
+                                    >
+                                        <PlayIcon size={20} weight='fill' />
+                                        <span>
+                                            {playButtonText}
+                                        </span>
+                                    </button>
+                                ) : (
+                                    <div className="ring-inset ring-2 ring-muted text-muted px-3 py-2 rounded-lg w-fit font-bold flex flex-row items-center justify-center gap-2 relative z-50">
+                                        <PlayIcon size={20} weight='bold' />
+                                        <span>
+                                            Unavailable
+                                        </span>
+                                    </div>
+                                )}
 
                                 <button
-                                    onClick={() => navigate(`/play/${tmdbId}`)}
+                                    onClick={() => navigate(`/play/${compId}`)}
                                     className="text-muted px-3 py-2 rounded-lg w-fit font-semibold flex flex-row items-center justify-center gap-2 cursor-pointer relative z-50 pointer-events-auto transition-colors hover:text-body"
                                 >
                                     <PlusIcon size={20} weight='bold' />
@@ -516,7 +562,7 @@ export function DesktopMediaDetails({ tmdbId }) {
                         <div className={`absolute inset-0 bottom-12 flex flex-col justify-end pointer-events-none transition-opacity duration-300 ${!changingPosterType ? 'opacity-0' : 'opacity-100'} origin-bottom-left transition-transform duration-500 ${changingPosterType === 'logo' ? 'scale-105' : 'scale-100'}`}>
 
                             {displayLogo ? (
-                                <MovieImage
+                                <MediaImage
                                     relativePath={displayLogo}
                                     altText={media.title}
                                     className='w-fit max-w-1/2 max-h-1/2'
@@ -540,14 +586,18 @@ export function DesktopMediaDetails({ tmdbId }) {
                                     <CaretRightIcon className='inline text-muted transition-colors duration-300 group-hover:text-body' />
                                 </div>
 
-                                <Carousel id={`cast-${tmdbId}`} paddingClass="px-0 scroll-px-0">
+                                <Carousel id={`cast-${compId}`} paddingClass="px-0 scroll-px-0">
                                     {media?.cast?.map((actor) => (
                                         (actor.profilePath && (
-                                            <div key={actor.id} className="w-32 md:w-40 flex flex-col shrink-0 group">
+                                            <div
+                                                key={actor.id}
+                                                onClick={() => navigate(`/details/person_${actor.id}`)}
+                                                className="w-32 md:w-40 flex flex-col shrink-0 group cursor-pointer"
+                                            >
                                                 <div className="w-full aspect-2/3 relative rounded-lg overflow-hidden bg-background">
-                                                    <MovieImage imagePath={actor.profilePath} className="w-full h-full object-cover" />
+                                                    <MediaImage imagePath={actor.profilePath} className="w-full h-full object-cover" />
 
-                                                    <div className="absolute rounded-lg inset-0 ring-1 ring-inset ring-white/70 pointer-events-none mix-blend-soft-light" />
+                                                    <RingGlow rounded="rounded-lg" />
                                                 </div>
 
                                                 <div className="flex flex-col mt-1.5 px-1">
@@ -601,8 +651,7 @@ export function DesktopMediaDetails({ tmdbId }) {
                                                 </div>
                                             </div>
 
-                                            <div className="absolute rounded-[15px] ring-1 ring-inset ring-white/70 pointer-events-none mix-blend-soft-light" />
-                                            <div className="absolute rounded-2xl inset-0 ring-1 ring-inset ring-white/8 pointer-events-none" />
+                                            <RingGlow rounded="rounded-2xl" includeSolid />
                                         </div>
                                     ) : (
                                         <iframe
@@ -676,7 +725,7 @@ export function DesktopMediaDetails({ tmdbId }) {
                                                     key={`season_${currentSeason.number}_episode_${episode.number}`}
                                                     episode={episode}
                                                     navigate={navigate}
-                                                    tmdbId={tmdbId}
+                                                    compId={compId}
                                                     seasonNumber={currentSeason.number}
                                                 />
                                             ))}
@@ -694,7 +743,7 @@ export function DesktopMediaDetails({ tmdbId }) {
                 isOpen={activeModal === 'FIX_MATCH'}
                 onClose={() => setActiveModal(null)}
                 media={media}
-                tmdbId={tmdbId}
+                compId={compId}
                 navigate={navigate}
             />
 
@@ -709,7 +758,7 @@ export function DesktopMediaDetails({ tmdbId }) {
             <RemoveMediaModal
                 isOpen={activeModal === 'CONFIRM_REMOVE'}
                 onClose={() => setActiveModal(null)}
-                tmdbId={tmdbId}
+                compId={compId}
                 navigate={navigate}
             />
 
@@ -721,3 +770,4 @@ export function DesktopMediaDetails({ tmdbId }) {
         </div>
     );
 }
+

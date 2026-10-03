@@ -1,7 +1,7 @@
 import { CaretLeftIcon, CaretRightIcon } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
 
-export function Carousel({ children, className = "", id = "default-carousel", paddingClass = "px-12 scroll-px-12" }) {
+export function Carousel({ children, className = "", id = "default-carousel", paddingClass = "px-12 scroll-px-12", saveScroll = true }) {
     const rowRef = useRef(null);
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMaxScrolled, setIsMaxScrolled] = useState(false);
@@ -11,7 +11,7 @@ export function Carousel({ children, className = "", id = "default-carousel", pa
         if (!rowRef.current) return;
         const { scrollLeft, scrollWidth, clientWidth } = rowRef.current;
 
-        if (!isRestoring.current) {
+        if (!isRestoring.current && saveScroll) {
             sessionStorage.setItem(`carousel-scroll-${id}`, scrollLeft);
         }
 
@@ -21,20 +21,24 @@ export function Carousel({ children, className = "", id = "default-carousel", pa
 
     useEffect(() => {
         if (rowRef.current) {
-            const savedScroll = sessionStorage.getItem(`carousel-scroll-${id}`);
-            if (savedScroll) {
-                rowRef.current.scrollLeft = parseInt(savedScroll, 10);
-                setTimeout(() => {
-                    if (rowRef.current) {
-                        rowRef.current.scrollLeft = parseInt(savedScroll, 10);
-                    }
+            if (saveScroll) {
+                const savedScroll = sessionStorage.getItem(`carousel-scroll-${id}`);
+                if (savedScroll) {
+                    rowRef.current.scrollLeft = parseInt(savedScroll, 10);
+                    setTimeout(() => {
+                        if (rowRef.current) {
+                            rowRef.current.scrollLeft = parseInt(savedScroll, 10);
+                        }
+                        isRestoring.current = false;
+                    }, 100);
+                } else {
                     isRestoring.current = false;
-                }, 100);
+                }
             } else {
                 isRestoring.current = false;
             }
         }
-    }, [id]);
+    }, [id, saveScroll]);
 
     useEffect(() => {
         handleScroll();
@@ -47,7 +51,7 @@ export function Carousel({ children, className = "", id = "default-carousel", pa
 
         const container = rowRef.current;
         const { clientWidth, scrollLeft, scrollWidth } = container;
-        const scrollAmount = direction === 'left' ? -clientWidth : clientWidth;
+        const scrollAmount = direction === 'left' ? -(clientWidth * 0.85) : (clientWidth * 0.85);
 
         const maxScroll = scrollWidth - clientWidth;
         const targetScroll = Math.max(0, Math.min(scrollLeft + scrollAmount, maxScroll));
@@ -92,7 +96,7 @@ export function Carousel({ children, className = "", id = "default-carousel", pa
     return (
         <div className={`relative flex items-center w-full ${className}`}>
             <div
-                className={`absolute left-0 top-2 bottom-2 z-20 w-8 d:w-32 transition-opacity duration-300 flex items-center justify-start px-2 group/chevron ${isScrolled ? 'opacity-100 cursor-pointer' : 'opacity-0 pointer-events-none'}`}
+                className={`absolute left-0 top-2 bottom-2 z-20 w-8 d:w-12 transition-opacity duration-300 flex items-center justify-start px-2 group/chevron ${isScrolled ? 'opacity-100 cursor-pointer' : 'opacity-0 pointer-events-none'}`}
                 onClick={() => scroll('left')}
             >
                 <CaretLeftIcon size={40} className="text-white drop-shadow-md transition-all duration-300 opacity-0 group-hover/chevron:opacity-100 hover:scale-125" />
@@ -108,7 +112,7 @@ export function Carousel({ children, className = "", id = "default-carousel", pa
             </div>
 
             <div
-                className={`absolute right-0 top-2 bottom-2 z-20 w-8 d:w-32 transition-opacity duration-300 flex items-center justify-end px-2 group/chevron ${!isMaxScrolled ? 'opacity-100 cursor-pointer' : 'opacity-0 pointer-events-none'}`}
+                className={`absolute right-0 top-2 bottom-2 z-20 w-8 d:w-12 transition-opacity duration-300 flex items-center justify-end px-2 group/chevron ${!isMaxScrolled ? 'opacity-100 cursor-pointer' : 'opacity-0 pointer-events-none'}`}
                 onClick={() => scroll('right')}
             >
                 <CaretRightIcon size={40} className="text-white drop-shadow-md transition-all duration-300 opacity-0 group-hover/chevron:opacity-100 hover:scale-125" />
