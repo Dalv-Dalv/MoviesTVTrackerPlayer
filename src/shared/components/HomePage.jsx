@@ -37,7 +37,7 @@ export default function HomePage({ className = '' }) {
                             className='w-full absolute inset-0 scale-180 d:scale-130 origin-top transform-gpu blur-lg opacity-75 mask-[linear-gradient(to_bottom,transparent,black,transparent)] d:mask-[linear-gradient(to_bottom,black,transparent)]' />
 
 
-                        <div className='relative w-full d:w-3/4 rounded-2xl overflow-hidden aspect-video shadow-lg shadow-background/20'>
+                        <div className='isolate relative w-full d:w-3/4 rounded-2xl overflow-hidden aspect-video shadow-lg shadow-background/20'>
                             <MediaImage relativePath={mediaItems[1].backdropPath} altText={mediaItems[1].title}
                                 className='w-full' />
 
@@ -90,7 +90,7 @@ export default function HomePage({ className = '' }) {
                                         />
                                     )}
 
-                                    <div className="relative z-10 w-full h-full rounded-lg overflow-hidden bg-background">
+                                    <div className="isolate relative z-10 w-full h-full rounded-lg overflow-hidden bg-background">
                                         <MediaImage
                                             relativePath={elem.posterPath}
                                             altText={elem.title}

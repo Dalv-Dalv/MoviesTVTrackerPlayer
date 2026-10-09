@@ -65,7 +65,7 @@ function EpisodeTrigger({ isOpen, toggle, episode, compId, seasonNumber, navigat
         >
             <div className='relative z-20'>
                 {/* Thubmnail */}
-                <div className={`relative shrink-0 w-64 aspect-video bg-background rounded-xl overflow-hidden cursor-pointer`}>
+                <div className={`relative isolate shrink-0 w-64 aspect-video bg-background rounded-xl overflow-hidden cursor-pointer`}>
                     <div className="absolute inset-0 bg-neutral-800/50 animate-pulse" />
                     <img
                         src={episode.stillPathFull}
@@ -114,7 +114,7 @@ function EpisodeTrigger({ isOpen, toggle, episode, compId, seasonNumber, navigat
                     {episode.overview}
                 </p>
                 <span className='text-muted text-sm mt-0.5'>
-                    {episode.runtime}m
+                    {formatRuntime(episode.runtime)}
                 </span>
             </div>
 
@@ -348,8 +348,9 @@ export function DesktopMediaDetails({ compId }) {
                         />
                     </motion.div>
 
-                    <div className="absolute inset-0 bg-linear-to-t from-black from-1% to-transparent to-60% pointer-events-none" />
                 </motion.div>
+
+                <div className="absolute inset-0 bg-linear-to-t from-black from-1% to-transparent to-60% pointer-events-none" />
             </div>
 
             <div className='absolute inset-0 top-[100vh] bg-background' />
@@ -464,7 +465,7 @@ export function DesktopMediaDetails({ compId }) {
                             className={`absolute w-full blur-2xl opacity-50 origin-bottom-left transition-transform duration-500 ${changingPosterType === 'poster' ? 'scale-105' : 'scale-100'}`}
                         />
 
-                        <div className={`relative z-10 w-full aspect-2/3 rounded-lg overflow-hidden shadow-2xl shadow-black/50 origin-bottom-left transition-transform duration-500 ${changingPosterType === 'poster' ? 'scale-105' : 'scale-100'}`}>
+                        <div className={`isolate relative z-10 w-full aspect-2/3 rounded-lg overflow-hidden shadow-2xl shadow-black/50 origin-bottom-left transition-transform duration-500 ${changingPosterType === 'poster' ? 'scale-105' : 'scale-100'}`}>
                             <MediaImage
                                 relativePath={displayPoster}
                                 altText={media.title}
@@ -594,7 +595,7 @@ export function DesktopMediaDetails({ compId }) {
                                                 onClick={() => navigate(`/details/person_${actor.id}`)}
                                                 className="w-32 md:w-40 flex flex-col shrink-0 group cursor-pointer"
                                             >
-                                                <div className="w-full aspect-2/3 relative rounded-lg overflow-hidden bg-background">
+                                                <div className="isolate w-full aspect-2/3 relative rounded-lg overflow-hidden bg-background">
                                                     <MediaImage imagePath={actor.profilePath} className="w-full h-full object-cover" />
 
                                                     <RingGlow rounded="rounded-lg" />

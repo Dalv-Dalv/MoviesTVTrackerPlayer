@@ -173,7 +173,7 @@ export const Player = () => {
 
                 <div className={`relative w-full flex-1 bg-transparent ${showControls ? 'cursor-default' : 'cursor-none'}`} onClick={togglePlay} onDoubleClick={(e) => toggleFullscreen()} />
 
-                <div className='absolute -z-10 bottom-20 inset-x-0 h-16 flex items-center justify-center text-white text-shadow-md text-shadow-black/30 tracking-wide text-xl text-center font-subtitles'>
+                <div className='absolute -z-10 bottom-20 inset-x-0 h-16 flex items-center justify-center text-white text-shadow-md text-shadow-black/30 tracking-wide text-xl text-center font-subtitles whitespace-pre-wrap'>
                     {subText ?? ''}
                 </div>
 

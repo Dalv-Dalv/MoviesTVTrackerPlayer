@@ -112,7 +112,7 @@ export function ChangePostersPanel({ media, changingPosterType, setChangingPoste
                                 return (
                                     <div
                                         key={`${elem.key}-${i}`}
-                                        className={`relative ${itemWidth} rounded-lg overflow-hidden cursor-pointer group shrink-0`}
+                                        className={`isolate relative ${itemWidth} rounded-lg overflow-hidden cursor-pointer group shrink-0`}
                                         style={{ aspectRatio: itemAspect }}
                                         onClick={() => setNewPosterUrls(prev => ({ ...prev, [changingPosterType]: elem.key }))}
                                     >

@@ -1,10 +1,24 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useIsPresent } from 'framer-motion';
 import { XIcon } from '@phosphor-icons/react';
 
 export function Modal({ isOpen, onClose, title, children, className = "max-w-lg", hideHeader = false, unstyledBody = false }) {
     const [mounted, setMounted] = useState(false);
+    const modalRef = useRef(null);
+    const isPresent = useIsPresent();
+
+    useEffect(() => {
+        if (!isPresent && modalRef.current) {
+            modalRef.current.style.transition = 'opacity 0.3s ease-out';
+            requestAnimationFrame(() => {
+                if (modalRef.current) {
+                    modalRef.current.style.opacity = '0';
+                    modalRef.current.style.pointerEvents = 'none';
+                }
+            });
+        }
+    }, [isPresent]);
 
     useEffect(() => {
         setMounted(true);
@@ -14,10 +28,21 @@ export function Modal({ isOpen, onClose, title, children, className = "max-w-lg"
         const handleKeyDown = (e) => {
             if (e.key === 'Escape') onClose();
         };
+
+        const handlePopState = () => {
+            if (isOpen) {
+                onClose();
+            }
+        };
+
         if (isOpen) {
             window.addEventListener('keydown', handleKeyDown);
+            window.addEventListener('popstate', handlePopState);
         }
-        return () => window.removeEventListener('keydown', handleKeyDown);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('popstate', handlePopState);
+        };
     }, [isOpen, onClose]);
 
     if (!mounted) return null;
@@ -25,7 +50,7 @@ export function Modal({ isOpen, onClose, title, children, className = "max-w-lg"
     return createPortal(
         <AnimatePresence>
             {isOpen && (
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 noselect">
+                <div ref={modalRef} className="fixed inset-0 z-9999 flex items-center justify-center noselect">
                     {/* Backdrop */}
                     <motion.div
                         initial={{ opacity: 0 }}
@@ -46,7 +71,7 @@ export function Modal({ isOpen, onClose, title, children, className = "max-w-lg"
                             ease: [0.5, 0, 0, 1],
                             duration: 0.3
                         }}
-                        className={`relative w-full ${className} max-h-[90vh] bg-surface/90 backdrop-blur-lg border border-divider rounded-2xl shadow-2xl overflow-hidden flex flex-col pointer-events-auto`}
+                        className={`relative w-full ${className} max-h-[90vh] bg-surface/90 border border-divider rounded-2xl shadow-2xl overflow-hidden flex flex-col pointer-events-auto`}
                     >
                         {/* Header */}
                         {!hideHeader && (

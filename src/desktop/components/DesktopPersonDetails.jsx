@@ -4,6 +4,7 @@ import { ExpandableText } from "../../shared/components/ExpandableText";
 import { MediaImage } from "../../shared/components/MediaImage";
 import { ProfileImage } from "../../shared/components/ProfileImage";
 import { Carousel } from "../../shared/components/Carousel";
+import { ProfilePicturesModal } from "../../shared/components/ProfilePicturesModal";
 import RingGlow from "../../shared/components/RingGlow";
 import { usePersonData } from "../../shared/hooks/usePersonData";
 import { motion, useMotionValue, useTransform } from "framer-motion";
@@ -12,6 +13,8 @@ import { useRef, useEffect, useState, useMemo } from "react";
 export function DesktopPersonDetails({ rawTmdbId }) {
     const navigate = useNavigate();
     const { person, knownForCredits, credits, images, roles, isLoading, formattedBirthday, age } = usePersonData(rawTmdbId);
+
+    const [isProfilePicturesModalOpen, setIsProfilePicturesModalOpen] = useState(false);
 
     const containerRef = useRef(null);
     const scrollY = useMotionValue(0);
@@ -33,7 +36,6 @@ export function DesktopPersonDetails({ rawTmdbId }) {
     const [chips, setChips] = useState([{ name: "Movies", isActive: true, count: undefined }, { name: "TV Shows", isActive: true, count: undefined }]);
     useEffect(() => {
         setChips(prev => {
-            // Keep existing isActive states if we're just updating counts
             const prevActiveMap = new Map(prev.map(c => [c.name, c.isActive]));
 
             return [
@@ -95,6 +97,8 @@ export function DesktopPersonDetails({ rawTmdbId }) {
 
     return (
         <div ref={containerRef} className="w-full text-body pb-12">
+            <ProfilePicturesModal isOpen={isProfilePicturesModalOpen} onClose={() => setIsProfilePicturesModalOpen(false)} pictures={images} />
+
             <div className='fixed inset-0 overflow-hidden pointer-events-none noselect -z-10 bg-background'>
                 <motion.div style={{ y: backdropY }} className="relative w-full">
                     <MediaImage
@@ -119,7 +123,7 @@ export function DesktopPersonDetails({ rawTmdbId }) {
                 {/* Left Column: Photo & Info */}
                 <div className="w-full h-full relative pl-12 noselect">
                     <div className="w-full max-w-80 z-10 sticky top-24 flex flex-col gap-6">
-                        <div className="relative w-full aspect-2/3 rounded-lg overflow-hidden shadow-xl cursor-pointer group">
+                        <div onClick={() => setIsProfilePicturesModalOpen(true)} className="isolate relative w-full aspect-2/3 rounded-lg overflow-hidden shadow-xl cursor-pointer group">
                             <ProfileImage imagePath={person.profilePathFull} className="w-full h-full rounded-lg" iconSize={64} />
 
                             <RingGlow rounded="rounded-lg" hover />
@@ -226,7 +230,7 @@ export function DesktopPersonDetails({ rawTmdbId }) {
                                     const compId = `${credit.media_type === 'tv' ? 'show' : 'movie'}_${credit.id}`;
                                     const role = credit.character || credit.job || (credit.jobs && credit.jobs.join(', ')) || 'Unknown Role';
                                     const title = credit.title || credit.name;
-                                    const year = credit.year || '—';
+                                    const year = credit.year || 'Unknown Release Date';
                                     const isSelf = /\b(self|himself|herself)\b/i.test(credit.character || '');
                                     const jobs = credit.isCast ? [(isSelf ? "Self" : (person.gender === 1 ? "Actress" : "Actor")), ...(credit.jobs || [])] : (credit.jobs || []);
 
@@ -236,7 +240,7 @@ export function DesktopPersonDetails({ rawTmdbId }) {
                                             onClick={() => navigate(`/details/${compId}`)}
                                             className="relative h-28 p-1 flex gap-4 items-center overflow-hidden group cursor-pointer rounded-lg"
                                         >
-                                            <div className="relative h-full aspect-2/3 rounded-sm overflow-hidden">
+                                            <div className="isolate relative h-full aspect-2/3 rounded-sm overflow-hidden">
                                                 <MediaImage imagePath={credit.posterPath} className="h-full" />
 
                                                 <RingGlow rounded="rounded-sm" />

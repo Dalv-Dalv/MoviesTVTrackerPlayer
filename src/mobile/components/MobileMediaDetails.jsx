@@ -118,7 +118,7 @@ function EpisodeTrigger({ isOpen, toggle, episode, compId, seasonNumber, navigat
         >
             <div className='relative z-20'>
                 {/* Thubmnail */}
-                <div className={`relative shrink-0 ml:w-48 mp:w-36 aspect-video bg-background rounded-xl overflow-hidden cursor-pointer`}>
+                <div className={`relative isolate shrink-0 ml:w-48 mp:w-36 aspect-video bg-background rounded-xl overflow-hidden cursor-pointer`}>
                     <div className="absolute inset-0 bg-neutral-800/50 animate-pulse" />
                     <img
                         src={episode.stillPath}
@@ -162,7 +162,7 @@ function EpisodeTrigger({ isOpen, toggle, episode, compId, seasonNumber, navigat
                 </p>
 
                 <span className='text-muted text-sm'>
-                    {episode.runtime}m
+                    {formatRuntime(episode.runtime)}
                 </span>
             </div>
 

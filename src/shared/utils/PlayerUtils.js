@@ -17,7 +17,7 @@ export const formatRuntime = (mins) => {
     const m = Math.floor(mins % 60);
 
     if (h > 0) {
-        return `${h}h ${m}m`
+        return m > 0 ? `${h}h ${m}m` : `${h}h`;
     }
 
     return `${m}m`;

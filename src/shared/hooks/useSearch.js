@@ -4,10 +4,10 @@ import { useDebounce } from "./useDebounce";
 import { getImageUrl, IMAGE_SIZES } from "../services/TMDBMetadata";
 import { useGenres } from "../contexts/GenresContext";
 
-export const useSearch = (query, searchType = 'all') => {
+export const useSearch = (query, searchType = 'all', debounceMs = 400) => {
     const tmdb = useTMDB();
     const { movieGenres, tvGenres } = useGenres();
-    const debouncedSearch = useDebounce(query, 400);
+    const debouncedSearch = useDebounce(query, debounceMs);
     const [results, setResults] = useState([]);
     const [isSearching, setIsSearching] = useState(false);
 

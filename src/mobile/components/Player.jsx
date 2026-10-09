@@ -303,7 +303,7 @@ export const Player = () => {
                     <span className="text-white font-semibold text-sm drop-shadow-md w-8 text-center">{Math.round(brightness)}%</span>
                 </div>
 
-                <div className='absolute -z-10 bottom-20 inset-x-0 h-16 flex items-center justify-center text-white text-shadow-md text-shadow-black/30 tracking-wide text-xl text-center'>
+                <div className='absolute -z-10 bottom-20 inset-x-0 h-16 flex items-center justify-center text-white text-shadow-md text-shadow-black/30 tracking-wide text-xl text-center whitespace-pre-wrap'>
                     {subText ?? ''}
                 </div>
 
