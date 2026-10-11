@@ -281,17 +281,5 @@ html {
         }
     }
 
-    --animate-fade-in-glow: fade-in-glow 1s cubic-bezier(.03, .71, .3, .97) forwards;
 
-    @keyframes fade-in-glow {
-
-        0%,
-        40% {
-            opacity: 0;
-        }
-
-        100% {
-            opacity: 1;
-        }
-    }
 }

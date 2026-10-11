@@ -20,7 +20,7 @@ const RingGlow = ({
     const glowColorClass = intensityMap[intensity] || `ring-white/${intensity}`;
     const solidColorClass = intensityMap[solidIntensity] || `ring-white/${solidIntensity}`;
 
-    const glowClasses = `${baseClasses} ring-1 ring-inset ${glowColorClass} mix-blend-soft-light animate-fade-in-glow`;
+    const glowClasses = `${baseClasses} ring-1 ring-inset ${glowColorClass} mix-blend-soft-light`;
     const solidClasses = `${baseClasses} ring-1 ring-inset ${solidColorClass}`;
     const hoverClasses = hover ? 'transition-shadow group-hover:ring-4' : '';
 

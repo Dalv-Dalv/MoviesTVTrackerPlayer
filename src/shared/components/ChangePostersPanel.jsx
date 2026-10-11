@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { getAllImages } from '../services/TMDBMetadata';
 import { useTMDB } from '../hooks/useTMDB';
@@ -10,28 +11,21 @@ import RingGlow from './RingGlow';
 export function ChangePostersPanel({ media, changingPosterType, setChangingPosterType, newPosterUrls, setNewPosterUrls }) {
     const tmdb = useTMDB();
     const updateMediaPosters = useLibraryStore(state => state.updateMediaPosters);
-    const [availableImages, setAvailableImages] = useState(null);
     const [isSaving, setIsSaving] = useState(false);
     const scrollRef = useRef(null);
     const dragControls = useDragControls();
+
+    const { data: availableImages = null } = useQuery({
+        queryKey: ['mediaImages', media?.type, media?.tmdbId],
+        queryFn: () => getAllImages(tmdb, media.tmdbId, media.type === 'show'),
+        enabled: !!changingPosterType && !!media?.tmdbId && !!tmdb,
+    });
 
     useEffect(() => {
         if (scrollRef.current) {
             scrollRef.current.scrollTo({ top: 0, behavior: 'instant' });
         }
     }, [changingPosterType]);
-
-    useEffect(() => {
-        async function getData() {
-            if (!media) return;
-            const data = await getAllImages(tmdb, media.tmdbId, media.type === 'show');
-            setAvailableImages(data);
-        }
-
-        if (changingPosterType && !availableImages) {
-            getData();
-        }
-    }, [changingPosterType, media, tmdb, availableImages]);
 
     const handleSave = async () => {
         setIsSaving(true);
@@ -112,7 +106,7 @@ export function ChangePostersPanel({ media, changingPosterType, setChangingPoste
                                 return (
                                     <div
                                         key={`${elem.key}-${i}`}
-                                        className={`isolate relative ${itemWidth} rounded-lg overflow-hidden cursor-pointer group shrink-0`}
+                                        className={`isolate relative ${itemWidth} rounded-lg overflow-hidden cursor-pointer group shrink-0 bg-background`}
                                         style={{ aspectRatio: itemAspect }}
                                         onClick={() => setNewPosterUrls(prev => ({ ...prev, [changingPosterType]: elem.key }))}
                                     >

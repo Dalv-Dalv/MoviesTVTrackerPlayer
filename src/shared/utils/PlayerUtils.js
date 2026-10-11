@@ -54,8 +54,6 @@ export const formatLanguage = (code) => {
     try {
         localeStr = new Intl.Locale(code).toString();
     } catch (e) {
-        // If it's completely invalid, we can just return the raw code 
-        // or attempt to parse the first part before a dash
         try {
             localeStr = new Intl.Locale(code.split('-')[0]).toString();
         } catch (e2) {
@@ -73,4 +71,10 @@ export const formatLanguage = (code) => {
     } catch {
         return localeStr;
     }
-}
+};
+
+export const formatSeasonName = (season) => {
+    if (!season) return '';
+    if (season.number === 0) return season.name || 'Specials';
+    return season.name?.trim() || `Season ${season.number}`;
+};

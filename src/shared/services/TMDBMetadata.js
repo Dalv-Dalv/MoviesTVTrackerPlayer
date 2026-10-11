@@ -131,6 +131,88 @@ const getTrailerKey = (videos) => {
     return trailers.length > 0 ? trailers[0].key : null;
 };
 
+export const fetchMediaItem = async (tmdb, tmdbId, type) => {
+    const isShow = type === "show";
+    const details = await (isShow
+        ? tmdb.tvShows.details(tmdbId, ["videos", "images", "credits"])
+        : tmdb.movies.details(tmdbId, ["videos", "images", "credits"])
+    );
+
+    const mediaItem = {
+        tmdbId: tmdbId.toString(),
+        type: isShow ? 'show' : 'movie',
+        isDownloaded: false,
+        isFullyLoaded: true,
+        title: details.title || details.name,
+        overview: details.overview,
+        releaseDate: details.release_date || details.first_air_date,
+        genreIds: details.genres ? details.genres.map(g => g.id) : [],
+        tagline: details.tagline,
+        voteAverage: details.vote_average,
+        voteCount: details.vote_count,
+        status: details.status,
+        posterPath: getImageUrl(details.poster_path, "w500"),
+        posterPathFull: getImageUrl(details.poster_path, "original"),
+        rawPosterUrl: details.poster_path || null,
+        backdropPath: getImageUrl(details.backdrop_path, "w780"),
+        backdropPathFull: getImageUrl(details.backdrop_path, "original"),
+        rawBackdropUrl: details.backdrop_path || null,
+        logoPath: null,
+        logoPathFull: null,
+        rawLogoUrl: null,
+        trailerKey: getTrailerKey(details.videos),
+        cast: details.credits?.cast?.map(c => ({
+            id: c.id,
+            name: c.name,
+            character: c.character,
+            profilePath: getImageUrl(c.profile_path, "h632"),
+            profilePathFull: getImageUrl(c.profile_path, "original")
+        })) || [],
+        directors: details.credits?.crew?.filter(c => c.job === "Director" || c.job === "Creator").map(c => ({
+            name: c.name,
+            job: c.job
+        })) || [],
+    };
+
+    if (!isShow) {
+        mediaItem.runtime = details.runtime;
+        mediaItem.filePaths = [];
+    } else {
+        const rawSeasons = (details.seasons || []).map(season => ({
+            number: season.season_number,
+            name: season.name,
+            overview: season.overview,
+            posterPath: getImageUrl(season.poster_path, "w500"),
+            episodeCount: season.episode_count ?? 0,
+            airDate: season.air_date || null,
+            episodes: null,
+        }));
+        mediaItem.specials = rawSeasons.find(s => s.number === 0) || null;
+        mediaItem.seasons = rawSeasons.filter(s => s.number !== 0);
+        mediaItem.totalEpisodes = details.number_of_episodes || 0;
+    }
+
+    return mediaItem;
+};
+
+export const fetchSeasonEpisodes = async (tmdb, tmdbId, seasonNumber) => {
+    const seasonDetails = await tmdb.tvSeasons.details({ tvShowID: tmdbId, seasonNumber: seasonNumber });
+    if (!seasonDetails?.episodes) return [];
+
+    return seasonDetails.episodes.map(ep => ({
+        number: ep.episode_number,
+        name: ep.name,
+        overview: ep.overview,
+        stillPath: getImageUrl(ep.still_path, "w300"),
+        stillPathFull: getImageUrl(ep.still_path, "original"),
+        airDate: ep.air_date,
+        runtime: ep.runtime,
+        voteAverage: ep.vote_average,
+        filePaths: [],
+        isDownloaded: false
+    }));
+};
+
 export const fetchDetailedMetadata = async (tmdb, tmdbId, type, isLocalScan = false) => {
     const isShow = type === "show";
 
@@ -216,6 +298,8 @@ export const fetchDetailedMetadata = async (tmdb, tmdbId, type, isLocalScan = fa
                         name: season.name,
                         overview: season.overview,
                         posterPath: getImageUrl(season.poster_path, "w500"),
+                        airDate: season.air_date || null,
+                        episodeCount: season.episode_count ?? episodes.length,
                         episodes: episodes
                     };
 

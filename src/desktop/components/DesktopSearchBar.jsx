@@ -149,10 +149,26 @@ export default function DesktopSearchBar() {
         setActiveFilterState(val);
     };
     const [selectedIndex, setSelectedIndex] = useState(-1);
-    const [isFilterSwitching, setIsFilterSwitching] = useState(false);
+    const [hasCompletedSearch, setHasCompletedSearch] = useState(false);
 
-    const { results, isSearching, debouncedSearch } = useSearch(query, activeFilter);
-    const isPending = query !== debouncedSearch || isSearching;
+    const { results, isLoading, debouncedSearch } = useSearch(query, activeFilter, 300);
+
+    useEffect(() => {
+        if (debouncedSearch && !isLoading) {
+            setHasCompletedSearch(true);
+        }
+    }, [debouncedSearch, isLoading]);
+
+    useEffect(() => {
+        if (!query.trim()) {
+            setHasCompletedSearch(false);
+        }
+    }, [query]);
+
+    const isTyping = query.trim() !== (debouncedSearch || '').trim();
+    const showSkeletons = (isTyping && hasCompletedSearch) || (!isTyping && isLoading);
+    const hasContent = showSkeletons || (results && results.length > 0) || Boolean(debouncedSearch && !isLoading);
+
     const scrollRef = useRef(null);
     const resultsContainerRef = useRef(null);
     const inputRef = useRef(null);
@@ -184,10 +200,10 @@ export default function DesktopSearchBar() {
     };
 
     useEffect(() => {
-        if (isFocused && query) {
+        if (isFocused && query && hasContent) {
             setTimeout(handleScroll, 50);
         }
-    }, [results, isFocused, query]);
+    }, [results, isFocused, query, hasContent, showSkeletons]);
 
     useEffect(() => {
         setSelectedIndex(-1);
@@ -201,12 +217,6 @@ export default function DesktopSearchBar() {
             }
         }
     }, [selectedIndex]);
-
-    useEffect(() => {
-        if (!isSearching) {
-            setIsFilterSwitching(false);
-        }
-    }, [isSearching]);
 
 
     const handleKeyDown = (e) => {
@@ -230,29 +240,28 @@ export default function DesktopSearchBar() {
             }
             if (FILTERS[next].id !== activeFilter) {
                 setActiveFilter(FILTERS[next].id);
-                setIsFilterSwitching(true);
             }
         } else if (e.key === 'ArrowDown') {
             e.preventDefault();
-            if (results && results.length > 0) {
+            if (!showSkeletons && results && results.length > 0) {
                 const maxIndex = Math.min(results.length, 10) - 1;
                 setSelectedIndex(prev => (prev >= maxIndex ? 0 : prev + 1));
             }
         } else if (e.key === 'ArrowUp') {
             e.preventDefault();
-            if (results && results.length > 0) {
+            if (!showSkeletons && results && results.length > 0) {
                 const maxIndex = Math.min(results.length, 10) - 1;
                 setSelectedIndex(prev => (prev <= 0 ? maxIndex : prev - 1));
             }
         } else if (e.key === 'Enter') {
             e.preventDefault();
-            if (selectedIndex >= 0 && results[selectedIndex]) {
+            if (!showSkeletons && selectedIndex >= 0 && results[selectedIndex]) {
                 const item = results[selectedIndex];
                 const mediaType = item.media_type === 'tv' ? 'show' : item.media_type;
                 navigate(`/details/${mediaType}_${item.id}`);
                 setIsFocused(false);
-            } else {
-                navigate(`/search?q=${encodeURIComponent(query)}&filter=${activeFilter}`);
+            } else if (query.trim()) {
+                navigate(`/search?q=${encodeURIComponent(query.trim())}&filter=${activeFilter}`);
                 setIsFocused(false);
             }
         }
@@ -295,7 +304,7 @@ export default function DesktopSearchBar() {
                             transition={{ duration: 0.2, ease: "easeInOut" }}
                         >
                             <div
-                                className="mx-4 pb-4 flex items-center w-full gap-2 text-body/50"
+                                className={`px-4 flex items-center gap-2 text-body/50 ${hasContent ? 'pb-3' : 'pb-4'}`}
                                 onMouseDown={(e) => e.preventDefault()}
                             >
                                 <span className="text-muted shrink-0 mr-1">
@@ -308,7 +317,6 @@ export default function DesktopSearchBar() {
                                         onClick={() => {
                                             if (activeFilter !== filter.id) {
                                                 setActiveFilter(filter.id);
-                                                setIsFilterSwitching(true);
                                             }
                                         }}
                                         className={`p-1 px-3 rounded-lg transition-all noselect cursor-pointer border ${activeFilter === filter.id ? 'bg-white/10 border-white/20 text-white shadow-md' : 'border-white/5 hover:bg-white/5 hover:text-body/80'}`}
@@ -318,62 +326,68 @@ export default function DesktopSearchBar() {
                                 ))}
                             </div>
 
-                            <div
-                                ref={scrollRef}
-                                onScroll={handleScroll}
-                                style={{
-                                    WebkitMaskImage: 'linear-gradient(to bottom, black 90%, rgba(0,0,0, var(--mask-alpha, 0)) 99%)',
-                                    maskImage: 'linear-gradient(to bottom, black 90%, rgba(0,0,0, var(--mask-alpha, 0)) 99%)'
-                                }}
-                                className="mx-4 pb-4 text-body/50 max-h-[60vh] rounded-lg overflow-y-auto"
-                            >
+                            {hasContent && (
                                 <div
-                                    ref={resultsContainerRef}
-                                    className="flex flex-col gap-2 w-full rounded-lg relative"
-                                    onMouseDown={(e) => e.preventDefault()}
+                                    ref={scrollRef}
+                                    onScroll={handleScroll}
+                                    style={{
+                                        WebkitMaskImage: 'linear-gradient(to bottom, black 90%, rgba(0,0,0, var(--mask-alpha, 0)) 99%)',
+                                        maskImage: 'linear-gradient(to bottom, black 90%, rgba(0,0,0, var(--mask-alpha, 0)) 99%)'
+                                    }}
+                                    className="px-4 pb-4 text-body/50 max-h-[60vh] rounded-lg overflow-y-auto"
                                 >
-                                    <AnimatePresence mode="wait">
-                                        <motion.div
-                                            key={`search_results_${activeFilter}`}
-                                            initial={{ opacity: 0, y: 10 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            exit={{ opacity: 0, y: -10 }}
-                                            transition={{ duration: 0.2 }}
-                                            className="flex flex-col gap-2 w-full transition-opacity duration-200"
-                                        >
-                                            {isFilterSwitching || (isPending && results?.length > 0) ? (
-                                                Array(Math.min(10, results?.length || 0)).fill(0).map((_, i) => (
-                                                    <div key={`skel_${i}`} className="shrink-0 relative h-24 w-full p-1 bg-black/20 rounded-lg flex gap-2 overflow-hidden">
-                                                        <div className="h-full aspect-[2/3] shrink-0 bg-white/5 rounded-sm animate-pulse" />
-                                                        <div className="flex-1 flex flex-col justify-center gap-2">
-                                                            <div className="h-3 w-12 bg-white/5 rounded animate-pulse" />
-                                                            <div className="h-5 w-48 bg-white/5 rounded animate-pulse" />
-                                                            <div className="h-3 w-32 bg-white/5 rounded animate-pulse mt-1" />
+                                    <div
+                                        ref={resultsContainerRef}
+                                        className="flex flex-col gap-2 w-full rounded-lg relative"
+                                        onMouseDown={(e) => e.preventDefault()}
+                                    >
+                                        <AnimatePresence mode="wait">
+                                            <motion.div
+                                                key={`search_results_${activeFilter}`}
+                                                initial={{ opacity: 0, y: 10 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                exit={{ opacity: 0, y: -10 }}
+                                                transition={{ duration: 0.15 }}
+                                                className="flex flex-col gap-2 w-full"
+                                            >
+                                                {showSkeletons ? (
+                                                    Array(5).fill(0).map((_, i) => (
+                                                        <div key={`skel_${i}`} className="shrink-0 relative h-24 w-full p-1 bg-black/20 rounded-lg flex gap-2 overflow-hidden">
+                                                            <div className="h-full aspect-[2/3] shrink-0 bg-white/5 rounded-sm animate-pulse" />
+                                                            <div className="flex-1 flex flex-col justify-center gap-2">
+                                                                <div className="h-3 w-12 bg-white/5 rounded animate-pulse" />
+                                                                <div className="h-5 w-48 bg-white/5 rounded animate-pulse" />
+                                                                <div className="h-3 w-32 bg-white/5 rounded animate-pulse mt-1" />
+                                                            </div>
                                                         </div>
+                                                    ))
+                                                ) : results && results.length > 0 ? (
+                                                    results.slice(0, 10).map((result, index) => {
+                                                        const Card = TYPE_TO_CARD[result.media_type];
+                                                        return Card ? (
+                                                            <Card
+                                                                key={`${result.media_type}_${result.id}`}
+                                                                id={`search_result_${index}`}
+                                                                data={result}
+                                                                isSelected={index === selectedIndex}
+                                                                onClick={() => {
+                                                                    const mediaType = result.media_type === 'tv' ? 'show' : result.media_type;
+                                                                    navigate(`/details/${mediaType}_${result.id}`);
+                                                                    setIsFocused(false);
+                                                                }}
+                                                            />
+                                                        ) : null;
+                                                    })
+                                                ) : debouncedSearch && !isLoading ? (
+                                                    <div className="py-8 text-center text-muted text-sm">
+                                                        No results found
                                                     </div>
-                                                ))
-                                            ) : (
-                                                results && results.slice(0, 10).map((result, index) => {
-                                                    const Card = TYPE_TO_CARD[result.media_type];
-                                                    return Card ? (
-                                                        <Card
-                                                            key={`${result.media_type}_${result.id}`}
-                                                            id={`search_result_${index}`}
-                                                            data={result}
-                                                            isSelected={index === selectedIndex}
-                                                            onClick={() => {
-                                                                const mediaType = result.media_type === 'tv' ? 'show' : result.media_type;
-                                                                navigate(`/details/${mediaType}_${result.id}`);
-                                                                setIsFocused(false);
-                                                            }}
-                                                        />
-                                                    ) : null;
-                                                })
-                                            )}
-                                        </motion.div>
-                                    </AnimatePresence>
+                                                ) : null}
+                                            </motion.div>
+                                        </AnimatePresence>
+                                    </div>
                                 </div>
-                            </div>
+                            )}
                         </motion.div>
                     )}
                 </AnimatePresence>

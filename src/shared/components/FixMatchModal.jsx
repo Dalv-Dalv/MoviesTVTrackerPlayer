@@ -2,6 +2,8 @@ import { Modal } from './Modal';
 import { useTMDB } from '../hooks/useTMDB';
 import { useLibraryStore } from '../store/useLibraryStore';
 import { useState, useEffect, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useDebounce } from '../hooks/useDebounce';
 import parseVideo from 'video-name-parser';
 
 import { MagnifyingGlassIcon } from '@phosphor-icons/react';
@@ -12,10 +14,25 @@ export function FixMatchModal({ isOpen, onClose, media, compId, navigate }) {
     const updateMediaMatch = useLibraryStore(state => state.updateMediaMatch);
 
     const [searchQuery, setSearchQuery] = useState("");
-    const [searchResults, setSearchResults] = useState([]);
-    const [isSearching, setIsSearching] = useState(false);
+    const debouncedQuery = useDebounce(searchQuery, 400);
     const [selectedResult, setSelectedResult] = useState(null);
     const [isSavingMatch, setIsSavingMatch] = useState(false);
+
+    const { data: searchResults = [], isLoading: isQueryLoading, isFetching } = useQuery({
+        queryKey: ['fixMatchSearch', debouncedQuery],
+        queryFn: async () => {
+            if (!debouncedQuery.trim()) return [];
+            const search = await tmdb.search.multi({
+                query: debouncedQuery.trim(),
+                language: "en-US",
+                page: 1
+            });
+            return (search.results || []).filter(r => r.media_type === 'movie' || r.media_type === 'tv');
+        },
+        enabled: isOpen && !!tmdb && !!debouncedQuery.trim(),
+    });
+
+    const isSearching = !!debouncedQuery.trim() && (isQueryLoading || isFetching);
 
     useEffect(() => {
         if (isOpen) {
@@ -60,33 +77,7 @@ export function FixMatchModal({ isOpen, onClose, media, compId, navigate }) {
         }
     }, [isOpen, media]);
 
-    useEffect(() => {
-        if (!isOpen) return;
 
-        const timer = setTimeout(async () => {
-            if (!searchQuery.trim()) {
-                setSearchResults([]);
-                return;
-            }
-
-            setIsSearching(true);
-            try {
-                const search = await tmdb.search.multi({
-                    query: searchQuery,
-                    language: "en-US",
-                    page: 1
-                });
-                const filtered = (search.results || []).filter(r => r.media_type === 'movie' || r.media_type === 'tv');
-                setSearchResults(filtered);
-            } catch (err) {
-                console.error("Failed to search TMDB:", err);
-            } finally {
-                setIsSearching(false);
-            }
-        }, 500);
-
-        return () => clearTimeout(timer);
-    }, [searchQuery, isOpen, tmdb]);
 
     const handleConfirmMatch = async () => {
         if (!selectedResult) return;
@@ -108,15 +99,15 @@ export function FixMatchModal({ isOpen, onClose, media, compId, navigate }) {
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Fix Match">
             <div className="flex flex-col gap-4 max-h-[80vh]">
-                <div 
+                <div
                     onClick={() => inputRef.current?.focus()}
                     className='bg-black/20 border border-divider rounded-lg px-4 py-3 focus-within:border-primary transition-colors flex items-center gap-4 cursor-text'
                 >
-                    <MagnifyingGlassIcon size={24} weight='bold' className='text-muted'/>
-                    
-                    <input 
+                    <MagnifyingGlassIcon size={24} weight='bold' className='text-muted' />
+
+                    <input
                         ref={inputRef}
-                        type="text" 
+                        type="text"
                         placeholder="Search for movie or TV show..."
                         value={searchQuery}
                         onChange={e => setSearchQuery(e.target.value)}
@@ -131,7 +122,7 @@ export function FixMatchModal({ isOpen, onClose, media, compId, navigate }) {
                         <div className="m-auto text-muted">No results found.</div>
                     ) : (
                         searchResults.map(result => (
-                            <div 
+                            <div
                                 key={result.id}
                                 onClick={() => setSelectedResult(result)}
                                 className={`flex items-center gap-4 p-3 cursor-pointer transition-colors ${selectedResult?.id === result.id ? 'bg-primary/20' : 'hover:bg-white/5'}`}
@@ -152,8 +143,8 @@ export function FixMatchModal({ isOpen, onClose, media, compId, navigate }) {
 
                 <div className="flex gap-4 justify-end">
                     <button onClick={onClose} className="px-4 py-2 rounded-lg hover:bg-divider transition-colors cursor-pointer">Cancel</button>
-                    <button 
-                        onClick={handleConfirmMatch} 
+                    <button
+                        onClick={handleConfirmMatch}
                         disabled={!selectedResult || isSavingMatch}
                         className="px-4 py-2 bg-body text-black rounded-lg font-semibold hover:bg-body/70 transition-colors disabled:opacity-50 cursor-pointer"
                     >

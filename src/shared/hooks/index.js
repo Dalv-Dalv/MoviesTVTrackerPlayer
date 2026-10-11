@@ -5,3 +5,4 @@ export { useVideoState } from "./useVideoState";
 export { useScrubber } from "./useScrubber";
 export { usePlaybackSession } from "./usePlaybackSession";
 export { useLanguagePreferences } from "./useLanguagePreferences";
+export { useDelayedLoading } from "./useDelayedLoading";

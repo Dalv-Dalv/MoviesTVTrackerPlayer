@@ -704,3 +704,23 @@ export const updateMediaPosters = async (compId, newPosterUrls) => {
         throw e;
     }
 };
+
+export const updateMediaMetadata = async (compId, updatedFields) => {
+    try {
+        const cacheData = await readTextFile(CACHE_FILE, { baseDir: BaseDirectory.AppData });
+        const libraryCache = { blacklist: [], ...JSON.parse(cacheData) };
+
+        if (!libraryCache.mediaItems || !libraryCache.mediaItems[compId]) return null;
+
+        libraryCache.mediaItems[compId] = {
+            ...libraryCache.mediaItems[compId],
+            ...updatedFields
+        };
+
+        await writeTextFile(CACHE_FILE, JSON.stringify(libraryCache, null, 2), { baseDir: BaseDirectory.AppData });
+        return libraryCache.mediaItems;
+    } catch (e) {
+        console.error("Failed to update media metadata in cache", e);
+        return null;
+    }
+};

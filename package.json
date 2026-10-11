@@ -13,6 +13,7 @@
     "@api-wrappers/tmdb-wrapper": "^3.0.0",
     "@phosphor-icons/react": "^2.1.10",
     "@tailwindcss/vite": "^4.3.2",
+    "@tanstack/react-query": "^5.104.1",
     "@tauri-apps/api": "^2.11.1",
     "@tauri-apps/plugin-dialog": "^2.7.2",
     "@tauri-apps/plugin-fs": "^2.5.1",

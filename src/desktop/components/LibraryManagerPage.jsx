@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useLibraryStore } from '../../shared/store/useLibraryStore';
 import { useTMDB } from '../../shared/hooks/useTMDB';
@@ -18,8 +19,18 @@ export default function LibraryManagerPage() {
 
     const [searchQuery, setSearchQuery] = useState('');
     const debouncedSearch = useDebounce(searchQuery, 500);
-    const [searchResults, setSearchResults] = useState([]);
-    const [isSearching, setIsSearching] = useState(false);
+
+    const { data: searchResults = [], isLoading: isQueryLoading, isFetching } = useQuery({
+        queryKey: ['libraryManagerSearch', debouncedSearch],
+        queryFn: async () => {
+            if (!debouncedSearch.trim()) return [];
+            const res = await tmdb.search.multi({ query: debouncedSearch.trim(), language: 'en-US', page: 1 });
+            return res.results || [];
+        },
+        enabled: !!tmdb && !!debouncedSearch.trim(),
+    });
+
+    const isSearching = !!debouncedSearch.trim() && (isQueryLoading || isFetching);
 
     const [isSaving, setIsSaving] = useState(false);
 
@@ -54,26 +65,7 @@ export default function LibraryManagerPage() {
         }).filter(item => item.filePaths.length > 0);
     }, [library, stagedChanges]);
 
-    useEffect(() => {
-        if (!debouncedSearch) {
-            setSearchResults([]);
-            return;
-        }
 
-        let mounted = true;
-        setIsSearching(true);
-
-        tmdb.search.multi({ query: debouncedSearch, language: 'en-US', page: 1 })
-            .then(res => {
-                if (mounted) setSearchResults(res.results || []);
-            })
-            .catch(console.error)
-            .finally(() => {
-                if (mounted) setIsSearching(false);
-            });
-
-        return () => { mounted = false; };
-    }, [debouncedSearch, tmdb]);
 
     const toggleFileSelection = (path) => {
         setSelectedFiles(prev =>

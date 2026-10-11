@@ -161,5 +161,17 @@ export const useLibraryStore = create((set, get) => ({
             console.error("Failed to update media posters", error);
             throw error;
         }
+    },
+
+    updateMediaMetadata: async (compId, updatedFields) => {
+        try {
+            const { updateMediaMetadata: ummScanner } = await import('../services/LibraryScanner');
+            const newLibItems = await ummScanner(compId, updatedFields);
+            if (newLibItems) {
+                set({ library: newLibItems });
+            }
+        } catch (error) {
+            console.error("Failed to update media metadata in store", error);
+        }
     }
 }));
