@@ -134,7 +134,18 @@ export function MobileMediaDetails({ compId }) {
     return (
         <div ref={containerRef} className="w-full flex flex-col gap-6 pb-12 relative z-10 bg-background">
             {showMediaSkeleton ? (
-                <MobileMediaHeroSkeleton />
+                <>
+                    <MobileMediaHeroSkeleton navigate={navigate} activeTab={activeTab} />
+                    {activeTab === 'episodes' && (
+                        <div className="flex flex-col px-4 ml:px-6">
+                            <div className="w-36 h-9 rounded-xl bg-white/10 animate-pulse mb-3" />
+                            <MobileMediaEpisodesSkeleton />
+                        </div>
+                    )}
+                    {activeTab === 'cast' && (
+                        <MobileMediaCastSkeleton />
+                    )}
+                </>
             ) : media ? (
                 <MobileMediaHero
                     media={media}
@@ -154,7 +165,7 @@ export function MobileMediaDetails({ compId }) {
             ) : null}
 
             {/* Tab Views */}
-            {media && (
+            {!showMediaSkeleton && media && (
                 <>
                     {activeTab === 'episodes' && media.type === 'show' && (
                         <MobileMediaEpisodes

@@ -211,17 +211,17 @@ export function MobileMediaHero({
                         showLessText="Show less..."
                     />
 
-                    <div className='flex gap-2 noselect'>
+                    <div className='flex gap-4 items-center noselect'>
                         {media?.isDownloaded ? (
                             <button
                                 onClick={() => navigate(`/play/${compId}`)}
-                                className="bg-body text-black px-4 py-2.5 rounded-xl font-bold flex flex-row items-center justify-center gap-2 cursor-pointer flex-1 transition-colors hover:bg-body/90"
+                                className="bg-body text-black px-4 py-2 rounded-full w-fit font-bold flex flex-row items-center justify-center gap-2 cursor-pointer transition-colors hover:bg-body/90"
                             >
                                 <PlayIcon size={20} weight='fill' />
                                 <span>{playButtonText}</span>
                             </button>
                         ) : (
-                            <div className="ring-inset ring-2 ring-muted text-muted px-4 py-2.5 rounded-xl font-bold flex flex-row items-center justify-center gap-2 flex-1">
+                            <div className="ring-inset ring-2 ring-muted text-muted px-4 py-2 rounded-full w-fit font-bold flex flex-row items-center justify-center gap-2">
                                 <PlayIcon size={20} weight='bold' />
                                 <span>Unavailable</span>
                             </div>
@@ -229,7 +229,7 @@ export function MobileMediaHero({
 
                         <button
                             onClick={() => navigate(`/play/${compId}`)}
-                            className="text-muted px-4 py-2.5 rounded-xl font-semibold flex flex-row items-center justify-center gap-2 cursor-pointer bg-white/5 active:bg-white/10 transition-colors"
+                            className="text-muted px-2 py-2 rounded-full w-fit font-semibold flex flex-row items-center justify-center gap-2 cursor-pointer transition-colors hover:text-body"
                         >
                             <PlusIcon size={20} weight='bold' />
                             <span>Watchlist</span>
@@ -277,15 +277,69 @@ export function MobileMediaHero({
     );
 }
 
-export function MobileMediaHeroSkeleton() {
+export function MobileMediaHeroSkeleton({ navigate, activeTab = 'details' }) {
     return (
-        <div className="w-full flex flex-col gap-6 animate-pulse">
-            <div className="w-full aspect-video bg-white/10" />
-            <div className="px-4 flex flex-col gap-4">
-                <div className="w-2/3 h-8 bg-white/10 rounded-md" />
-                <div className="w-1/3 h-5 bg-white/10 rounded-md" />
-                <div className="w-full h-16 bg-white/5 rounded-md" />
-                <div className="w-full h-12 bg-white/10 rounded-xl" />
+        <div className="w-full flex flex-col relative animate-pulse">
+            {/* Backdrop Container with gradient fade */}
+            <div className='relative w-full shrink-0 top-0 overflow-hidden noselect flex justify-center bg-black aspect-[16/10] sm:aspect-video'>
+                <div className="w-full h-full bg-white/5" />
+                <div className="absolute inset-0 bg-[linear-gradient(to_bottom,transparent_30%,rgba(0,0,0,0.8)_75%,black_100%)] pointer-events-none" />
+            </div>
+
+            {/* Back button */}
+            <button
+                onClick={() => navigate?.(-1)}
+                className="fixed top-10 left-4 z-60 text-white/80 aspect-square flex items-center justify-center gap-1 hover:text-body transition-colors bg-black/10 active:bg-black/0 rounded-full px-3 py-2 noselect backdrop-blur-md"
+            >
+                <ArrowLeftIcon size={25} weight='bold' />
+            </button>
+
+            {/* Info Section (overlapping backdrop with -mt-6) */}
+            <div className='z-20 text-body px-4 ml:px-6 -mt-6 ml:-mt-4 flex flex-col gap-4'>
+                {/* Title + 3-dots button row */}
+                <div className="flex w-full items-start justify-between gap-4">
+                    <div className="flex flex-col gap-2 flex-1">
+                        <div className="w-3/5 h-7 bg-white/10 rounded-lg" />
+                        <div className="flex items-center gap-2">
+                            <div className="w-12 h-4 bg-white/10 rounded" />
+                            <div className="w-1 h-1 bg-white/20 rounded-full" />
+                            <div className="w-16 h-4 bg-white/10 rounded" />
+                            <div className="w-1 h-1 bg-white/20 rounded-full" />
+                            <div className="w-20 h-4 bg-white/10 rounded" />
+                        </div>
+                    </div>
+                    {/* 3-dots placeholder */}
+                    <div className="w-10 h-10 rounded-full bg-white/10 shrink-0" />
+                </div>
+
+                {/* Overview lines */}
+                <div className="flex flex-col gap-2">
+                    <div className="w-full h-3.5 bg-white/10 rounded" />
+                    <div className="w-11/12 h-3.5 bg-white/10 rounded" />
+                    <div className="w-3/4 h-3.5 bg-white/10 rounded" />
+                </div>
+
+                {/* Action Buttons: Play + Watchlist */}
+                <div className="flex gap-4 items-center noselect">
+                    <div className="w-28 h-9 bg-white/20 rounded-full" />
+                    <div className="w-20 h-9 bg-white/5 rounded-full" />
+                </div>
+
+                {/* Tabs Bar Skeleton */}
+                <div className="w-full flex flex-col pb-2">
+                    <div className='relative z-50 -mx-4 w-[calc(100%+2rem)] flex justify-stretch items-center text-center border-b border-transparent overflow-hidden bg-black mix-blend-screen'>
+                        <div className="p-2 flex-1 flex justify-center items-center">
+                            <div className={`h-4 rounded ${activeTab === 'details' ? 'w-16 bg-white/30' : 'w-16 bg-white/10'}`} />
+                        </div>
+                        <div className="p-2 flex-1 flex justify-center items-center">
+                            <div className={`h-4 rounded ${activeTab === 'episodes' ? 'w-16 bg-white/30' : 'w-16 bg-white/10'}`} />
+                        </div>
+                        <div className="p-2 flex-1 flex justify-center items-center">
+                            <div className={`h-4 rounded ${activeTab === 'cast' ? 'w-16 bg-white/30' : 'w-16 bg-white/10'}`} />
+                        </div>
+                        <div className="absolute inset-0 pointer-events-none mix-blend-overlay border-b border-white" />
+                    </div>
+                </div>
             </div>
         </div>
     );

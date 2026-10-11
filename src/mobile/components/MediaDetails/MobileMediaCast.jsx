@@ -31,7 +31,7 @@ export function MobileMediaCast({ media, navigate }) {
 
 export function MobileMediaCastSkeleton() {
     return (
-        <div className='flex flex-col gap-4 text-body overflow-hidden w-full px-4 mt-4 animate-pulse'>
+        <div className='flex flex-col gap-4 text-body overflow-hidden w-full px-4 ml:px-6 mt-4 animate-pulse'>
             <div className='flex overflow-x-auto gap-4 pb-4 -mb-4 -mx-4 px-4'>
                 {[...Array(5)].map((_, i) => (
                     <div key={i} className="w-28 flex flex-col shrink-0 gap-1.5">

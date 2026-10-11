@@ -346,13 +346,17 @@ export function MobileMediaEpisodes({
 
 export function MobileMediaEpisodesSkeleton() {
     return (
-        <div className="flex flex-col gap-3 -mx-3 animate-pulse">
+        <div className="flex flex-col gap-3 w-full animate-pulse">
             {[...Array(4)].map((_, i) => (
-                <div key={i} className="grid grid-cols-[auto_1fr] gap-3 p-2 rounded-2xl bg-white/5">
-                    <div className="ml:w-48 mp:w-36 aspect-video bg-white/10 rounded-xl" />
-                    <div className="flex flex-col gap-2 justify-center">
+                <div key={i} className="relative grid grid-cols-[auto_1fr] gap-3 gap-y-2 w-full p-2 rounded-2xl">
+                    <div className="shrink-0 ml:w-48 mp:w-36 w-32 aspect-video bg-white/10 rounded-xl" />
+                    <div className="flex flex-col justify-center gap-2 pr-10">
                         <div className="w-36 h-4 bg-white/10 rounded" />
-                        <div className="w-20 h-3 bg-white/5 rounded" />
+                        <div className="w-16 h-3 bg-white/5 rounded" />
+                    </div>
+                    <div className="ml:hidden col-span-2 px-1 flex flex-col gap-1 mt-1">
+                        <div className="w-full h-3 bg-white/5 rounded" />
+                        <div className="w-3/4 h-3 bg-white/5 rounded" />
                     </div>
                 </div>
             ))}
