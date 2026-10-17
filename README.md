@@ -1,5 +1,7 @@
 # HomeReel
 
+> **Project Status**: HomeReel is in early active development. While core library scanning, tracking, and playback backends are functional, features, controls, and UI flows are evolving rapidly and there might be lots of bugs.
+
 A cross-platform local media tracker and video player for Desktop (Windows, macOS, Linux) and Android, built with Tauri v2, React 19, and Vite.
 
 HomeReel indexes local video files, queries metadata and artwork from The Movie Database (TMDB), tracks watch history and progress, and plays back media using native video backends: **libmpv** on desktop and **ExoPlayer** on Android.
