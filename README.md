@@ -42,6 +42,7 @@ HomeReel indexes local video files, queries metadata and artwork from The Movie 
 - **TiDB integration (intro & credit detection)**: Automated detection and skip buttons for recaps, intros, and end credits, enabling precise completion tracking instead of percentage thresholds.
 - **Seek preview thumbnails**: Real-time video frame scrubbing previews along the timeline.
 - **Social & activity logging**: Letterboxd-style friend activity feeds to share watch logs, history, and ratings.
+- **Extensive customization & settings (WIP)**: Configurable player behavior, custom keybindings, adjustable seek step intervals, gesture sensitivity tuning, and interface preferences.
 
 ## Tech Stack
 
@@ -88,6 +89,11 @@ Run the Tauri desktop application with hot reload:
 npm run tauri dev
 ```
 
+Run on a connected Android device or emulator:
+```bash
+npm run tauri android dev
+```
+
 Run the Vite frontend in a browser (UI-only testing):
 ```bash
 npm run dev
@@ -95,34 +101,46 @@ npm run dev
 
 ### Production Build
 
-Build the desktop binary:
+**Desktop:**
 ```bash
 npm run tauri build
 ```
-
 The compiled binaries will be output to `src-tauri/target/release/bundle/`.
+
+**Android:**
+Build a release APK split by ABI targeting 64-bit ARM (`arm64-v8a`):
+```bash
+npm run tauri android build -- --apk --target aarch64 --split-per-abi
+```
+The output `.apk` file will be generated in `src-tauri/gen/android/app/build/outputs/apk/arm64-v8a/release/`.
 
 ## Controls
 
-### Desktop Keyboard Shortcuts
-| Key | Action |
+### Desktop Keyboard & Mouse
+| Input | Action |
 | --- | --- |
 | `Space` | Play / Pause |
-| `F` / `F11` | Toggle Fullscreen |
+| `Left Arrow` | Seek backward 5 seconds |
+| `Right Arrow` | Seek forward 5 seconds |
+| `Down Arrow` | Seek backward 1 minute |
+| `Up Arrow` | Seek forward 1 minute |
+| `9` | Decrease volume by 2% |
+| `0` | Increase volume by 2% |
 | `M` | Toggle Mute |
-| `Left` / `Right` | Seek -10s / +10s |
-| `Up` / `Down` | Volume Up / Down |
-| `Double Click` | Toggle Fullscreen |
+| `F` / `F11` | Toggle Fullscreen |
+
+*Extensive customization for player behavior, keybindings, seek intervals, and UI controls is currently in active development (WIP).*
 
 ### Mobile Touch Gestures
 | Gesture | Action |
 | --- | --- |
-| `Left edge drag (vertical)` | Adjust brightness |
+| `Left edge drag (vertical)` | Adjust screen brightness |
 | `Right edge drag (vertical)` | Adjust volume |
-| `Double-tap left` | Seek -10s |
-| `Double-tap right` | Seek +10s |
-| `Double-tap center` | Play / Pause |
-| `Long press (search history)` | Reveal delete button |
+| `Single tap (sides)` | Toggle player UI controls visibility |
+| `Single tap (center)` | Wake player UI controls |
+| `Double tap (left)` | Seek backward 10 seconds |
+| `Double tap (right)` | Seek forward 10 seconds |
+| `Double tap (center)` | Play / Pause |
 
 ## Project Structure
 
