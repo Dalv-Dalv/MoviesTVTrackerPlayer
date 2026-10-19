@@ -146,8 +146,9 @@ export const Player = () => {
 
     return (
         <div className='w-screen h-screen relative overflow-hidden flex flex-col items-center justify-center'>
-            <img className={`absolute w-full scale-105 max-h-full object-contain blur-lg ${isOverviewActive ? 'opacity-100' : 'opacity-0'} transition-opacity duration-1000`}
-                src={pauseFrameUrl} onLoad={() => setIsOverviewActive(true)} />
+            <div className={`absolute w-full max-h-full bg-black ${isOverviewActive ? 'opacity-100' : 'opacity-0'} transition-opacity duration-500`}>
+                <img className={`w-full h-full object-contain transition-[filter] duration-500 ${isOverviewActive ? 'blur-lg' : 'blur-none'}`} src={pauseFrameUrl} onLoad={() => setIsOverviewActive(true)} />
+            </div>
 
             <div className='relative w-full flex-1 flex items-center flex-col justify-between noselect text-white' onMouseMove={wakeUI}>
 

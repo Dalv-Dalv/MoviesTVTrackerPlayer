@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useLibraryStore } from '../../shared/store/useLibraryStore';
 import { useTMDB } from '../../shared/hooks/useTMDB';
@@ -12,6 +12,7 @@ export default function LibraryManagerPage() {
     const library = useLibraryStore(state => state.library);
     const applyBulkRematch = useLibraryStore(state => state.applyBulkRematch);
     const tmdb = useTMDB();
+    const queryClient = useQueryClient();
     const navigate = useNavigate();
 
     const [selectedFiles, setSelectedFiles] = useState([]);
@@ -24,20 +25,25 @@ export default function LibraryManagerPage() {
         queryKey: ['libraryManagerSearch', debouncedSearch],
         queryFn: async () => {
             if (!debouncedSearch.trim()) return [];
-            const res = await tmdb.search.multi({ query: debouncedSearch.trim(), language: 'en-US', page: 1 });
-            return res.results || [];
+            try {
+                const res = await tmdb.search.multi({ query: debouncedSearch.trim(), language: 'en-US', page: 1 });
+                return res.results || [];
+            } catch (err) {
+                console.error("Library manager search error:", err);
+                return [];
+            }
         },
         enabled: !!tmdb && !!debouncedSearch.trim(),
     });
 
-    const isSearching = !!debouncedSearch.trim() && (isQueryLoading || isFetching);
+    const isSearching = !!searchQuery.trim() && (isQueryLoading || isFetching || searchQuery !== debouncedSearch);
 
     const [isSaving, setIsSaving] = useState(false);
 
     const groups = useMemo(() => {
         const stagedPaths = new Set(stagedChanges.flatMap(c => c.filePaths));
 
-        return Object.values(library).map(item => {
+        return Object.entries(library).map(([compId, item]) => {
             let itemPaths = [];
             if (item.type === 'movie') {
                 itemPaths = item.filePaths || [];
@@ -60,6 +66,7 @@ export default function LibraryManagerPage() {
 
             return {
                 ...item,
+                compId,
                 filePaths: itemPaths.filter(p => !stagedPaths.has(p))
             };
         }).filter(item => item.filePaths.length > 0);
@@ -103,7 +110,6 @@ export default function LibraryManagerPage() {
 
         setSelectedFiles([]);
         setSearchQuery('');
-        setSearchResults([]);
     };
 
     const removeStagedChange = (index) => {
@@ -115,6 +121,7 @@ export default function LibraryManagerPage() {
         setIsSaving(true);
         try {
             await applyBulkRematch(tmdb, stagedChanges);
+            queryClient.invalidateQueries({ queryKey: ['mediaDetails'] });
             setStagedChanges([]);
         } catch (e) {
             console.error(e);
@@ -126,22 +133,22 @@ export default function LibraryManagerPage() {
     return (
         <div className="flex flex-col h-full bg-background">
             {/* Top Bar */}
-            <div className="flex items-center gap-4 p-6 border-b border-white/10 shrink-0">
+            <div className="flex items-center gap-4 p-4 sm:p-6 border-b border-white/10 shrink-0">
                 <button
                     onClick={() => navigate(-1)}
-                    className="p-2 rounded-full hover:bg-white/10 transition-colors text-muted hover:text-body"
+                    className="p-2 rounded-full hover:bg-white/10 transition-colors text-muted hover:text-body cursor-pointer"
                 >
                     <CaretLeftIcon size={24} weight="bold" />
                 </button>
                 <div>
-                    <h1 className="text-2xl font-bold text-body tracking-wide">Advanced Library Management</h1>
-                    <p className="text-muted text-sm mt-1">Audit miscategorized files and rematch them to the correct TMDB entries.</p>
+                    <h1 className="text-xl sm:text-2xl font-bold text-body tracking-wide">Advanced Library Management</h1>
+                    <p className="text-muted text-xs sm:text-sm mt-1">Audit miscategorized files and rematch them to the correct TMDB entries.</p>
                 </div>
             </div>
 
-            <div className="flex h-full flex-row overflow-hidden">
+            <div className="flex flex-1 flex-col md:flex-row overflow-hidden min-h-0">
                 {/* Left Panel */}
-                <div className="flex-1 flex flex-col border-r border-white/10 overflow-hidden bg-white/5">
+                <div className="flex-1 flex flex-col md:border-r border-b md:border-b-0 border-white/10 overflow-hidden bg-white/5">
 
                     <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
                         {/* Staged Changes Section */}
@@ -158,7 +165,7 @@ export default function LibraryManagerPage() {
                                                 <span className="bg-primary/20 text-primary px-2 py-1 rounded text-xs tracking-wider">NEW MATCH</span>
                                                 {change.match.title || change.match.name}
                                             </div>
-                                            <button onClick={() => removeStagedChange(index)} className="text-danger-500 hover:text-danger-400 p-1 transition-colors">
+                                            <button onClick={() => removeStagedChange(index)} className="text-danger-500 hover:text-danger-400 p-1 transition-colors cursor-pointer">
                                                 <XIcon size={20} weight="bold" />
                                             </button>
                                         </div>
@@ -178,7 +185,7 @@ export default function LibraryManagerPage() {
 
                         {groups.map(group => (
                             <GroupItem
-                                key={group.tmdbId}
+                                key={group.compId || group.tmdbId}
                                 group={group}
                                 selectedFiles={selectedFiles}
                                 toggleFileSelection={toggleFileSelection}
@@ -189,7 +196,7 @@ export default function LibraryManagerPage() {
                 </div>
 
                 {/* Right Panel */}
-                <div className="w-100 flex flex-col bg-black/10 shrink-0">
+                <div className="w-full md:w-96 lg:w-100 flex flex-col bg-black/10 shrink-0 h-1/2 md:h-full">
                     <div className="p-4 border-b border-white/10 flex flex-col gap-3 shrink-0">
                         <div className="flex items-center justify-between">
                             <h2 className="text-lg font-semibold text-body">Search Match</h2>
@@ -198,7 +205,7 @@ export default function LibraryManagerPage() {
                             </span>
                         </div>
 
-                        <div className="relative">
+                        <div className="relative flex items-center">
                             <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={18} />
                             <input
                                 type="text"
@@ -206,14 +213,23 @@ export default function LibraryManagerPage() {
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 placeholder="Search TMDB..."
                                 disabled={selectedFiles.length === 0}
-                                className="w-full bg-white/5 border border-white/10 rounded-lg pl-10 pr-4 py-2 text-sm text-body placeholder:text-muted focus:outline-none focus:border-primary disabled:opacity-50"
+                                className="w-full bg-white/5 border border-white/10 rounded-lg pl-10 pr-9 py-2 text-sm text-body placeholder:text-muted focus:outline-none focus:border-primary disabled:opacity-50"
                             />
+                            {searchQuery && (
+                                <button
+                                    type="button"
+                                    onClick={() => setSearchQuery('')}
+                                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-body p-0.5 cursor-pointer"
+                                >
+                                    <XIcon size={16} weight="bold" />
+                                </button>
+                            )}
                         </div>
                     </div>
 
                     <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
                         {selectedFiles.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center h-full text-center text-muted gap-2 opacity-50">
+                            <div className="flex flex-col items-center justify-center h-full text-center text-muted gap-2 opacity-50 py-8">
                                 <FolderIcon size={48} weight="duotone" />
                                 <p>Select files from the left to rematch them.</p>
                             </div>
@@ -242,9 +258,9 @@ export default function LibraryManagerPage() {
                                         onClick={() => stageSelection(result)}
                                     >
                                         {poster ? (
-                                            <img src={poster} alt={title} className="w-12 h-16 object-cover rounded bg-white/5" />
+                                            <img src={poster} alt={title} className="w-12 h-16 object-cover rounded bg-white/5 shrink-0" />
                                         ) : (
-                                            <div className="w-12 h-16 bg-white/5 rounded flex items-center justify-center text-muted text-xs text-center border border-white/10">No<br />Img</div>
+                                            <div className="w-12 h-16 bg-white/5 rounded flex items-center justify-center text-muted text-xs text-center border border-white/10 shrink-0">No<br />Img</div>
                                         )}
                                         <div className="flex-1 min-w-0">
                                             <h4 className="font-semibold text-body text-sm truncate">{title}</h4>
@@ -253,7 +269,7 @@ export default function LibraryManagerPage() {
                                                 {year && <span>• {year}</span>}
                                             </div>
                                         </div>
-                                        <button className="opacity-0 group-hover:opacity-100 bg-primary text-background p-2 rounded-full transition-opacity">
+                                        <button className="opacity-0 group-hover:opacity-100 bg-primary text-background p-2 rounded-full transition-opacity cursor-pointer">
                                             <CheckCircleIcon size={16} weight="bold" />
                                         </button>
                                     </div>
@@ -271,7 +287,7 @@ export default function LibraryManagerPage() {
                         <button
                             onClick={saveChanges}
                             disabled={stagedChanges.length === 0 || isSaving}
-                            className="w-full bg-primary text-background font-bold py-3 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+                            className="w-full bg-primary text-background font-bold py-3 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 transition-opacity flex items-center justify-center gap-2 cursor-pointer"
                         >
                             {isSaving ? "Saving..." : `Save ${stagedChanges.length} Changes`}
                         </button>
@@ -282,12 +298,10 @@ export default function LibraryManagerPage() {
     );
 }
 
-import { Square, CheckSquare, MinusSquare } from '@phosphor-icons/react';
-
 const GroupItem = ({ group, selectedFiles, toggleFileSelection, toggleGroupSelection }) => {
     const [expanded, setExpanded] = useState(false);
 
-    const isUnmatched = group.tmdbId.startsWith('local_');
+    const isUnmatched = String(group.tmdbId || group.compId || '').startsWith('local_');
     const allGroupFilesSelected = group.filePaths.length > 0 && group.filePaths.every(p => selectedFiles.includes(p));
     const someGroupFilesSelected = group.filePaths.some(p => selectedFiles.includes(p));
 
@@ -296,7 +310,7 @@ const GroupItem = ({ group, selectedFiles, toggleFileSelection, toggleGroupSelec
             <div className="flex items-center justify-between p-3 hover:bg-white/5 transition-colors group">
                 <div className="flex items-center gap-4 flex-1 min-w-0">
                     <button
-                        className="shrink-0 text-muted hover:text-primary transition-colors"
+                        className="shrink-0 text-muted hover:text-primary transition-colors cursor-pointer"
                         onClick={() => toggleGroupSelection(group.filePaths)}
                     >
                         {allGroupFilesSelected ? (
@@ -308,14 +322,14 @@ const GroupItem = ({ group, selectedFiles, toggleFileSelection, toggleGroupSelec
                         )}
                     </button>
 
-                    <button onClick={() => setExpanded(!expanded)} className="flex-1 flex items-center gap-3 text-left min-w-0">
+                    <button onClick={() => setExpanded(!expanded)} className="flex-1 flex items-center gap-3 text-left min-w-0 cursor-pointer">
                         {isUnmatched && <span className="bg-danger-500/20 text-danger-500 border border-danger-500/30 text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider shrink-0">Unmatched</span>}
                         <h4 className="font-bold text-body text-[15px] truncate">{group.title}</h4>
                         <span className="text-muted text-xs font-semibold bg-black/20 px-2 py-1 rounded shrink-0">{group.filePaths.length} file{group.filePaths.length > 1 ? 's' : ''}</span>
                     </button>
                 </div>
 
-                <button onClick={() => setExpanded(!expanded)} className="p-1 text-muted hover:text-body">
+                <button onClick={() => setExpanded(!expanded)} className="p-1 text-muted hover:text-body cursor-pointer">
                     <CaretDownIcon size={20} className={`transition-transform ${expanded ? 'rotate-180' : ''}`} />
                 </button>
             </div>

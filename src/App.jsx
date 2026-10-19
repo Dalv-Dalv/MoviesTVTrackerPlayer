@@ -84,7 +84,7 @@ function App() {
     );
 }
 
-const HIDDEN_NAVBAR_ROUTES = ['/play', '/details', '/settings'];
+const HIDDEN_NAVBAR_ROUTES = ['/play', '/details', '/settings', '/library-manager'];
 function AnimatedRoutes() {
     const location = useLocation();
     const isPlayerRoute = location.pathname.startsWith('/play/');
@@ -157,7 +157,7 @@ function AnimatedRoutes() {
                     } />
 
                     <Route path='/search' element={
-                        <PageWrapper depth={0}>
+                        <PageWrapper depth={0} edgeToEdge={['top']}>
                             <SearchPage />
                         </PageWrapper>
                     } />

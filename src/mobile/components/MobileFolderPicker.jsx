@@ -176,7 +176,7 @@ export function MobileFolderPicker({ onClose, onSaveComplete }) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 1.05, y: 20 }}
             transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed pt-[var(--safe-top)] inset-0 bg-background z-50 flex flex-col text-body overflow-hidden"
+            className="fixed pt-(--safe-top) inset-0 bg-background z-50 flex flex-col text-body overflow-hidden"
         >
             <div className="flex items-center gap-2 p-4 px-6">
                 <button className="p-2 rounded-full aspect-square bg-white/0 transition-colors active:bg-white/10" onClick={onClose}>

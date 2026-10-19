@@ -58,7 +58,7 @@ export function ProfilePicturesModal({ isOpen, onClose, pictures }) {
 
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title="Media" className="max-w-[60vw] h-[90vh] rounded-[36px]" hideHeader unstyledBody>
+        <Modal isOpen={isOpen} onClose={onClose} title="Media" className="max-w-[90vw] lg:max-w-[60vw] h-[70vh] lg:h-[90vh] rounded-[36px]" hideHeader unstyledBody>
             <AnimatePresence mode="wait">
                 {selectedIndex === null ? (
                     <motion.div

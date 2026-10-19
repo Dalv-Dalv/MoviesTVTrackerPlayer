@@ -50,7 +50,7 @@ export function Modal({ isOpen, onClose, title, children, className = "max-w-lg"
     return createPortal(
         <AnimatePresence>
             {isOpen && (
-                <div ref={modalRef} className="fixed inset-0 z-9999 flex items-center justify-center noselect">
+                <div ref={modalRef} className="fixed inset-0 z-9999 flex items-center justify-center noselect p-4">
                     {/* Backdrop */}
                     <motion.div
                         initial={{ opacity: 0 }}

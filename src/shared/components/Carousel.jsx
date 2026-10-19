@@ -1,7 +1,15 @@
 import { CaretLeftIcon, CaretRightIcon } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
 
-export function Carousel({ children, className = "", id = "default-carousel", paddingClass = "px-12 scroll-px-12", saveScroll = true }) {
+export function Carousel({
+    children,
+    className = "",
+    id = "default-carousel",
+    paddingClass = "px-12 scroll-px-12",
+    saveScroll = true,
+    onReachEnd,
+    endReachedThreshold = 350
+}) {
     const rowRef = useRef(null);
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMaxScrolled, setIsMaxScrolled] = useState(false);
@@ -17,6 +25,13 @@ export function Carousel({ children, className = "", id = "default-carousel", pa
 
         setIsScrolled(scrollLeft > 0);
         setIsMaxScrolled(Math.ceil(scrollLeft + clientWidth) >= scrollWidth - 1);
+
+        if (onReachEnd && scrollWidth > clientWidth) {
+            const distanceToEnd = scrollWidth - (scrollLeft + clientWidth);
+            if (distanceToEnd <= endReachedThreshold) {
+                onReachEnd();
+            }
+        }
     };
 
     useEffect(() => {
