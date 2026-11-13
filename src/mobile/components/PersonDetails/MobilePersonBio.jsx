@@ -3,7 +3,7 @@ import { ExpandableText } from "../../../shared/components/ExpandableText";
 export function MobilePersonBio({ person }) {
     return (
         <div>
-            <h2 className="text-xl sm:text-2xl font-semibold text-muted mb-2">Biography</h2>
+            <h2 className="text-xl sm:text-2xl font-semibold text-body mb-2">Biography</h2>
             {person.biography ? (
                 <div className="text-body/90 text-sm sm:text-base leading-relaxed">
                     <ExpandableText text={person.biography} maxLength={400} />

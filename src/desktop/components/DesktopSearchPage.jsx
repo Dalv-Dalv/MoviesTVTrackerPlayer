@@ -71,7 +71,7 @@ export function DesktopSearchPage({ className = '' }) {
             },
             {
                 root: scrollRoot,
-                rootMargin: '400px'
+                rootMargin: '1400px'
             }
         );
 
@@ -108,11 +108,12 @@ export function DesktopSearchPage({ className = '' }) {
                             key={f.id}
                             type="button"
                             onClick={() => handleFilterChange(f.id)}
-                            className={`text-xs px-4 py-1.5 rounded-full border transition-all cursor-pointer font-medium ${isSelected
-                                ? 'bg-white/15 border-white/30 text-white shadow-sm'
-                                : 'bg-white/5 border-white/5 text-muted hover:text-body hover:bg-white/10'
+                            className={`p-1 px-3 rounded-lg transition-all noselect cursor-pointer ring-1 ring-inset ${isSelected
+                                ? 'ring-white/5 hover:ring-white/10 bg-white/10 text-white shadow-md'
+                                : 'ring-white/5 hover:ring-white/10 bg-surface/30 hover:bg-surface/50 text-muted hover:text-body'
                                 }`}
                         >
+                            {/* <div className="absolute -inset-8 bg-surface/30 group-hover:bg-surface/50 backdrop-blur-lg transition-colors duration-200 -z-10"/> */}
                             {f.label}
                         </button>
                     );

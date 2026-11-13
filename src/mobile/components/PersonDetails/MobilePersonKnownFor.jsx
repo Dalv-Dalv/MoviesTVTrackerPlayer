@@ -10,7 +10,7 @@ export function MobilePersonKnownFor({ knownForCredits }) {
 
     return (
         <div>
-            <h2 className="text-xl sm:text-2xl font-semibold text-muted mb-2">Known For</h2>
+            <h2 className="text-xl sm:text-2xl font-semibold text-body mb-2">Known For</h2>
             <Carousel id="person-known-for" saveScroll={false} paddingClass="px-0 pb-3">
                 {knownForCredits.map(credit => {
                     const compId = `${credit.media_type === 'tv' ? 'show' : 'movie'}_${credit.id}`;
@@ -44,7 +44,7 @@ export function MobilePersonKnownFor({ knownForCredits }) {
 export function MobilePersonKnownForSkeleton() {
     return (
         <div className="animate-pulse">
-            <h2 className="text-xl sm:text-2xl font-semibold text-muted mb-2 opacity-50">Known For</h2>
+            <h2 className="text-xl sm:text-2xl font-semibold text-body mb-2 opacity-50">Known For</h2>
             <div className="flex gap-4 overflow-hidden pb-3">
                 {[1, 2, 3, 4, 5].map(i => (
                     <div key={i} className="group flex flex-col gap-1 w-24 sm:w-28 lg:w-32 shrink-0">

@@ -4,7 +4,7 @@ import { MagnifyingGlassIcon, XIcon } from "@phosphor-icons/react";
 import { Carousel } from "../../shared/components/Carousel";
 import { SearchPosterCard } from "../../shared/components/SearchPosterCard";
 import { useRef, useEffect, useCallback, useState, useMemo } from "react";
-import { useTargetedSearch, useTopHitCategory, getSearchItemPath } from "../../shared/hooks/useSearch";
+import { useTopHitCategory, getSearchItemPath, useSearch } from "../../shared/hooks/useSearch";
 import { useDebounce } from "../../shared/hooks/useDebounce";
 
 const SECTION_MAP = {
@@ -31,7 +31,7 @@ function TargetedSearchCarousel({
         hasNextPage,
         isFetchingNextPage,
         isLoading
-    } = useTargetedSearch(query, sectionKey);
+    } = useSearch(query, sectionKey, 0);
 
     useEffect(() => {
         onStatusChange?.(sectionKey, items.length, isLoading);

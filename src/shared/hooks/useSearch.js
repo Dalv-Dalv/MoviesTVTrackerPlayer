@@ -32,6 +32,22 @@ export function getSearchItemPath(item) {
     return `/details/${mediaType}_${item.id}`;
 }
 
+export function hasSearchImage(item) {
+    return Boolean(item?.poster_path || item?.profile_path);
+}
+
+function preloadPageImages(items) {
+    if (typeof window === 'undefined') return;
+    for (const item of items) {
+        const src = item.poster_path || item.profile_path;
+        if (src) {
+            const img = new Image();
+            img.decoding = 'async';
+            img.src = src;
+        }
+    }
+}
+
 function formatRawSearchItem(item, fallbackType) {
     const formatted = { ...item };
 
@@ -59,21 +75,39 @@ function formatRawSearchItem(item, fallbackType) {
     return formatted;
 }
 
-function scoreSearchItem(item, normalizedQuery) {
-    const title = (item.title || item.name || '').toLowerCase();
-    const isExact = title === normalizedQuery;
+function shouldKeepSearchItem(item, normalizedQuery) {
+    if (hasSearchImage(item)) return true;
 
-    let score = item.popularity || 0;
+    const title = (item.title || item.name || '').toLowerCase().trim();
+    if (!title) return false;
+
+    const isExactMatch = title === normalizedQuery;
+    const isStrongPrefix = normalizedQuery.length >= 3 && title.startsWith(normalizedQuery);
+    const hasNotableTraction = (item.vote_count || 0) >= 5 || (item.popularity || 0) >= 2.5;
+
+    return isExactMatch || isStrongPrefix || hasNotableTraction;
+}
+
+function scoreSearchItem(item, normalizedQuery) {
+    const title = (item.title || item.name || '').toLowerCase().trim();
+    const isExact = title === normalizedQuery;
+    const hasImage = hasSearchImage(item);
+
+    let score = (item.popularity || 0) + 1;
 
     if (isExact) {
-        score *= (item.vote_count > 5 || score > 10) ? 50 : 1.5;
+        score *= (item.vote_count > 5 || score > 10) ? 50 : 5;
     } else if (title.startsWith(normalizedQuery)) {
-        score *= 1.2;
+        score *= 1.5;
     }
 
     const year = Number.parseInt(item.release_year, 10);
     if (!Number.isNaN(year) && year > 2015) {
         score *= 1.1;
+    }
+
+    if (!hasImage) {
+        score *= isExact ? 0.25 : 0.02;
     }
 
     return score;
@@ -91,7 +125,6 @@ export const useSearch = (query, searchType = 'all', debounceMs = 400) => {
     const fallbackType = DEFAULT_MEDIA_TYPE[searchType];
 
     const queryResult = useInfiniteQuery({
-        // Distinct key prevents colliding with old non-infinite useQuery cache entries
         queryKey: ['search-infinite', method, trimmedQuery],
         queryFn: async ({ pageParam = 1 }) => {
             if (!trimmedQuery) {
@@ -108,12 +141,15 @@ export const useSearch = (query, searchType = 'all', debounceMs = 400) => {
                 return { items: [], page: pageParam, totalPages: 0, totalResults: 0 };
             }
 
-            const items = res.results.map((item) => formatRawSearchItem(item, fallbackType));
+            const q = trimmedQuery.toLowerCase();
+            const rawFormatted = res.results.map((item) => formatRawSearchItem(item, fallbackType));
 
-            if (pageParam === 1) {
-                const q = trimmedQuery.toLowerCase();
-                items.sort((a, b) => scoreSearchItem(b, q) - scoreSearchItem(a, q));
-            }
+            const filtered = rawFormatted.filter((item) => shouldKeepSearchItem(item, q));
+            const items = filtered.length > 0 ? filtered : rawFormatted;
+
+            items.sort((a, b) => scoreSearchItem(b, q) - scoreSearchItem(a, q));
+
+            preloadPageImages(items);
 
             return {
                 items,
@@ -173,6 +209,10 @@ export const useSearch = (query, searchType = 'all', debounceMs = 400) => {
         debouncedSearch: trimmedQuery
     };
 };
+
+export function useTargetedSearch(query, sectionKey) {
+    return useSearch(query, sectionKey, 0);
+}
 
 export function useTopHitCategory(query) {
     const { results, isLoading } = useSearch(query, 'all', 0);

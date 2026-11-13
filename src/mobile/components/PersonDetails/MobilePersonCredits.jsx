@@ -48,8 +48,8 @@ export function MobilePersonCredits({ person, credits, roles }) {
     if (!credits || credits.length === 0) return null;
 
     return (
-        <div className="flex flex-col gap-4">
-            <h2 className="text-xl sm:text-2xl font-semibold text-muted mb-2">Credits</h2>
+        <div className="flex flex-col gap-2">
+            <h2 className="text-xl sm:text-2xl font-semibold text-body">Credits</h2>
 
             <div className="flex flex-row flex-wrap gap-2 w-full mb-4">
                 {chips?.map(c => (

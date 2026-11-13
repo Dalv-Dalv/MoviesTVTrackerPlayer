@@ -6,7 +6,11 @@ export function DesktopPersonProfile({ person, age, formattedBirthday, onOpenMod
     return (
         <div className="w-full max-w-80 z-10 sticky top-24 flex flex-col gap-6">
             <div onClick={onOpenModal} className="isolate relative w-full aspect-2/3 rounded-lg overflow-hidden shadow-xl cursor-pointer group bg-background">
-                <ProfileImage imagePath={person.profilePathFull} className="w-full h-full rounded-lg" iconSize={64} />
+                <ProfileImage
+                    imagePath={person.profilePathFull}
+                    className="w-full h-full rounded-lg bg-white/10"
+                    iconSize={86}
+                />
 
                 <RingGlow rounded="rounded-lg" hover />
             </div>
